@@ -165,6 +165,14 @@ module.exports = {
 };
 `);
 
+
+// Garante que o retorno OAuth usado no mobile seja servido antes do fallback 404.
+replaceOnce(
+  'src/app.js',
+  "app.use('/api/auth', authRoutes);",
+  "app.get('/whatsapp.html', (req, res) => res.sendFile(require('node:path').join(process.cwd(), 'public', 'whatsapp.html')));\n\napp.use('/api/auth', authRoutes);"
+);
+
 replaceOnce(
   'src/controllers/whatsappConfiguracao.controller.js',
   "const credenciais = require('../services/whatsappCredencial.service');",
