@@ -1,4 +1,4 @@
-name: Build Loja IA APK
+name: Build Agente SaintsAI APK
 
 on:
   workflow_dispatch:
@@ -34,11 +34,11 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Loja-IA-v1.0.0.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Agente-SaintsAI-v1.0.1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Loja-IA-APK
-          path: android-app/Loja-IA-v1.0.0.apk
+          name: Agente-SaintsAI-APK
+          path: android-app/Agente-SaintsAI-v1.0.1.apk
           if-no-files-found: error
