@@ -1,138 +1,176 @@
 const fs = require('node:fs');
 
-function replaceOnce(path, from, to) {
-  let src = fs.readFileSync(path, 'utf8');
-  if (!src.includes(from)) throw new Error('Trecho esperado não encontrado em ' + path);
-  src = src.replace(from, to);
-  fs.writeFileSync(path, src);
+function read(path) { return fs.readFileSync(path, 'utf8'); }
+function write(path, value) { fs.writeFileSync(path, value); }
+
+// 1) Cadastro público fechado: não existe botão na tela de login e a rota pública devolve 403.
+let authRoutes = read('src/routes/auth.routes.js');
+authRoutes = authRoutes.replace(
+  /router\.post\(\s*['"]\/cadastrar['"][\s\S]*?\);/,
+  "router.post('/cadastrar', (_req, res) => res.status(403).json({ erro: 'Cadastro disponível somente pelo administrador.' }));"
+);
+write('src/routes/auth.routes.js', authRoutes);
+
+// Qualquer acesso antigo a /painel/cadastro.html volta para o login.
+write('public/cadastro.html', `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=login.html"><title>Cadastro restrito</title></head><body><p>Cadastro disponível somente pelo administrador.</p><p><a href="login.html">Voltar para o login</a></p></body></html>`);
+
+// 2) Endpoint administrativo para criar usuário confirmado + loja.
+// A service role fica somente no servidor.
+let controller = read('src/controllers/admin.controller.js');
+if (!controller.includes("const supabaseAuth = require('../config/supabaseAuth');")) {
+  controller = controller.replace(
+    "const supabase = require('../config/supabase');",
+    "const supabase = require('../config/supabase');\nconst supabaseAuth = require('../config/supabaseAuth');"
+  );
 }
 
-// Link visível na tela de login.
-replaceOnce(
-  'public/login.html',
-  '      </button>\n    </form>',
-  `      </button>
-    </form>
-    <div style="margin-top:16px;text-align:center">
-      <a class="btn-secondary" href="cadastro.html" style="display:inline-flex;justify-content:center;width:100%;text-decoration:none">Criar conta</a>
-    </div>`
-);
+if (!controller.includes('async function criarCliente(req, res)')) {
+  const fn = `
+async function criarCliente(req, res) {
+  const nome = String(req.body?.nome || '').trim();
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const senha = String(req.body?.senha || '');
+  const REGEX_EMAIL = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 
-// Tela de cadastro do cliente.
-const cadastroHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#111111">
-<link rel="manifest" href="/painel/manifest.webmanifest">
-<link rel="icon" href="/painel/icons/icon-192.png">
-<title>Criar conta · Vitrine</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="js/theme.js"></script>
-<link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-<div class="login-screen">
-  <div class="login-card">
-    <div class="login-brand brand">Vitrine</div>
-    <p class="login-sub">Crie sua conta</p>
-    <div id="erro-cadastro" class="error-msg hidden" role="alert"></div>
-    <div id="ok-cadastro" class="success-msg hidden" role="status"></div>
-
-    <form id="form-cadastro" novalidate>
-      <div class="field">
-        <label for="usuario">Nome de usuário</label>
-        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required>
-      </div>
-      <div class="field">
-        <label for="email">E-mail</label>
-        <input type="email" id="email" name="email" autocomplete="email" required>
-      </div>
-      <div class="field">
-        <label for="senha">Senha</label>
-        <input type="password" id="senha" name="senha" autocomplete="new-password" minlength="6" required>
-      </div>
-      <button type="submit" class="btn-primary" id="botao-cadastrar">
-        <span id="texto-cadastrar">Criar conta</span>
-      </button>
-    </form>
-
-    <div style="margin-top:16px;text-align:center">
-      <a href="login.html" style="text-decoration:none">Já tenho conta · Entrar</a>
-    </div>
-  </div>
-</div>
-
-<script src="js/config.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/api.js"></script>
-<script>
-  if (estaAutenticado()) window.location.replace('dashboard.html');
-
-  const form = document.getElementById('form-cadastro');
-  const erroBox = document.getElementById('erro-cadastro');
-  const okBox = document.getElementById('ok-cadastro');
-  const botao = document.getElementById('botao-cadastrar');
-  const texto = document.getElementById('texto-cadastrar');
-
-  function mostrarErro(msg) {
-    okBox.classList.add('hidden');
-    erroBox.textContent = msg;
-    erroBox.classList.remove('hidden');
+  if (nome.length < 2 || nome.length > 100) {
+    return res.status(400).json({ erro: 'Informe um nome de loja entre 2 e 100 caracteres.' });
   }
-  function mostrarOk(msg) {
-    erroBox.classList.add('hidden');
-    okBox.textContent = msg;
-    okBox.classList.remove('hidden');
+  if (!REGEX_EMAIL.test(email) || email.length > 254) {
+    return res.status(400).json({ erro: 'Informe um e-mail/login válido. Pode ser fictício, por exemplo superbac@agente.com.' });
   }
-  function carregando(v) {
-    botao.disabled = v;
-    texto.textContent = v ? 'Criando…' : 'Criar conta';
+  if (senha.length < 6 || senha.length > 128) {
+    return res.status(400).json({ erro: 'A senha deve ter entre 6 e 128 caracteres.' });
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const usuario = document.getElementById('usuario').value.trim().toLowerCase().replace(/^@+/, '');
-    const email = document.getElementById('email').value.trim();
-    const senha = document.getElementById('senha').value;
+  const prefixo = email.split('@')[0].toLowerCase();
+  const username = /^[a-z0-9._-]{3,32}$/.test(prefixo) ? prefixo : undefined;
 
-    if (!usuario || !email || !senha) return mostrarErro('Preencha nome de usuário, e-mail e senha.');
-    carregando(true);
-    try {
-      await apiFetch('/auth/cadastrar', {
-        method: 'POST',
-        body: JSON.stringify({ usuario, email, senha }),
-      });
-      mostrarOk('Conta criada. Se a confirmação de e-mail estiver ativa, confirme o e-mail e depois entre na conta.');
-      form.reset();
-      setTimeout(() => { window.location.href = 'login.html'; }, 1800);
-    } catch (erro) {
-      mostrarErro(erro.message || 'Não foi possível criar a conta.');
-    } finally {
-      carregando(false);
+  let userId = null;
+  let lojaId = null;
+  try {
+    const { data: criado, error: erroUsuario } = await supabaseAuth.auth.admin.createUser({
+      email,
+      password: senha,
+      email_confirm: true,
+      user_metadata: username ? { username } : {},
+      app_metadata: { saintsai_managed: true },
+    });
+    if (erroUsuario || !criado?.user?.id) {
+      const msg = String(erroUsuario?.message || '');
+      if (/already|registered|exists/i.test(msg)) {
+        return res.status(409).json({ erro: 'Esse e-mail/login já está cadastrado.' });
+      }
+      throw erroUsuario || new Error('falha_criacao_usuario');
     }
-  });
-</script>
-</body>
-</html>`;
+    userId = criado.user.id;
 
-fs.writeFileSync('public/cadastro.html', cadastroHtml);
+    const { data: loja, error: erroLoja } = await supabase
+      .from('lojas')
+      .insert({ dono_id: userId, nome, ativa: true })
+      .select('id, nome')
+      .single();
+    if (erroLoja || !loja?.id) throw erroLoja || new Error('falha_criacao_loja');
+    lojaId = loja.id;
 
-// Atalho no painel administrativo para o dono cadastrar um cliente manualmente.
-// Abre a mesma tela de criação de conta em nova aba, sem expor credenciais administrativas.
-let admin = fs.readFileSync('public/admin.html', 'utf8');
-const bloco = `
-<section class="card" style="margin-top:20px">
-  <h2>Cadastrar cliente</h2>
-  <p>Crie a conta de um novo cliente com nome de usuário, e-mail e senha.</p>
-  <a class="btn-primary" href="cadastro.html" target="_blank" rel="noopener" style="display:inline-flex;text-decoration:none">Cadastrar novo cliente</a>
+    // Começa sem acesso comercial até o administrador escolher/ativar o plano.
+    await definirAssinatura(lojaId, { plano: 'trial', status: 'inativo', valido_ate: null });
+
+    return res.status(201).json({
+      cliente: { id: userId, email, username: username || null },
+      loja,
+      confirmado: true,
+    });
+  } catch (erro) {
+    console.error('[admin] falha ao criar cliente:', erro?.name || 'erro');
+    if (lojaId) {
+      try { await supabase.from('lojas').delete().eq('id', lojaId); } catch (_) {}
+    }
+    if (userId) {
+      try { await supabaseAuth.auth.admin.deleteUser(userId); } catch (_) {}
+    }
+    return res.status(500).json({ erro: 'Não foi possível cadastrar o cliente.' });
+  }
+}
+`;
+  controller = controller.replace('\nasync function operacao(req, res) {', fn + '\nasync function operacao(req, res) {');
+}
+
+controller = controller.replace(
+  'module.exports = { me, listarEmpresas, atualizarAssinatura, operacao };',
+  'module.exports = { me, listarEmpresas, atualizarAssinatura, criarCliente, operacao };'
+);
+write('src/controllers/admin.controller.js', controller);
+
+// Rota protegida por login + exigirAdmin.
+let adminRoutes = read('src/routes/admin.routes.js');
+if (!adminRoutes.includes("router.post('/clientes'")) {
+  adminRoutes = adminRoutes.replace(
+    "router.get('/empresas', exigirAdmin, controller.listarEmpresas);",
+    "router.get('/empresas', exigirAdmin, controller.listarEmpresas);\nrouter.post('/clientes', exigirAdmin, controller.criarCliente);"
+  );
+}
+write('src/routes/admin.routes.js', adminRoutes);
+
+// 3) Formulário dentro do painel Admin.
+let adminHtml = read('public/admin.html');
+if (!adminHtml.includes('id="admin-cliente-form"')) {
+  const bloco = `
+<section class="billing-card">
+  <div class="admin-head"><h2>Cadastrar cliente</h2></div>
+  <p>Somente contas criadas aqui têm acesso. O e-mail pode ser fictício e não precisa ser verificado.</p>
+  <form id="admin-cliente-form" class="admin-tools" autocomplete="off">
+    <label>Nome da loja
+      <input id="admin-cliente-nome" type="text" minlength="2" maxlength="100" placeholder="Superbac" required>
+    </label>
+    <label>E-mail/login
+      <input id="admin-cliente-email" type="email" maxlength="254" placeholder="superbac@agente.com" required>
+    </label>
+    <label>Senha inicial
+      <input id="admin-cliente-senha" type="password" minlength="6" maxlength="128" autocomplete="new-password" required>
+    </label>
+    <button id="admin-cliente-criar" class="btn-primary" type="submit">Criar cliente</button>
+  </form>
+  <p id="admin-cliente-resultado" role="status"></p>
 </section>
 `;
-if (!admin.includes('Cadastrar novo cliente')) {
-  if (admin.includes('</main>')) admin = admin.replace('</main>', bloco + '\n</main>');
-  else admin = admin.replace('</body>', bloco + '\n</body>');
+  adminHtml = adminHtml.replace('<section class="billing-card"><div class="admin-head"><h2>Empresas</h2>', bloco + '<section class="billing-card"><div class="admin-head"><h2>Empresas</h2>');
 }
-fs.writeFileSync('public/admin.html', admin);
+write('public/admin.html', adminHtml);
 
-console.log('Patch de cadastro de clientes aplicado.');
+// 4) Ação do formulário administrativo.
+let adminJs = read('public/js/admin.js');
+if (!adminJs.includes("document.getElementById('admin-cliente-form')")) {
+  adminJs += `
+
+document.getElementById('admin-cliente-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nome = document.getElementById('admin-cliente-nome').value.trim();
+  const email = document.getElementById('admin-cliente-email').value.trim().toLowerCase();
+  const senha = document.getElementById('admin-cliente-senha').value;
+  const botao = document.getElementById('admin-cliente-criar');
+  const resultado = document.getElementById('admin-cliente-resultado');
+  botao.disabled = true;
+  resultado.textContent = 'Criando cliente…';
+  try {
+    const dados = await apiFetch('/admin/clientes', {
+      method: 'POST',
+      body: JSON.stringify({ nome, email, senha }),
+    });
+    resultado.textContent = 'Cliente criado: ' + dados.cliente.email + '. Já pode entrar sem confirmar e-mail.';
+    document.getElementById('admin-cliente-form').reset();
+    paginaAdmin = 1;
+    buscaAdmin = '';
+    document.getElementById('admin-busca').value = '';
+    await carregarAdmin();
+  } catch (erro) {
+    if (erro instanceof SessaoExpiradaError) return fazerLogout();
+    resultado.textContent = erro.message || 'Não foi possível criar o cliente.';
+  } finally {
+    botao.disabled = false;
+  }
+});
+`;
+}
+write('public/js/admin.js', adminJs);
+
+console.log('Patch de cadastro exclusivo pelo Admin aplicado.');
