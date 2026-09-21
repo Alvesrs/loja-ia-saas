@@ -161,4 +161,23 @@ replaceOnce(
   "        body: JSON.stringify({ identificador, senha }),"
 );
 
+// 4) Permite link dedicado para o cliente: login.html?next=whatsapp.html.
+let loginHtml = fs.readFileSync('public/login.html', 'utf8');
+loginHtml = loginHtml.replace(
+  "  // Se já existe sessão válida, não faz sentido mostrar o login de novo.\n  if (estaAutenticado()) {\n    window.location.replace('dashboard.html');\n  }",
+  `  const nextParam = new URLSearchParams(window.location.search).get('next');
+  const destinoPermitido = ['dashboard.html', 'whatsapp.html'];
+  const destinoAposLogin = destinoPermitido.includes(nextParam) ? nextParam : 'dashboard.html';
+
+  // Se já existe sessão válida, segue para o destino solicitado.
+  if (estaAutenticado()) {
+    window.location.replace(destinoAposLogin);
+  }`
+);
+loginHtml = loginHtml.replace(
+  "      window.location.href = 'dashboard.html';",
+  "      window.location.href = destinoAposLogin;"
+);
+fs.writeFileSync('public/login.html', loginHtml);
+
 console.log('Patch de login por email ou usuário aplicado.');
