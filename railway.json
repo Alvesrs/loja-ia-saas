@@ -1,7 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "buildCommand": "python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip . && echo '[AUTH_FILES_BEGIN]' && (find src public -type f | grep -Ei 'auth|login|usuario|user|sessao|session' || true) && echo '[AUTH_GREP_BEGIN]' && (grep -R -n -E 'router.*login|login|signIn|sign_in|email|senha|password|username|usuario|supabase\\.auth' src public/js 2>/dev/null | head -n 260 || true) && echo '[AUTH_GREP_END]' && node patches/fix-public-ia-route.js && node patches/log-ai-response-origin.js && node patches/stock-last-unit-policy.js && node patches/order-status-management.js && node patches/expose-plan-dashboard.js && node patches/meta-embedded-signup.js && npm ci --omit=dev"
+    "buildCommand": "python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip . && echo '[FILE_LIST_BEGIN]' && find src public -maxdepth 4 -type f -print && echo '[FILE_LIST_END]' && node patches/fix-public-ia-route.js && node patches/log-ai-response-origin.js && node patches/stock-last-unit-policy.js && node patches/order-status-management.js && node patches/expose-plan-dashboard.js && node patches/meta-embedded-signup.js && npm ci --omit=dev"
   },
   "deploy": {
     "startCommand": "npm start",
