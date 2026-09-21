@@ -4,8 +4,8 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="Loja IA"
-        android:theme="@style/Theme.LojaIA">
+        android:label="Agente SaintsAI"
+        android:theme="@style/Theme.SaintsAI">
         <activity
             android:name=".MainActivity"
             android:exported="true"
