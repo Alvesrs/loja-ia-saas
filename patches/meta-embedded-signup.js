@@ -277,7 +277,7 @@ let waEmbeddedEnviando = false;
 function waMetaOrigemValida(origin) {
   try {
     const host = new URL(origin).hostname;
-    return host === 'facebook.com' || host.endsWith('.facebook.com');
+    return host === 'facebook.com' || host.endsWith('.facebook.com') || host === 'fb.com' || host.endsWith('.fb.com');
   } catch (_) { return false; }
 }
 
@@ -389,29 +389,35 @@ window.addEventListener('message', (event) => {
 
 document.getElementById('wa-conectar-meta').addEventListener('click', () => {
   waLimparErro();
-  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel) {
+  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel || !window.FB) {
     return waErro('A conexão automática com a Meta ainda não está disponível.');
   }
+
   waEmbeddedCode = null;
   waEmbeddedSession = null;
-  waEmbeddedEstado('Abrindo Meta…', false);
+  waEmbeddedEstado('Abrindo cadastro do WhatsApp…', false);
 
-  const callback = window.location.origin + '/whatsapp.html';
-  const extras = JSON.stringify({ setup: {}, sessionInfoVersion: '3' });
-  const url = 'https://www.facebook.com/' + (waEmbeddedCfg.graph_version || 'v25.0') + '/dialog/oauth'
-    + '?client_id=' + encodeURIComponent(waEmbeddedCfg.app_id)
-    + '&redirect_uri=' + encodeURIComponent(callback)
-    + '&state=' + encodeURIComponent(String(waLojaId || ''))
-    + '&config_id=' + encodeURIComponent(waEmbeddedCfg.config_id)
-    + '&response_type=code'
-    + '&override_default_response_type=true'
-    + '&display=popup'
-    + '&extras=' + encodeURIComponent(extras);
-
-  const popup = window.open(url, 'saintsai_meta_signup', 'width=520,height=760');
-  if (!popup) {
-    window.location.href = url;
-  }
+  FB.login((response) => {
+    if (response && response.authResponse && response.authResponse.code) {
+      waEmbeddedCode = String(response.authResponse.code);
+      waEmbeddedEstado(
+        waEmbeddedSession ? 'Concluindo conexão…' : 'Autorizado — aguardando WhatsApp…',
+        false
+      );
+      waTentarConcluirEmbedded();
+    } else {
+      waEmbeddedEstado('Cadastro não concluído', false);
+    }
+  }, {
+    config_id: waEmbeddedCfg.config_id,
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: {
+      setup: {},
+      featureType: '',
+      sessionInfoVersion: '3'
+    }
+  });
 });
 
 waPrepararEmbeddedSignup();
