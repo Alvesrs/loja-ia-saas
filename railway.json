@@ -1,7 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "buildCommand": "python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip . && node patches/fix-public-ia-route.js && node patches/log-ai-response-origin.js && node patches/stock-last-unit-policy.js && node patches/order-status-management.js && node patches/expose-plan-dashboard.js && node patches/admin-dashboard-link.js && node patches/meta-embedded-signup.js && node patches/login-email-usuario.js && node patches/cadastro-clientes.js && echo '[ROUTES_BEGIN]' && find src/routes src/controllers -maxdepth 1 -type f -print && cat src/app.js src/middleware/auth.js public/js/loja.js && echo '[ROUTES_END]' && npm ci --omit=dev"
+    "buildCommand": "python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip . && node patches/fix-public-ia-route.js && node patches/log-ai-response-origin.js && node patches/stock-last-unit-policy.js && node patches/order-status-management.js && node patches/expose-plan-dashboard.js && node patches/admin-dashboard-link.js && node patches/meta-embedded-signup.js && node patches/login-email-usuario.js && node patches/cadastro-clientes.js && node patches/cliente-estoque-agente.js && npm ci --omit=dev"
   },
   "deploy": {
     "startCommand": "npm start",
