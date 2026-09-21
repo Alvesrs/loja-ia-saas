@@ -356,30 +356,39 @@ async function waPrepararEmbeddedSignup() {
   }
 }
 
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin) return;
+  const data = event.data;
+  if (!data || data.type !== 'SAINTSAI_META_OAUTH_CODE' || !data.code) return;
+  waEmbeddedCode = String(data.code);
+  waTentarConcluirEmbedded();
+});
+
 document.getElementById('wa-conectar-meta').addEventListener('click', () => {
   waLimparErro();
-  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel || !window.FB) {
+  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel) {
     return waErro('A conexão automática com a Meta ainda não está disponível.');
   }
   waEmbeddedCode = null;
   waEmbeddedSession = null;
   waEmbeddedEstado('Abrindo Meta…', false);
-  FB.login((response) => {
-    if (response && response.authResponse && response.authResponse.code) {
-      waEmbeddedCode = response.authResponse.code;
-      waTentarConcluirEmbedded();
-    } else {
-      waEmbeddedEstado('Não autorizado', false);
-    }
-  }, {
-    config_id: waEmbeddedCfg.config_id,
-    response_type: 'code',
-    override_default_response_type: true,
-    extras: {
-      setup: {},
-      sessionInfoVersion: '3'
-    }
-  });
+
+  const callback = window.location.origin + '/meta-embedded-callback.html';
+  const extras = JSON.stringify({ setup: {}, sessionInfoVersion: '3' });
+  const url = 'https://www.facebook.com/' + (waEmbeddedCfg.graph_version || 'v25.0') + '/dialog/oauth'
+    + '?client_id=' + encodeURIComponent(waEmbeddedCfg.app_id)
+    + '&redirect_uri=' + encodeURIComponent(callback)
+    + '&state=' + encodeURIComponent(String(waLojaId || ''))
+    + '&config_id=' + encodeURIComponent(waEmbeddedCfg.config_id)
+    + '&response_type=code'
+    + '&override_default_response_type=true'
+    + '&display=popup'
+    + '&extras=' + encodeURIComponent(extras);
+
+  const popup = window.open(url, 'saintsai_meta_signup', 'width=520,height=760');
+  if (!popup) {
+    window.location.href = url;
+  }
 });
 
 waPrepararEmbeddedSignup();
@@ -391,5 +400,48 @@ if (fs.existsSync('.env.example')) {
   if (!env.includes('META_APP_ID=')) env += '\n# Meta Embedded Signup\nMETA_APP_ID=\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\nMETA_GRAPH_VERSION=v25.0\n';
   fs.writeFileSync('.env.example', env);
 }
+
+
+fs.writeFileSync('public/meta-embedded-callback.html', `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SaintsAI - Meta</title>
+  <style>body{font-family:system-ui,sans-serif;background:#0d0914;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:420px;padding:28px;text-align:center}a{display:inline-block;margin-top:18px;padding:12px 18px;border-radius:12px;background:#7c3aed;color:#fff;text-decoration:none}</style>
+</head>
+<body>
+  <div class="box">
+    <h2>Autorização concluída</h2>
+    <p id="msg">Retornando ao SaintsAI…</p>
+    <a id="voltar" href="/whatsapp.html" style="display:none">Voltar ao SaintsAI</a>
+  </div>
+<script>
+(function(){
+  const p = new URLSearchParams(location.search);
+  const code = p.get('code');
+  const error = p.get('error') || p.get('error_description');
+  const msg = document.getElementById('msg');
+  const voltar = document.getElementById('voltar');
+  if (error || !code) {
+    msg.textContent = error ? 'A Meta não concluiu a autorização.' : 'Código de autorização não recebido.';
+    voltar.style.display = 'inline-block';
+    return;
+  }
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'SAINTSAI_META_OAUTH_CODE', code: code }, window.location.origin);
+      msg.textContent = 'Autorizado. Voltando ao SaintsAI…';
+      setTimeout(function(){ window.close(); }, 500);
+      setTimeout(function(){ voltar.style.display = 'inline-block'; }, 1200);
+      return;
+    }
+  } catch (_) {}
+  sessionStorage.setItem('saintsai_meta_oauth_code', code);
+  location.replace('/whatsapp.html?meta_oauth=1');
+})();
+</script>
+</body>
+</html>`);
 
 console.log('Patch do Meta Embedded Signup aplicado.');
