@@ -5,6 +5,8 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:label="Agente SaintsAI"
+        android:icon="@drawable/ic_saintsai"
+        android:roundIcon="@drawable/ic_saintsai"
         android:theme="@style/Theme.SaintsAI">
         <activity
             android:name=".MainActivity"
