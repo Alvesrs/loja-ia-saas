@@ -8,7 +8,7 @@ function replaceOnce(path, from, to) {
 }
 
 const servicePath = 'src/services/metaEmbeddedSignup.service.js';
-fs.writeFileSync(servicePath, \`const configuracoes = require('./whatsappConfiguracao.service');
+fs.writeFileSync(servicePath, `const configuracoes = require('./whatsappConfiguracao.service');
 const credenciais = require('./whatsappCredencial.service');
 
 const META_APP_ID = process.env.META_APP_ID || '';
@@ -163,7 +163,7 @@ module.exports = {
   obterConfiguracaoPublica,
   concluir,
 };
-\`);
+`);
 
 replaceOnce(
   'src/controllers/whatsappConfiguracao.controller.js',
@@ -180,7 +180,7 @@ replaceOnce(
 replaceOnce(
   'src/controllers/whatsappConfiguracao.controller.js',
   "module.exports = { criar, listar, buscar, atualizar, desativar, salvarCredencial, estadoCredencial, removerCredencial };",
-  \`async function configuracaoEmbeddedSignup(req, res) {
+  `async function configuracaoEmbeddedSignup(req, res) {
   return res.json(embeddedSignup.obterConfiguracaoPublica());
 }
 
@@ -201,7 +201,7 @@ async function concluirEmbeddedSignup(req, res) {
 module.exports = {
   criar, listar, buscar, atualizar, desativar, salvarCredencial,
   estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, concluirEmbeddedSignup
-};\`
+};`
 );
 
 replaceOnce(
@@ -212,8 +212,8 @@ replaceOnce(
 
 replaceOnce(
   'public/whatsapp.html',
-  \`      <section class="wa-grid" aria-label="Configuração do WhatsApp">\`,
-  \`      <section class="wa-card" aria-label="Conexão automática com a Meta" id="wa-embedded-card">
+  `      <section class="wa-grid" aria-label="Configuração do WhatsApp">`,
+  `      <section class="wa-card" aria-label="Conexão automática com a Meta" id="wa-embedded-card">
         <div class="wa-card-head">
           <div>
             <span class="eyebrow">Recomendado</span>
@@ -233,7 +233,7 @@ replaceOnce(
         <p class="field-help" style="margin-top:10px">Use esta opção apenas se o Embedded Signup estiver indisponível.</p>
       </details>
 
-      <section class="wa-grid" aria-label="Configuração do WhatsApp">\`
+      <section class="wa-grid" aria-label="Configuração do WhatsApp">`
 );
 
 replaceOnce(
@@ -243,7 +243,7 @@ replaceOnce(
 );
 
 let js = fs.readFileSync('public/js/whatsapp.js', 'utf8');
-js += \`
+js += `
 
 // ---------- Embedded Signup Meta ----------
 let waEmbeddedCfg = null;
@@ -383,7 +383,7 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
 });
 
 waPrepararEmbeddedSignup();
-\`;
+`;
 fs.writeFileSync('public/js/whatsapp.js', js);
 
 if (fs.existsSync('.env.example')) {
