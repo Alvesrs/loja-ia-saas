@@ -222,16 +222,13 @@ async function carregarClientesGerenciados() {
       box.innerHTML = '<p>Nenhum cliente cadastrado ainda.</p>';
       return;
     }
-    box.innerHTML = clientes.map(c => `
-      <a href="admin-cliente.html?loja=${encodeURIComponent(c.loja_id)}"
-         style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(127,127,127,.18);text-decoration:none;color:inherit">
-        <div>
-          <strong>${escaparClienteHtml(c.nome)}</strong>
-          <div style="opacity:.7;font-size:13px;margin-top:4px">${escaparClienteHtml(c.email || c.username || '')}</div>
-        </div>
-        <span>Gerenciar ›</span>
-      </a>
-    `).join('');
+    box.innerHTML = clientes.map(function(c) {
+      return '<a href="admin-cliente.html?loja=' + encodeURIComponent(c.loja_id) + '"' +
+        ' style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(127,127,127,.18);text-decoration:none;color:inherit">' +
+        '<div><strong>' + escaparClienteHtml(c.nome) + '</strong>' +
+        '<div style="opacity:.7;font-size:13px;margin-top:4px">' + escaparClienteHtml(c.email || c.username || '') + '</div></div>' +
+        '<span>Gerenciar ›</span></a>';
+    }).join('');
   } catch (erro) {
     if (erro instanceof SessaoExpiradaError) return fazerLogout();
     box.innerHTML = '<p>Não foi possível carregar os clientes.</p>';
