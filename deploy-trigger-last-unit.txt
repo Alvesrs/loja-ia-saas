@@ -1,0 +1,1 @@
+Trigger de deploy para aplicar a política de estoque: 0=indisponível, 1=última unidade, 2+=disponível.
