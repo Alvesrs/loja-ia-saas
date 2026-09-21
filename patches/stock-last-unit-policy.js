@@ -1,66 +1,42 @@
 const fs = require('node:fs');
 
-function patchFile(path, replacers) {
+function replaceOrFail(path, pattern, replacement) {
   let src = fs.readFileSync(path, 'utf8');
-  for (const [from, to] of replacers) {
-    if (!src.includes(from)) throw new Error(`Trecho esperado não encontrado em ${path}`);
-    src = src.replace(from, to);
+  if (!pattern.test(src)) {
+    throw new Error('Trecho esperado não encontrado em ' + path);
   }
+  src = src.replace(pattern, replacement);
   fs.writeFileSync(path, src);
 }
 
-patchFile('src/services/iaContexto.service.js', [
-  [
-`function estaDisponivel(quantidade) {
-  return typeof quantidade === 'number' && quantidade > 0;
-}`,
-`function estaDisponivel(quantidade) {
-  return typeof quantidade === 'number' && quantidade > 0;
-}
+replaceOrFail(
+  'src/services/iaContexto.service.js',
+  /function estaDisponivel\(quantidade\) \{\n  return typeof quantidade === 'number' && quantidade > 0;\n\}/,
+  "function estaDisponivel(quantidade) {\n  return typeof quantidade === 'number' && quantidade > 0;\n}\n\nfunction ehUltimaUnidade(quantidade) {\n  return typeof quantidade === 'number' && quantidade === 1;\n}"
+);
 
-function ehUltimaUnidade(quantidade) {
-  return typeof quantidade === 'number' && quantidade === 1;
-}`
-  ],
-  [
-`    disponivel: estaDisponivel(variacao.quantidade),
-  }));`,
-`    disponivel: estaDisponivel(variacao.quantidade),
-    ultimaUnidade: ehUltimaUnidade(variacao.quantidade),
-  }));`
-  ],
-  [
-`function formatarVariacaoTexto(variacao) {
-  return `- ${variacao.cor} / ${variacao.tamanho} → ${variacao.disponivel ? 'disponível' : 'indisponível'}`;
-}`,
-`function formatarVariacaoTexto(variacao) {
-  let status = 'indisponível';
-  if (variacao.disponivel) {
-    status = variacao.ultimaUnidade ? 'última unidade disponível' : 'disponível';
-  }
-  return `- ${variacao.cor} / ${variacao.tamanho} → ${status}`;
-}`
-  ],
-  [
-`  estaDisponivel,
-  ErroLojaInvalida,`,
-`  estaDisponivel,
-  ehUltimaUnidade,
-  ErroLojaInvalida,`
-  ]
-]);
+replaceOrFail(
+  'src/services/iaContexto.service.js',
+  /    disponivel: estaDisponivel\(variacao\.quantidade\),\n  \}\)\);/,
+  "    disponivel: estaDisponivel(variacao.quantidade),\n    ultimaUnidade: ehUltimaUnidade(variacao.quantidade),\n  }));"
+);
 
-patchFile('src/services/iaPrompt.service.js', [
-  [
-`- Quando houver variações de estoque, respeite exatamente "disponível" ou
-  "indisponível" informado no contexto.
-- Quando o contexto disser que estoque/variações não são controlados no sistema,`,
-`- Quando houver variações de estoque, respeite exatamente o status informado no contexto:
-  "disponível", "indisponível" ou "última unidade disponível".
-- Nunca revele a quantidade exata em estoque ao cliente. A única exceção é quando houver
-  exatamente 1 unidade: nesse caso, avise que é a "última unidade".
-- Quando o contexto disser que estoque/variações não são controlados no sistema,`
-  ]
-]);
+replaceOrFail(
+  'src/services/iaContexto.service.js',
+  /function formatarVariacaoTexto\(variacao\) \{\n  return [^\n]+;\n\}/,
+  "function formatarVariacaoTexto(variacao) {\n  let status = 'indisponível';\n  if (variacao.disponivel) {\n    status = variacao.ultimaUnidade ? 'última unidade disponível' : 'disponível';\n  }\n  return '- ' + variacao.cor + ' / ' + variacao.tamanho + ' → ' + status;\n}"
+);
+
+replaceOrFail(
+  'src/services/iaContexto.service.js',
+  /  estaDisponivel,\n  ErroLojaInvalida,/,
+  "  estaDisponivel,\n  ehUltimaUnidade,\n  ErroLojaInvalida,"
+);
+
+replaceOrFail(
+  'src/services/iaPrompt.service.js',
+  /- Quando houver variações de estoque, respeite exatamente "disponível" ou\n  "indisponível" informado no contexto\.\n- Quando o contexto disser que estoque\/variações não são controlados no sistema,/,
+  "- Quando houver variações de estoque, respeite exatamente o status informado no contexto:\n  \\"disponível\\", \\"indisponível\\" ou \\"última unidade disponível\\".\n- Nunca revele a quantidade exata em estoque ao cliente. A única exceção é quando houver\n  exatamente 1 unidade: nesse caso, avise que é a \\"última unidade\\".\n- Quando o contexto disser que estoque/variações não são controlados no sistema,"
+);
 
 console.log('Patch de política de estoque aplicado.');
