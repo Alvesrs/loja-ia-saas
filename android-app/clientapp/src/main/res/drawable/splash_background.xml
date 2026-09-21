@@ -1,0 +1,6 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="rectangle"><gradient android:type="radial" android:gradientRadius="520dp"
+        android:centerX="0.5" android:centerY="0.42" android:startColor="#24103F"
+        android:centerColor="#10091A" android:endColor="#050507" /></shape></item>
+    <item android:width="230dp" android:height="230dp" android:gravity="center" android:drawable="@drawable/saintsai_logo" />
+</layer-list>
