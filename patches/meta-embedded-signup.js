@@ -14,7 +14,7 @@ const credenciais = require('./whatsappCredencial.service');
 const META_APP_ID = process.env.META_APP_ID || '';
 const META_APP_SECRET = process.env.META_APP_SECRET || '';
 const META_CONFIG_ID = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
-const META_GRAPH_VERSION = (process.env.META_GRAPH_VERSION || 'v25.0').replace(/^\\\\/?/, '');
+const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v25.0';
 
 class ErroEmbeddedSignup extends Error {
   constructor(mensagem, status = 400) {
@@ -168,13 +168,13 @@ module.exports = {
 replaceOnce(
   'src/controllers/whatsappConfiguracao.controller.js',
   "const credenciais = require('../services/whatsappCredencial.service');",
-  "const credenciais = require('../services/whatsappCredencial.service');\\nconst embeddedSignup = require('../services/metaEmbeddedSignup.service');"
+  "const credenciais = require('../services/whatsappCredencial.service');\nconst embeddedSignup = require('../services/metaEmbeddedSignup.service');"
 );
 
 replaceOnce(
   'src/controllers/whatsappConfiguracao.controller.js',
   "  if (erro instanceof credenciais.ErroChaveCredenciaisAusente) return res.status(503).json({ erro: 'Armazenamento seguro de credenciais indisponível.' });",
-  "  if (erro instanceof credenciais.ErroChaveCredenciaisAusente) return res.status(503).json({ erro: 'Armazenamento seguro de credenciais indisponível.' });\\n  if (erro instanceof embeddedSignup.ErroEmbeddedSignup) return res.status(erro.status || 400).json({ erro: erro.message });"
+  "  if (erro instanceof credenciais.ErroChaveCredenciaisAusente) return res.status(503).json({ erro: 'Armazenamento seguro de credenciais indisponível.' });\n  if (erro instanceof embeddedSignup.ErroEmbeddedSignup) return res.status(erro.status || 400).json({ erro: erro.message });"
 );
 
 replaceOnce(
@@ -207,7 +207,7 @@ module.exports = {
 replaceOnce(
   'src/routes/whatsappConfiguracao.routes.js',
   "router.get('/historico/conversas', historicoController.listarConversas);",
-  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\\n\\nrouter.get('/historico/conversas', historicoController.listarConversas);"
+  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
 );
 
 replaceOnce(
@@ -239,7 +239,7 @@ replaceOnce(
 replaceOnce(
   'public/whatsapp.html',
   '<script src="js/config.js"></script>',
-  '<div id="fb-root"></div>\\n<script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>\\n<script src="js/config.js"></script>'
+  '<div id="fb-root"></div>\n<script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>\n<script src="js/config.js"></script>'
 );
 
 let js = fs.readFileSync('public/js/whatsapp.js', 'utf8');
@@ -388,7 +388,7 @@ fs.writeFileSync('public/js/whatsapp.js', js);
 
 if (fs.existsSync('.env.example')) {
   let env = fs.readFileSync('.env.example', 'utf8');
-  if (!env.includes('META_APP_ID=')) env += '\\n# Meta Embedded Signup\\nMETA_APP_ID=\\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\\nMETA_GRAPH_VERSION=v25.0\\n';
+  if (!env.includes('META_APP_ID=')) env += '\n# Meta Embedded Signup\nMETA_APP_ID=\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\nMETA_GRAPH_VERSION=v25.0\n';
   fs.writeFileSync('.env.example', env);
 }
 
