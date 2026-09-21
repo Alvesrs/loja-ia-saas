@@ -1,0 +1,395 @@
+const fs = require('node:fs');
+
+function replaceOnce(path, from, to) {
+  let src = fs.readFileSync(path, 'utf8');
+  if (!src.includes(from)) throw new Error('Trecho esperado não encontrado em ' + path);
+  src = src.replace(from, to);
+  fs.writeFileSync(path, src);
+}
+
+const servicePath = 'src/services/metaEmbeddedSignup.service.js';
+fs.writeFileSync(servicePath, \`const configuracoes = require('./whatsappConfiguracao.service');
+const credenciais = require('./whatsappCredencial.service');
+
+const META_APP_ID = process.env.META_APP_ID || '';
+const META_APP_SECRET = process.env.META_APP_SECRET || '';
+const META_CONFIG_ID = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
+const META_GRAPH_VERSION = (process.env.META_GRAPH_VERSION || 'v25.0').replace(/^\\\\/?/, '');
+
+class ErroEmbeddedSignup extends Error {
+  constructor(mensagem, status = 400) {
+    super(mensagem || 'Não foi possível concluir a conexão com a Meta.');
+    this.name = 'ErroEmbeddedSignup';
+    this.status = status;
+  }
+}
+
+function textoId(valor, nome) {
+  if (typeof valor !== 'string' || !/^[0-9]{5,40}$/.test(valor.trim())) {
+    throw new ErroEmbeddedSignup(nome + ' inválido.');
+  }
+  return valor.trim();
+}
+
+function configurado() {
+  return Boolean(META_APP_ID && META_APP_SECRET && META_CONFIG_ID);
+}
+
+function obterConfiguracaoPublica() {
+  return {
+    disponivel: configurado(),
+    app_id: META_APP_ID || null,
+    config_id: META_CONFIG_ID || null,
+    graph_version: META_GRAPH_VERSION,
+  };
+}
+
+async function metaFetch(path, { method = 'GET', token, body } = {}) {
+  const url = 'https://graph.facebook.com/' + META_GRAPH_VERSION + path;
+  const headers = { Accept: 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  let payload;
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+    payload = JSON.stringify(body);
+  }
+  let resposta;
+  try {
+    resposta = await fetch(url, {
+      method,
+      headers,
+      body: payload,
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (_) {
+    throw new ErroEmbeddedSignup('A Meta não respondeu a tempo. Tente novamente.', 502);
+  }
+  const data = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) {
+    const codigo = data && data.error && data.error.code;
+    console.warn('[meta embedded signup] falha_graph', { status: resposta.status, codigo: codigo || null });
+    throw new ErroEmbeddedSignup('A Meta recusou a conclusão da conexão. Refaça a autorização.', 502);
+  }
+  return data;
+}
+
+async function trocarCodePorToken(code) {
+  if (typeof code !== 'string' || code.length < 8 || code.length > 4096) {
+    throw new ErroEmbeddedSignup('Código temporário da Meta inválido.');
+  }
+  const params = new URLSearchParams({
+    client_id: META_APP_ID,
+    client_secret: META_APP_SECRET,
+    code,
+  });
+  let resposta;
+  try {
+    resposta = await fetch('https://graph.facebook.com/' + META_GRAPH_VERSION + '/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: params.toString(),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (_) {
+    throw new ErroEmbeddedSignup('A Meta não respondeu ao autorizar a conta. Tente novamente.', 502);
+  }
+  const data = await resposta.json().catch(() => ({}));
+  if (!resposta.ok || !data.access_token) {
+    console.warn('[meta embedded signup] troca_code_falhou', {
+      status: resposta.status,
+      codigo: data && data.error && data.error.code ? data.error.code : null,
+    });
+    throw new ErroEmbeddedSignup('A autorização da Meta expirou ou não pôde ser validada. Refaça a conexão.', 502);
+  }
+  return data.access_token;
+}
+
+async function concluir({ lojaId, code, wabaId, phoneNumberId }) {
+  if (!configurado()) {
+    throw new ErroEmbeddedSignup('Embedded Signup ainda não foi ativado pelo administrador do SaintsAI.', 503);
+  }
+  const waba_id = textoId(wabaId, 'WABA ID');
+  const phone_number_id = textoId(phoneNumberId, 'Phone Number ID');
+  const accessToken = await trocarCodePorToken(code);
+
+  const infoNumero = await metaFetch('/' + phone_number_id + '?fields=display_phone_number,verified_name', {
+    token: accessToken,
+  });
+  const numero = typeof infoNumero.display_phone_number === 'string'
+    ? infoNumero.display_phone_number.trim()
+    : '';
+  if (!numero) {
+    throw new ErroEmbeddedSignup('A Meta conectou a conta, mas não retornou o número selecionado.', 502);
+  }
+
+  await metaFetch('/' + waba_id + '/subscribed_apps', {
+    method: 'POST',
+    token: accessToken,
+    body: {},
+  });
+
+  const existentes = await configuracoes.listarConfiguracoesWhatsapp(lojaId);
+  let config = Array.isArray(existentes)
+    ? (existentes.find((c) => c.provedor === 'meta' && c.ativo) || existentes.find((c) => c.provedor === 'meta'))
+    : null;
+
+  const dados = {
+    provedor: 'meta',
+    numero_whatsapp: numero,
+    identificador_externo: phone_number_id,
+    ativo: true,
+  };
+
+  if (config) {
+    config = await configuracoes.atualizarConfiguracaoWhatsapp(config.id, lojaId, dados);
+  } else {
+    config = await configuracoes.criarConfiguracaoWhatsapp(dados, lojaId);
+  }
+
+  await credenciais.salvarCredencialMeta(config.id, lojaId, accessToken);
+
+  return {
+    conectado: true,
+    configuracao: config,
+    waba_id,
+    phone_number_id,
+    numero_whatsapp: numero,
+    verified_name: infoNumero.verified_name || null,
+  };
+}
+
+module.exports = {
+  ErroEmbeddedSignup,
+  obterConfiguracaoPublica,
+  concluir,
+};
+\`);
+
+replaceOnce(
+  'src/controllers/whatsappConfiguracao.controller.js',
+  "const credenciais = require('../services/whatsappCredencial.service');",
+  "const credenciais = require('../services/whatsappCredencial.service');\\nconst embeddedSignup = require('../services/metaEmbeddedSignup.service');"
+);
+
+replaceOnce(
+  'src/controllers/whatsappConfiguracao.controller.js',
+  "  if (erro instanceof credenciais.ErroChaveCredenciaisAusente) return res.status(503).json({ erro: 'Armazenamento seguro de credenciais indisponível.' });",
+  "  if (erro instanceof credenciais.ErroChaveCredenciaisAusente) return res.status(503).json({ erro: 'Armazenamento seguro de credenciais indisponível.' });\\n  if (erro instanceof embeddedSignup.ErroEmbeddedSignup) return res.status(erro.status || 400).json({ erro: erro.message });"
+);
+
+replaceOnce(
+  'src/controllers/whatsappConfiguracao.controller.js',
+  "module.exports = { criar, listar, buscar, atualizar, desativar, salvarCredencial, estadoCredencial, removerCredencial };",
+  \`async function configuracaoEmbeddedSignup(req, res) {
+  return res.json(embeddedSignup.obterConfiguracaoPublica());
+}
+
+async function concluirEmbeddedSignup(req, res) {
+  try {
+    const resultado = await embeddedSignup.concluir({
+      lojaId: req.params.lojaId,
+      code: req.body && req.body.code,
+      wabaId: req.body && req.body.waba_id,
+      phoneNumberId: req.body && req.body.phone_number_id,
+    });
+    return res.json(resultado);
+  } catch (erro) {
+    return responderErro(res, erro);
+  }
+}
+
+module.exports = {
+  criar, listar, buscar, atualizar, desativar, salvarCredencial,
+  estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, concluirEmbeddedSignup
+};\`
+);
+
+replaceOnce(
+  'src/routes/whatsappConfiguracao.routes.js',
+  "router.get('/historico/conversas', historicoController.listarConversas);",
+  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\\n\\nrouter.get('/historico/conversas', historicoController.listarConversas);"
+);
+
+replaceOnce(
+  'public/whatsapp.html',
+  \`      <section class="wa-grid" aria-label="Configuração do WhatsApp">\`,
+  \`      <section class="wa-card" aria-label="Conexão automática com a Meta" id="wa-embedded-card">
+        <div class="wa-card-head">
+          <div>
+            <span class="eyebrow">Recomendado</span>
+            <h2>Conectar WhatsApp automaticamente</h2>
+            <p>O cliente entra na Meta, escolhe a empresa e confirma o número. O SaintsAI configura o Phone Number ID e a credencial sem precisar copiar token.</p>
+          </div>
+          <span id="wa-embedded-status" class="badge badge-inativo">Verificando…</span>
+        </div>
+        <div class="wa-actions">
+          <button id="wa-conectar-meta" type="button" class="btn-primary">Conectar com Meta</button>
+        </div>
+        <div class="field-help" id="wa-embedded-ajuda">A autorização abre em uma janela oficial da Meta.</div>
+      </section>
+
+      <details class="wa-card" style="margin-top:16px">
+        <summary style="cursor:pointer;font-weight:700">Configuração manual avançada</summary>
+        <p class="field-help" style="margin-top:10px">Use esta opção apenas se o Embedded Signup estiver indisponível.</p>
+      </details>
+
+      <section class="wa-grid" aria-label="Configuração do WhatsApp">\`
+);
+
+replaceOnce(
+  'public/whatsapp.html',
+  '<script src="js/config.js"></script>',
+  '<div id="fb-root"></div>\\n<script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>\\n<script src="js/config.js"></script>'
+);
+
+let js = fs.readFileSync('public/js/whatsapp.js', 'utf8');
+js += \`
+
+// ---------- Embedded Signup Meta ----------
+let waEmbeddedCfg = null;
+let waEmbeddedCode = null;
+let waEmbeddedSession = null;
+let waEmbeddedEnviando = false;
+
+function waMetaOrigemValida(origin) {
+  try {
+    const host = new URL(origin).hostname;
+    return host === 'facebook.com' || host.endsWith('.facebook.com');
+  } catch (_) { return false; }
+}
+
+function waEmbeddedEstado(texto, ok) {
+  const badge = document.getElementById('wa-embedded-status');
+  if (!badge) return;
+  badge.textContent = texto;
+  badge.classList.toggle('badge-ativo', Boolean(ok));
+  badge.classList.toggle('badge-inativo', !ok);
+}
+
+async function waTentarConcluirEmbedded() {
+  if (waEmbeddedEnviando || !waEmbeddedCode || !waEmbeddedSession || !waLojaId) return;
+  waEmbeddedEnviando = true;
+  const botao = document.getElementById('wa-conectar-meta');
+  if (botao) { botao.disabled = true; botao.textContent = 'Concluindo conexão…'; }
+  try {
+    const resultado = await apiFetch('/lojas/' + waLojaId + '/whatsapp/embedded-signup/complete', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: waEmbeddedCode,
+        waba_id: waEmbeddedSession.waba_id,
+        phone_number_id: waEmbeddedSession.phone_number_id,
+      }),
+    });
+    waEmbeddedCode = null;
+    waEmbeddedSession = null;
+    waEmbeddedEstado('Conectado', true);
+    await waCarregarConfiguracao();
+    mostrarToast('WhatsApp conectado automaticamente com a Meta.', 'sucesso');
+    const ajuda = document.getElementById('wa-embedded-ajuda');
+    if (ajuda && resultado && resultado.numero_whatsapp) {
+      ajuda.textContent = 'Número conectado: ' + resultado.numero_whatsapp;
+    }
+  } catch (erro) {
+    if (erro instanceof SessaoExpiradaError) return fazerLogout();
+    waErro(erro.message || 'Não foi possível concluir a conexão automática.');
+    waEmbeddedEstado('Falha ao conectar', false);
+  } finally {
+    waEmbeddedEnviando = false;
+    if (botao) { botao.disabled = false; botao.textContent = 'Conectar com Meta'; }
+  }
+}
+
+window.addEventListener('message', (event) => {
+  if (!waMetaOrigemValida(event.origin)) return;
+  let data = event.data;
+  try { if (typeof data === 'string') data = JSON.parse(data); } catch (_) { return; }
+  if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+  if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
+    if (data.data && data.data.waba_id && data.data.phone_number_id) {
+      waEmbeddedSession = {
+        waba_id: String(data.data.waba_id),
+        phone_number_id: String(data.data.phone_number_id),
+      };
+      waTentarConcluirEmbedded();
+    }
+  } else if (data.event === 'CANCEL') {
+    waEmbeddedEstado('Cancelado', false);
+  } else if (data.event === 'ERROR') {
+    waEmbeddedEstado('Erro na Meta', false);
+  }
+});
+
+window.fbAsyncInit = function () {
+  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel) return;
+  FB.init({
+    appId: waEmbeddedCfg.app_id,
+    cookie: true,
+    xfbml: false,
+    version: waEmbeddedCfg.graph_version || 'v25.0',
+  });
+  waEmbeddedEstado('Pronto para conectar', true);
+};
+
+async function waPrepararEmbeddedSignup() {
+  const botao = document.getElementById('wa-conectar-meta');
+  if (!botao) return;
+  try {
+    if (!waLojaId) {
+      const loja = await obterLojaAtual();
+      if (loja) waLojaId = loja.id;
+    }
+    waEmbeddedCfg = await apiFetch('/lojas/' + waLojaId + '/whatsapp/embedded-signup/config');
+    if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel) {
+      botao.disabled = true;
+      waEmbeddedEstado('Aguardando ativação', false);
+      document.getElementById('wa-embedded-ajuda').textContent =
+        'O administrador precisa informar o App ID e o Configuration ID da Meta uma única vez.';
+      return;
+    }
+    if (window.FB && typeof window.FB.init === 'function') {
+      window.fbAsyncInit();
+    }
+  } catch (erro) {
+    if (erro instanceof SessaoExpiradaError) return fazerLogout();
+    botao.disabled = true;
+    waEmbeddedEstado('Indisponível', false);
+  }
+}
+
+document.getElementById('wa-conectar-meta').addEventListener('click', () => {
+  waLimparErro();
+  if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel || !window.FB) {
+    return waErro('A conexão automática com a Meta ainda não está disponível.');
+  }
+  waEmbeddedCode = null;
+  waEmbeddedSession = null;
+  waEmbeddedEstado('Abrindo Meta…', false);
+  FB.login((response) => {
+    if (response && response.authResponse && response.authResponse.code) {
+      waEmbeddedCode = response.authResponse.code;
+      waTentarConcluirEmbedded();
+    } else {
+      waEmbeddedEstado('Não autorizado', false);
+    }
+  }, {
+    config_id: waEmbeddedCfg.config_id,
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: {
+      setup: {},
+      sessionInfoVersion: '3'
+    }
+  });
+});
+
+waPrepararEmbeddedSignup();
+\`;
+fs.writeFileSync('public/js/whatsapp.js', js);
+
+if (fs.existsSync('.env.example')) {
+  let env = fs.readFileSync('.env.example', 'utf8');
+  if (!env.includes('META_APP_ID=')) env += '\\n# Meta Embedded Signup\\nMETA_APP_ID=\\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\\nMETA_GRAPH_VERSION=v25.0\\n';
+  fs.writeFileSync('.env.example', env);
+}
+
+console.log('Patch do Meta Embedded Signup aplicado.');
