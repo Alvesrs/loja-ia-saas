@@ -15,7 +15,7 @@ const META_APP_ID = process.env.META_APP_ID || '';
 const META_APP_SECRET = process.env.META_APP_SECRET || '';
 const META_CONFIG_ID = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
 const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v25.0';
-const META_HOSTED_ES_URL = process.env.META_HOSTED_ES_URL || '';
+const META_HOSTED_ES_URL = process.env.META_HOSTED_ES_URL || ''; // legado; não usado no fluxo atual
 
 class ErroEmbeddedSignup extends Error {
   constructor(mensagem, status = 400) {
@@ -42,7 +42,7 @@ function obterConfiguracaoPublica() {
     app_id: META_APP_ID || null,
     config_id: META_CONFIG_ID || null,
     graph_version: META_GRAPH_VERSION,
-    hosted_url: META_HOSTED_ES_URL || null,
+    hosted_url: null,
   };
 }
 
@@ -393,12 +393,6 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
   waLimparErro();
   if (!waEmbeddedCfg || !waEmbeddedCfg.disponivel) {
     return waErro('A conexão automática com a Meta ainda não está disponível.');
-  }
-
-  if (waEmbeddedCfg.hosted_url) {
-    waEmbeddedEstado('Abrindo cadastro do WhatsApp…', false);
-    window.location.href = waEmbeddedCfg.hosted_url;
-    return;
   }
 
   if (!window.FB) {
