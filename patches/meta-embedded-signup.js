@@ -170,7 +170,7 @@ module.exports = {
 replaceOnce(
   'src/app.js',
   "app.use('/api/auth', authRoutes);",
-  "app.get('/whatsapp.html', (req, res) => res.sendFile(require('node:path').join(process.cwd(), 'public', 'whatsapp.html')));\n\napp.use('/api/auth', authRoutes);"
+  "app.use(require('express').static(require('node:path').join(process.cwd(), 'public')));\napp.get('/whatsapp.html', (req, res) => res.sendFile(require('node:path').join(process.cwd(), 'public', 'whatsapp.html')));\n\napp.use('/api/auth', authRoutes);"
 );
 
 replaceOnce(
