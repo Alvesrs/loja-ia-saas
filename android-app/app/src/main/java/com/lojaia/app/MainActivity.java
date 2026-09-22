@@ -29,9 +29,9 @@ public class MainActivity extends AppCompatActivity {
     private static final String APP_HOST = "backend-prod-production-f338.up.railway.app";
 
     private WebView webView;
+    private View splashView;
     private Dialog popupDialog;
     private WebView popupWebView;
-    private boolean limpezaWebConcluida = false;
 
     private boolean hostInterno(Uri uri) {
         if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())) return false;
@@ -63,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setSupportMultipleWindows(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -95,18 +94,14 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageFinished(current, url);
 
                 if (!popupMeta) {
-                    if (!limpezaWebConcluida && hostInterno(Uri.parse(url))) {
-                        limpezaWebConcluida = true;
-                        current.evaluateJavascript(
-                                "(async()=>{try{" +
-                                "if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}" +
-                                "if(window.caches){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}" +
-                                "const u=new URL(location.href);if(!u.searchParams.has('_appfresh')){u.searchParams.set('_appfresh','1');location.replace(u.toString());}" +
-                                "}catch(e){}})();",
-                                null
-                        );
-                    }
                     webView.setVisibility(View.VISIBLE);
+                    if (splashView != null && splashView.getVisibility() == View.VISIBLE) {
+                        splashView.animate()
+                                .alpha(0f)
+                                .setDuration(250)
+                                .withEndAction(() -> splashView.setVisibility(View.GONE))
+                                .start();
+                    }
                 }
             }
         });
@@ -198,12 +193,18 @@ public class MainActivity extends AppCompatActivity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(5, 5, 7));
-        webView.setVisibility(View.VISIBLE);
+        webView.setVisibility(View.INVISIBLE);
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        splashView = new View(this);
+        splashView.setBackgroundResource(R.drawable.splash_background);
+        root.addView(splashView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
         setContentView(root);
 
@@ -219,7 +220,6 @@ public class MainActivity extends AppCompatActivity {
         ViewCompat.requestApplyInsets(root);
 
         configurarWebView(webView, false);
-        webView.clearCache(true);
         webView.setWebChromeClient(criarChromeClientPrincipal());
 
         if (savedInstanceState == null) {
@@ -227,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.restoreState(savedInstanceState);
             webView.setVisibility(View.VISIBLE);
+            splashView.setVisibility(View.GONE);
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
