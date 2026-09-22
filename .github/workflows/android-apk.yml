@@ -33,24 +33,19 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Test backend proxy
+      - name: Test mobile proxy routes
         run: |
           set -e
           for path in \
-            "/painel" \
             "/painel/" \
-            "/painel/login.html" \
-            "/painel/dashboard.html" \
-            "/login.html" \
-            "/dashboard.html" \
-            "/cliente-estoque.html" \
-            "/painel/cliente-estoque.html" \
-            "/"; do
+            "/painel/login.html?next=cliente-estoque.html"; do
             echo "===== $path ====="
-            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy$path")
+            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://mobile-proxy-production.up.railway.app$path")
             echo "HTTP $code"
-            head -c 220 /tmp/body.txt || true
+            head -c 300 /tmp/body.txt || true
             echo
+            test "$code" -ge 200
+            test "$code" -lt 400
           done
 
       - name: Build APKs
@@ -94,19 +89,19 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk SaintsAI-Admin-v1.0.2.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.2.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk SaintsAI-Admin-v1.0.3.apk
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.3.apk
 
       - name: Upload SaintsAI Admin
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Admin-APK-v1.0.2
-          path: android-app/SaintsAI-Admin-v1.0.2.apk
+          name: SaintsAI-Admin-APK-v1.0.3
+          path: android-app/SaintsAI-Admin-v1.0.3.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Estoque-APK-v1.0.2
-          path: android-app/SaintsAI-Estoque-v1.0.2.apk
+          name: SaintsAI-Estoque-APK-v1.0.3
+          path: android-app/SaintsAI-Estoque-v1.0.3.apk
           if-no-files-found: error
