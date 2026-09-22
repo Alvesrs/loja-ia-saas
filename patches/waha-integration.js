@@ -257,17 +257,14 @@ async function iniciarPareamento(lojaId,phoneNumber){
   const iniciado=await chamar('/api/sessions/'+encodeURIComponent(sessao)+'/start',{method:'POST'});
   if(!iniciado.ok && iniciado.status!==409) throw new ErroWaha('Não foi possível iniciar a sessão do WhatsApp.',502);
 
-  let pronto=false;
+  let codigo=null;
   for(let tentativa=0;tentativa<10;tentativa++){
-    const atual=await chamar('/api/sessions/'+encodeURIComponent(sessao),{method:'GET'});
-    const st=String(atual.data&&atual.data.status||'');
-    if(['SCAN_QR_CODE','STARTING','PAIRING','WORKING'].includes(st)){ pronto=true; break; }
+    codigo=await chamar('/api/'+encodeURIComponent(sessao)+'/auth/request-code',{method:'POST',body:JSON.stringify({phoneNumber:fone})});
+    if(codigo.ok && codigo.data && ehStringNaoVazia(codigo.data.code)) break;
+    if(codigo.status!==404 && codigo.status!==409 && codigo.status!==422) break;
     await new Promise(resolve=>setTimeout(resolve,500));
   }
-  if(!pronto) throw new ErroWaha('A sessão do WhatsApp não iniciou a tempo.',502);
-
-  const codigo=await chamar('/api/'+encodeURIComponent(sessao)+'/auth/request-code',{method:'POST',body:JSON.stringify({phoneNumber:fone})});
-  if(!codigo.ok || !codigo.data || !ehStringNaoVazia(codigo.data.code)) throw new ErroWaha('Não foi possível gerar o código de pareamento. Tente o QR Code como alternativa.',codigo.status===422?422:502);
+  if(!codigo || !codigo.ok || !codigo.data || !ehStringNaoVazia(codigo.data.code)) throw new ErroWaha('Não foi possível gerar o código de pareamento.',codigo&&codigo.status===422?422:502);
   return Object.freeze({session:sessao,code:codigo.data.code,status:'PAIRING'});
 }
 async function status(lojaId){
