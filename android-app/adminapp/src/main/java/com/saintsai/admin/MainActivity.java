@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
+    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel";
     private static final String APP_HOST = "ldpiryzsunxwuhyvvogg.supabase.co";
     private static final String PROXY_PREFIX = "/functions/v1/saintsai-proxy/";
 
