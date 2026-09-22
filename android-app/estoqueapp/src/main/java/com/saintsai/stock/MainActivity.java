@@ -12,6 +12,11 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceResponse;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -73,6 +78,58 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (!request.isForMainFrame() || !"GET".equalsIgnoreCase(request.getMethod())) {
+                    return super.shouldInterceptRequest(view, request);
+                }
+
+                String url = request.getUrl().toString();
+                if (!url.startsWith("https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/")) {
+                    return super.shouldInterceptRequest(view, request);
+                }
+
+                try {
+                    HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(20000);
+                    conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8");
+                    String ua = request.getRequestHeaders().get("User-Agent");
+                    if (ua != null) conn.setRequestProperty("User-Agent", ua);
+
+                    int code = conn.getResponseCode();
+                    java.io.InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+                    if (in == null) return super.shouldInterceptRequest(view, request);
+
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    byte[] chunk = new byte[8192];
+                    int n;
+                    while ((n = in.read(chunk)) != -1) buffer.write(chunk, 0, n);
+                    in.close();
+
+                    String contentType = conn.getHeaderField("Content-Type");
+                    boolean isHtmlPage = url.endsWith("/painel/")
+                            || url.contains("/painel/login.html")
+                            || url.contains("/painel/dashboard.html")
+                            || url.contains("/painel/cliente-estoque.html")
+                            || url.contains("/painel/estoque.html")
+                            || (contentType != null && contentType.toLowerCase().contains("text/html"));
+
+                    if (isHtmlPage) {
+                        return new WebResourceResponse(
+                                "text/html",
+                                "UTF-8",
+                                new ByteArrayInputStream(buffer.toByteArray())
+                        );
+                    }
+                } catch (Exception ignored) {
+                }
+
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     loading.setVisibility(View.GONE);
@@ -100,16 +157,7 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
-        String bootstrap = "<!doctype html><html><head><meta charset='utf-8'>"
-                + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-                + "</head><body style='margin:0;background:#0a0a0f;color:white'>"
-                + "<script>"
-                + "fetch('"+APP_URL+"',{credentials:'include',cache:'no-store'})"
-                + ".then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})"
-                + ".then(function(html){document.open();document.write(html);document.close();})"
-                + ".catch(function(e){document.body.innerHTML='<div style=\\\"padding:24px;font-family:sans-serif\\\">Falha ao carregar SaintsAI<br>'+e+'</div>';});"
-                + "</script></body></html>";
-        webView.loadDataWithBaseURL(APP_URL, bootstrap, "text/html", "UTF-8", null);
+        webView.loadUrl(APP_URL);
     }
 
     @Override
