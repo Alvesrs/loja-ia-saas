@@ -66,18 +66,18 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install -r adminapp/build/outputs/apk/debug/adminapp-debug.apk
-            adb install -r estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
+            adb install -r android-app/adminapp/build/outputs/apk/debug/adminapp-debug.apk
+            adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
 
             adb shell am force-stop com.saintsai.admin
             adb shell monkey -p com.saintsai.admin -c android.intent.category.LAUNCHER 1
             sleep 15
-            adb exec-out screencap -p > admin-screen.png
+            adb exec-out screencap -p > android-app/admin-screen.png
 
             adb shell am force-stop com.saintsai.stock
             adb shell monkey -p com.saintsai.stock -c android.intent.category.LAUNCHER 1
             sleep 15
-            adb exec-out screencap -p > estoque-screen.png
+            adb exec-out screencap -p > android-app/estoque-screen.png
 
       - name: Upload emulator screenshots
         uses: actions/upload-artifact@v4
