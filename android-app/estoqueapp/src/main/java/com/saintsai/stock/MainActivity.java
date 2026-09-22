@@ -1,126 +1,160 @@
 package com.saintsai.stock;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Insets;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.webkit.CookieManager;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-estoque.html";
-
+    private static final String APP_URL = "https://backend-prod-production-f338.up.railway.app/painel/login.html?next=cliente-estoque.html";
     private WebView webView;
     private ProgressBar loading;
     private LinearLayout errorView;
+    private boolean pageFailed;
+    private final Runnable timeout = () -> showError();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(10,10,15));
-        getWindow().setNavigationBarColor(Color.rgb(10,10,15));
-
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(10,10,15));
+        root.setBackgroundColor(Color.rgb(10, 10, 15));
+        if (Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                Insets safe = insets.getInsets(WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                v.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+                return WindowInsets.CONSUMED;
+            });
+        } else {
+            root.setFitsSystemWindows(true);
+        }
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(10,10,15));
-        WebSettings s = webView.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setDatabaseEnabled(true);
-        s.setLoadsImagesAutomatically(true);
-
-        root.addView(webView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
-        loading = new ProgressBar(this);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER;
-        root.addView(loading, lp);
-
-        errorView = makeMessage("Falha ao carregar SaintsAI Estoque");
-        errorView.setVisibility(View.GONE);
-        root.addView(errorView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
-        setContentView(root);
-        fetchAndRender();
-    }
-
-    private void fetchAndRender() {
-        loading.setVisibility(View.VISIBLE);
-        errorView.setVisibility(View.GONE);
-        webView.setVisibility(View.INVISIBLE);
-
-        new Thread(() -> {
-            HttpURLConnection conn = null;
-            try {
-                URL u = new URL(APP_URL);
-                conn = (HttpURLConnection) u.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(20000);
-                conn.setRequestProperty("Accept", "text/html,*/*");
-                conn.setRequestProperty("User-Agent", "SaintsAIAndroid/1.0");
-
-                int code = conn.getResponseCode();
-                BufferedReader br = new BufferedReader(new InputStreamReader(
-                        code >= 200 && code < 400 ? conn.getInputStream() : conn.getErrorStream(),
-                        StandardCharsets.UTF_8));
-
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) sb.append(line).append("\n");
-                br.close();
-
-                String html = sb.toString();
-                runOnUiThread(() -> {
-                    loading.setVisibility(View.GONE);
-                    webView.setVisibility(View.VISIBLE);
-                    webView.loadDataWithBaseURL(APP_URL, html, "text/html", "UTF-8", null);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    loading.setVisibility(View.GONE);
-                    webView.setVisibility(View.GONE);
-                    errorView.setVisibility(View.VISIBLE);
-                });
-            } finally {
-                if (conn != null) conn.disconnect();
+        webView.setBackgroundColor(Color.WHITE);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        CookieManager.getInstance().setAcceptCookie(true);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("https".equals(uri.getScheme())
+                        && Uri.parse(APP_URL).getHost().equals(uri.getHost())) return false;
+                if (request.isForMainFrame() && ("https".equals(uri.getScheme())
+                        || "mailto".equals(uri.getScheme()) || "tel".equals(uri.getScheme()))) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+                    catch (ActivityNotFoundException e) { showError(); }
+                }
+                return true;
             }
-        }).start();
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                pageFailed = false;
+                errorView.setVisibility(View.GONE);
+                loading.setVisibility(View.VISIBLE);
+                view.removeCallbacks(timeout);
+                view.postDelayed(timeout, 45000);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                view.removeCallbacks(timeout);
+                loading.setVisibility(View.GONE);
+                if (!pageFailed) view.setVisibility(View.VISIBLE);
+                CookieManager.getInstance().flush();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request,
+                    WebResourceError error) {
+                if (request.isForMainFrame()) showError();
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request,
+                    WebResourceResponse response) {
+                if (request.isForMainFrame()) showError();
+            }
+        });
+        root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+        loading = new ProgressBar(this);
+        FrameLayout.LayoutParams spinner = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER);
+        root.addView(loading, spinner);
+        errorView = new LinearLayout(this);
+        errorView.setOrientation(LinearLayout.VERTICAL);
+        errorView.setGravity(Gravity.CENTER);
+        errorView.setPadding(48, 48, 48, 48);
+        errorView.setBackgroundColor(Color.rgb(10, 10, 15));
+        TextView message = new TextView(this);
+        message.setText("Não foi possível carregar SaintsAI. Verifique sua conexão e tente novamente.");
+        message.setTextColor(Color.WHITE);
+        message.setTextSize(18);
+        message.setGravity(Gravity.CENTER);
+        errorView.addView(message);
+        Button retry = new Button(this);
+        retry.setText("Tentar novamente");
+        retry.setOnClickListener(v -> loadApp());
+        errorView.addView(retry);
+        errorView.setVisibility(View.GONE);
+        root.addView(errorView, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(root);
+        root.requestApplyInsets();
+        loadApp();
     }
 
-    private LinearLayout makeMessage(String msg) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setGravity(Gravity.CENTER);
-        box.setPadding(48,48,48,48);
-        box.setBackgroundColor(Color.rgb(10,10,15));
+    private void loadApp() {
+        pageFailed = false;
+        errorView.setVisibility(View.GONE);
+        webView.setVisibility(View.VISIBLE);
+        webView.loadUrl(APP_URL);
+    }
 
-        TextView t = new TextView(this);
-        t.setText(msg);
-        t.setTextColor(Color.WHITE);
-        t.setTextSize(18);
-        t.setGravity(Gravity.CENTER);
-        box.addView(t);
-        return box;
+    private void showError() {
+        pageFailed = true;
+        webView.removeCallbacks(timeout);
+        webView.setVisibility(View.GONE);
+        loading.setVisibility(View.GONE);
+        errorView.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        webView.removeCallbacks(timeout);
+        webView.stopLoading();
+        webView.destroy();
+        super.onDestroy();
     }
 }
