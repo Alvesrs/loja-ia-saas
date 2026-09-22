@@ -1,0 +1,50 @@
+name: WAHA integration validation
+on:
+  push:
+    branches: [waha-integration]
+    paths:
+      - 'patches/waha-integration.js'
+      - '.github/workflows/waha-validation.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild backend and apply WAHA patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
+          for p in fix-public-ia-route log-ai-response-origin stock-last-unit-policy order-status-management expose-plan-dashboard admin-dashboard-link meta-embedded-signup login-email-usuario cadastro-clientes cliente-estoque-agente fix-cliente-estoque-iframe admin-client-management admin-managed-store-selector client-product-registration serve-public-panel waha-integration; do
+            node "patches/$p.js"
+          done
+          npm ci
+      - name: Syntax check WAHA integration
+        run: |
+          node -c src/services/providers/whatsapp/adaptadorWaha.js
+          node -c src/services/providers/whatsapp/interpretadorWebhookWaha.js
+          node -c src/services/wahaOnboarding.service.js
+          node -c src/controllers/whatsappWahaWebhook.controller.js
+          node -c src/routes/whatsappWahaWebhook.routes.js
+          node -c src/middleware/wahaWebhookHmac.js
+          node -c src/services/whatsappEnvio.service.js
+          node -c src/controllers/whatsappConfiguracao.controller.js
+          node -c src/app.js
+      - name: Smoke test parser and adapter
+        shell: bash
+        run: |
+          node <<'NODE'
+          const p=require('./src/services/providers/whatsapp/interpretadorWebhookWaha');
+          const x=p.interpretarPayloadWebhookWaha({
+            event:'message',session:'saintsai_test',
+            payload:{id:'msg1',timestamp:1760000000,from:'5544999999999@c.us',fromMe:false,body:'oi'}
+          });
+          if(!x || x.destinatarioId!=='saintsai_test' || x.texto!=='oi') throw new Error('parser falhou');
+          const {chatIdDoContato}=require('./src/services/providers/whatsapp/adaptadorWaha');
+          if(chatIdDoContato('5544999999999')!=='5544999999999@c.us') throw new Error('chat id falhou');
+          const providers=require('./src/services/providers/whatsapp');
+          if(!providers.listarProvedoresDisponiveis().includes('waha')) throw new Error('factory sem waha');
+          console.log('WAHA smoke OK');
+          NODE
