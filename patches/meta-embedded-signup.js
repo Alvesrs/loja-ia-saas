@@ -319,12 +319,8 @@ function waMetaOrigemValida(origin) {
 function waRegistrarEventoMeta(etapa, dados = {}) {
   try {
     if (!waLojaId) return;
-    fetch('/api/lojas/' + waLojaId + '/whatsapp/embedded-signup/event', {
+    apiFetch('/lojas/' + waLojaId + '/whatsapp/embedded-signup/event', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(localStorage.getItem('lojaia_token') ? { Authorization: 'Bearer ' + localStorage.getItem('lojaia_token') } : {})
-      },
       body: JSON.stringify({
         etapa,
         evento: dados.evento || null,
@@ -332,7 +328,6 @@ function waRegistrarEventoMeta(etapa, dados = {}) {
         tem_phone: Boolean(dados.tem_phone),
         tem_code: Boolean(dados.tem_code),
       }),
-      keepalive: true,
     }).catch(() => {});
   } catch (_) {}
 }
@@ -476,17 +471,26 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
         false
       );
       waTentarConcluirEmbedded();
+      if (!waEmbeddedSession) {
+        setTimeout(() => {
+          if (waEmbeddedCode && !waEmbeddedSession) {
+            waRegistrarEventoMeta('timeout_sem_evento_whatsapp', { tem_code: true });
+            waEmbeddedEstado('Meta não abriu o cadastro do WhatsApp', false);
+            const ajuda = document.getElementById('wa-embedded-ajuda');
+            if (ajuda) ajuda.textContent = 'A Meta autenticou o Facebook, mas não iniciou o Embedded Signup do WhatsApp. Verifique o Configuration ID do Facebook Login for Business.';
+          }
+        }, 5000);
+      }
     } else {
       waEmbeddedEstado('Cadastro não concluído', false);
     }
   }, {
     config_id: waEmbeddedCfg.config_id,
+    auth_type: 'rerequest',
     response_type: 'code',
     override_default_response_type: true,
     extras: {
-      setup: {},
-      featureType: '',
-      sessionInfoVersion: '3'
+      setup: {}
     }
   });
 });
