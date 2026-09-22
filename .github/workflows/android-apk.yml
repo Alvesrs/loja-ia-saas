@@ -30,6 +30,18 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Test Supabase endpoint
+        run: |
+          set -e
+          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/"
+          echo "=== HEADERS ==="
+          cat /tmp/headers.txt
+          echo "=== BODY START ==="
+          head -c 300 /tmp/body.txt
+          echo
+          grep -qi "content-type: text/html" /tmp/headers.txt
+          grep -q "SaintsAI funcionando" /tmp/body.txt
+
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
 
