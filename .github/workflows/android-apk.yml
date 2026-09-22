@@ -35,19 +35,19 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk Agente-SaintsAI-v1.0.7.apk
-          cp clientapp/build/outputs/apk/debug/clientapp-debug.apk SaintsAI-Estoque-v1.0.3.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Agente-SaintsAI-v1.0.8.apk
+          cp clientapp/build/outputs/apk/debug/clientapp-debug.apk SaintsAI-Estoque-v1.0.4.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.7
-          path: android-app/Agente-SaintsAI-v1.0.7.apk
+          name: Agente-SaintsAI-APK-v1.0.8
+          path: android-app/Agente-SaintsAI-v1.0.8.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Estoque-APK-v1.0.3
-          path: android-app/SaintsAI-Estoque-v1.0.3.apk
+          name: SaintsAI-Estoque-APK-v1.0.4
+          path: android-app/SaintsAI-Estoque-v1.0.4.apk
           if-no-files-found: error
