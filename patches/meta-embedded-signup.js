@@ -16,7 +16,7 @@ const META_APP_SECRET = process.env.META_APP_SECRET || '';
 const META_CONFIG_ID = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
 const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v25.0';
 const META_HOSTED_ES_URL = process.env.META_HOSTED_ES_URL || ''; // legado; não usado no fluxo atual
-const META_REDIRECT_URI = process.env.META_REDIRECT_URI || ((process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '') + '/whatsapp.html');
+const META_REDIRECT_URI = process.env.META_REDIRECT_URI || ((process.env.PUBLIC_BASE_URL || '').replace(/\\\/$/, '') + '/whatsapp.html');
 
 class ErroEmbeddedSignup extends Error {
   constructor(mensagem, status = 400) {
