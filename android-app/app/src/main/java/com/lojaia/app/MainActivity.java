@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 // Links externos comuns continuam abrindo no navegador.
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                } catch (_) {
+                } catch (Exception ignored) {
                     // Se não houver app externo compatível, não derruba a tela.
                 }
                 return true;
@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         if (popupDialog != null) {
             try {
                 popupDialog.dismiss();
-            } catch (_) {
+            } catch (Exception ignored) {
             }
         } else if (popupWebView != null) {
             popupWebView.destroy();
