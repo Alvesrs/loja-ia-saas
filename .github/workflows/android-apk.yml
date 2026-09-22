@@ -30,20 +30,63 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Test Supabase endpoint
+      - name: Test backend proxy
         run: |
           set -e
-          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://raw.githack.com/Alvesrs/loja-ia-saas/main/docs/index.html"
-          echo "=== HEADERS ==="
-          cat /tmp/headers.txt
-          echo "=== BODY START ==="
-          head -c 300 /tmp/body.txt
+          curl -sS -D /tmp/admin-headers.txt -o /tmp/admin-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/"
+          echo "=== ADMIN HEADERS ==="
+          cat /tmp/admin-headers.txt
+          echo "=== ADMIN BODY START ==="
+          head -c 300 /tmp/admin-body.txt
           echo
-          grep -qi "content-type: text/html" /tmp/headers.txt
-          grep -q "SaintsAI funcionando" /tmp/body.txt
+          grep -Eq "<!doctype|<html" /tmp/admin-body.txt
+
+          curl -sS -D /tmp/stock-headers.txt -o /tmp/stock-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-estoque.html"
+          echo "=== STOCK HEADERS ==="
+          cat /tmp/stock-headers.txt
+          echo "=== STOCK BODY START ==="
+          head -c 300 /tmp/stock-body.txt
+          echo
+          grep -Eq "<!doctype|<html" /tmp/stock-body.txt
 
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Android emulator visual test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r adminapp/build/outputs/apk/debug/adminapp-debug.apk
+            adb install -r estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
+
+            adb shell am force-stop com.saintsai.admin
+            adb shell monkey -p com.saintsai.admin -c android.intent.category.LAUNCHER 1
+            sleep 15
+            adb exec-out screencap -p > admin-screen.png
+
+            adb shell am force-stop com.saintsai.stock
+            adb shell monkey -p com.saintsai.stock -c android.intent.category.LAUNCHER 1
+            sleep 15
+            adb exec-out screencap -p > estoque-screen.png
+
+      - name: Upload emulator screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: SaintsAI-Emulator-Screens
+          path: |
+            android-app/admin-screen.png
+            android-app/estoque-screen.png
+          if-no-files-found: error
 
       - name: Rename APKs
         run: |
