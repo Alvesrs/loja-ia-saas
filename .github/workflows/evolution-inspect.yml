@@ -42,11 +42,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in             src/app.js             src/routes/ia.routes.js             src/controllers/ia.controller.js             src/services/ia.service.js             src/routes/whatsappConfiguracao.routes.js             src/controllers/whatsappConfiguracao.controller.js             src/services/whatsappConfiguracao.service.js             src/services/whatsappCredencial.service.js             src/workers/whatsapp.worker.js             src/services/whatsapp.service.js             package.json
+          for f in             src/app.js             src/routes/ia.routes.js             src/controllers/ia.controller.js             src/services/ia.service.js             src/routes/whatsappConfiguracao.routes.js             src/controllers/whatsappConfiguracao.controller.js             src/services/whatsappConfiguracao.service.js             src/services/whatsappCredencial.service.js             src/routes/whatsappWebhook.routes.js             src/controllers/whatsappWebhook.controller.js             src/services/whatsappWebhook.service.js             src/services/whatsappAtendente.service.js             src/services/whatsappEnvio.service.js             src/services/whatsappFila.service.js             src/services/whatsappProvedor.service.js             src/services/whatsappProvedorMeta.service.js             src/services/whatsappWebhookMeta.service.js             src/services/whatsappIdempotencia.service.js             src/services/whatsappHistorico.service.js             src/server.js             package.json
           do
             echo "::group::$f"
             if [ -f "$f" ]; then
-              sed -n '1,260p' "$f"
+              sed -n '1,360p' "$f"
             else
               echo "MISSING"
             fi
