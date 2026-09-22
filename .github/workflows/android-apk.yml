@@ -33,14 +33,14 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Test backend routes
+      - name: Test Supabase proxy routes
         run: |
           set -e
           for path in \
             "/painel/" \
             "/painel/login.html?next=cliente-estoque.html"; do
             echo "===== $path ====="
-            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://backend-prod-production-f338.up.railway.app$path")
+            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy$path")
             echo "HTTP $code"
             head -c 300 /tmp/body.txt || true
             echo
@@ -89,19 +89,19 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk SaintsAI-Admin-v1.0.4.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.4.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk SaintsAI-Admin-v1.0.5.apk
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.5.apk
 
       - name: Upload SaintsAI Admin
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Admin-APK-v1.0.4
-          path: android-app/SaintsAI-Admin-v1.0.4.apk
+          name: SaintsAI-Admin-APK-v1.0.5
+          path: android-app/SaintsAI-Admin-v1.0.5.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Estoque-APK-v1.0.4
-          path: android-app/SaintsAI-Estoque-v1.0.4.apk
+          name: SaintsAI-Estoque-APK-v1.0.5
+          path: android-app/SaintsAI-Estoque-v1.0.5.apk
           if-no-files-found: error
