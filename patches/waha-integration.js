@@ -248,6 +248,15 @@ async function obterOuCriarConfig(lojaId,fone,sessao){
 async function iniciarPareamento(lojaId,phoneNumber){
   const fone=numero(phoneNumber), sessao=sessionName(lojaId), e=env();
   await obterOuCriarConfig(lojaId,fone,sessao);
+
+  const existente=await chamar('/api/sessions/'+encodeURIComponent(sessao),{method:'GET'});
+  const statusExistente=String(existente.data&&existente.data.status||'');
+  if(existente.ok && statusExistente==='FAILED'){
+    const removido=await chamar('/api/sessions/'+encodeURIComponent(sessao),{method:'DELETE'});
+    if(!removido.ok && removido.status!==404) throw new ErroWaha('Não foi possível resetar a sessão do WhatsApp.',502);
+    await new Promise(resolve=>setTimeout(resolve,300));
+  }
+
   const criado=await chamar('/api/sessions',{method:'POST',body:JSON.stringify({
     name:sessao,
     config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message'],hmac:{key:e.hmac}}]}
