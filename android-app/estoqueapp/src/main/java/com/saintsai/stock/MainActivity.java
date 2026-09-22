@@ -3,6 +3,7 @@ package com.saintsai.stock;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -12,23 +13,23 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebResourceResponse;
-import java.io.ByteArrayInputStream;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import android.widget.FrameLayout;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.view.Gravity;
-import android.widget.LinearLayout;
 
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-estoque.html";
+    private static final String PROXY_PREFIX = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
 
     private WebView webView;
     private ProgressBar loading;
     private LinearLayout errorView;
+    private boolean loadingHtmlManually = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +65,17 @@ public class MainActivity extends Activity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request.isForMainFrame()
+                        && "GET".equalsIgnoreCase(request.getMethod())
+                        && request.getUrl().toString().startsWith(PROXY_PREFIX)) {
+                    loadHtmlPage(request.getUrl().toString());
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 loading.setVisibility(View.VISIBLE);
                 errorView.setVisibility(View.GONE);
@@ -78,60 +90,8 @@ public class MainActivity extends Activity {
             }
 
             @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                if (!request.isForMainFrame() || !"GET".equalsIgnoreCase(request.getMethod())) {
-                    return super.shouldInterceptRequest(view, request);
-                }
-
-                String url = request.getUrl().toString();
-                if (!url.startsWith("https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/")) {
-                    return super.shouldInterceptRequest(view, request);
-                }
-
-                try {
-                    HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                    conn.setRequestMethod("GET");
-                    conn.setInstanceFollowRedirects(true);
-                    conn.setConnectTimeout(15000);
-                    conn.setReadTimeout(20000);
-                    conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8");
-                    String ua = request.getRequestHeaders().get("User-Agent");
-                    if (ua != null) conn.setRequestProperty("User-Agent", ua);
-
-                    int code = conn.getResponseCode();
-                    java.io.InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                    if (in == null) return super.shouldInterceptRequest(view, request);
-
-                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                    byte[] chunk = new byte[8192];
-                    int n;
-                    while ((n = in.read(chunk)) != -1) buffer.write(chunk, 0, n);
-                    in.close();
-
-                    String contentType = conn.getHeaderField("Content-Type");
-                    boolean isHtmlPage = url.contains("/functions/v1/saintsai-proxy/painel/")
-                            && (contentType == null
-                                || contentType.toLowerCase().contains("text/plain")
-                                || contentType.toLowerCase().contains("text/html")
-                                || url.endsWith("/")
-                                || url.matches(".*\\.html(?:\\?.*)?$"));
-
-                    if (isHtmlPage) {
-                        return new WebResourceResponse(
-                                "text/html",
-                                "UTF-8",
-                                new ByteArrayInputStream(buffer.toByteArray())
-                        );
-                    }
-                } catch (Exception ignored) {
-                }
-
-                return super.shouldInterceptRequest(view, request);
-            }
-
-            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
+                if (request.isForMainFrame() && !loadingHtmlManually) {
                     loading.setVisibility(View.GONE);
                     webView.setVisibility(View.GONE);
                     errorView.setVisibility(View.VISIBLE);
@@ -157,7 +117,53 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
-        webView.loadUrl(APP_URL);
+        loadHtmlPage(APP_URL);
+    }
+
+    private void loadHtmlPage(String url) {
+        loadingHtmlManually = true;
+        loading.setVisibility(View.VISIBLE);
+        errorView.setVisibility(View.GONE);
+        webView.setVisibility(View.VISIBLE);
+
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestMethod("GET");
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(20000);
+                conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8");
+                String ua = webView.getSettings().getUserAgentString();
+                if (ua != null) conn.setRequestProperty("User-Agent", ua);
+
+                int code = conn.getResponseCode();
+                java.io.InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+                if (in == null) throw new IllegalStateException("Resposta vazia");
+
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                byte[] chunk = new byte[8192];
+                int n;
+                while ((n = in.read(chunk)) != -1) buffer.write(chunk, 0, n);
+                in.close();
+
+                String html = buffer.toString("UTF-8");
+                runOnUiThread(() -> {
+                    loadingHtmlManually = false;
+                    webView.loadDataWithBaseURL(url, html, "text/html", "UTF-8", url);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    loadingHtmlManually = false;
+                    loading.setVisibility(View.GONE);
+                    webView.setVisibility(View.GONE);
+                    errorView.setVisibility(View.VISIBLE);
+                });
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
     }
 
     @Override
