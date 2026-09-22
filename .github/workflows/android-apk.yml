@@ -33,7 +33,7 @@ jobs:
       - name: Test Supabase endpoint
         run: |
           set -e
-          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/"
+          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://cdn.jsdelivr.net/gh/Alvesrs/loja-ia-saas@main/docs/index.html"
           echo "=== HEADERS ==="
           cat /tmp/headers.txt
           echo "=== BODY START ==="
