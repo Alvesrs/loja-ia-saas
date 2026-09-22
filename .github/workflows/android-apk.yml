@@ -34,21 +34,22 @@ jobs:
       - name: Test backend proxy
         run: |
           set -e
-          curl -sS -D /tmp/admin-headers.txt -o /tmp/admin-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel"
-          echo "=== ADMIN HEADERS ==="
-          cat /tmp/admin-headers.txt
-          echo "=== ADMIN BODY START ==="
-          head -c 300 /tmp/admin-body.txt
-          echo
-          grep -Eq "<!doctype|<html" /tmp/admin-body.txt
-
-          curl -sS -D /tmp/stock-headers.txt -o /tmp/stock-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-estoque.html"
-          echo "=== STOCK HEADERS ==="
-          cat /tmp/stock-headers.txt
-          echo "=== STOCK BODY START ==="
-          head -c 300 /tmp/stock-body.txt
-          echo
-          grep -Eq "<!doctype|<html" /tmp/stock-body.txt
+          for path in \
+            "/painel" \
+            "/painel/" \
+            "/painel/login.html" \
+            "/painel/dashboard.html" \
+            "/login.html" \
+            "/dashboard.html" \
+            "/cliente-estoque.html" \
+            "/painel/cliente-estoque.html" \
+            "/"; do
+            echo "===== $path ====="
+            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy$path")
+            echo "HTTP $code"
+            head -c 220 /tmp/body.txt || true
+            echo
+          done
 
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
