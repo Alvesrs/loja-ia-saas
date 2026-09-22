@@ -100,7 +100,16 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
-        webView.loadUrl(APP_URL);
+        String bootstrap = "<!doctype html><html><head><meta charset='utf-8'>"
+                + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                + "</head><body style='margin:0;background:#0a0a0f;color:white'>"
+                + "<script>"
+                + "fetch('"+APP_URL+"',{credentials:'include',cache:'no-store'})"
+                + ".then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})"
+                + ".then(function(html){document.open();document.write(html);document.close();})"
+                + ".catch(function(e){document.body.innerHTML='<div style=\\\"padding:24px;font-family:sans-serif\\\">Falha ao carregar SaintsAI<br>'+e+'</div>';});"
+                + "</script></body></html>";
+        webView.loadDataWithBaseURL(APP_URL, bootstrap, "text/html", "UTF-8", null);
     }
 
     @Override
