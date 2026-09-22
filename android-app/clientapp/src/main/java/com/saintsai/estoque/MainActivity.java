@@ -27,7 +27,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String APP_HOST = "backend-prod-production-f338.up.railway.app";
 
     private WebView webView;
-    private View splashView;
     private boolean limpezaWebConcluida = false;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -44,18 +43,12 @@ public class MainActivity extends AppCompatActivity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(5, 5, 7));
-        webView.setVisibility(View.INVISIBLE);
+        webView.setVisibility(View.VISIBLE);
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
-        splashView = new View(this);
-        splashView.setBackgroundResource(R.drawable.splash_background);
-        root.addView(splashView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        ));
 
         setContentView(root);
 
@@ -114,13 +107,6 @@ public class MainActivity extends AppCompatActivity {
                     );
                 }
                 webView.setVisibility(View.VISIBLE);
-                if (splashView != null && splashView.getVisibility() == View.VISIBLE) {
-                    splashView.animate()
-                            .alpha(0f)
-                            .setDuration(250)
-                            .withEndAction(() -> splashView.setVisibility(View.GONE))
-                            .start();
-                }
             }
         });
 
@@ -129,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.restoreState(savedInstanceState);
             webView.setVisibility(View.VISIBLE);
-            splashView.setVisibility(View.GONE);
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
