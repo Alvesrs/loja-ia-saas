@@ -1,0 +1,25 @@
+name: Evolution provider inspect
+on:
+  push:
+    branches: [evolution-integration]
+    paths: ['.github/workflows/evolution-provider-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
+          for p in fix-public-ia-route log-ai-response-origin stock-last-unit-policy order-status-management expose-plan-dashboard admin-dashboard-link meta-embedded-signup login-email-usuario cadastro-clientes cliente-estoque-agente fix-cliente-estoque-iframe admin-client-management admin-managed-store-selector client-product-registration serve-public-panel; do node "patches/$p.js"; done
+          echo "=== PROVIDER TREE ==="
+          find src/services/providers/whatsapp -maxdepth 3 -type f -print | sort
+          echo "=== FILES ==="
+          for f in $(find src/services/providers/whatsapp -maxdepth 3 -type f -name '*.js' | sort); do
+            echo "###FILE:$f"
+            cat "$f"
+            echo "###END:$f"
+          done
