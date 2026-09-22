@@ -106,6 +106,114 @@ async function trocarCodePorToken(code) {
   return data.access_token;
 }
 
+async function descobrirPeloCode({ lojaId, code }) {
+  if (!configurado()) {
+    throw new ErroEmbeddedSignup('Embedded Signup ainda não foi ativado pelo administrador do SaintsAI.', 503);
+  }
+
+  const accessToken = await trocarCodePorToken(code);
+  const negocios = await metaFetch('/me/businesses?fields=id,name&limit=100', { token: accessToken });
+  const listaNegocios = Array.isArray(negocios && negocios.data) ? negocios.data : [];
+  const candidatos = [];
+  const vistos = new Set();
+
+  for (const negocio of listaNegocios) {
+    const businessId = negocio && negocio.id ? String(negocio.id) : '';
+    if (!/^[0-9]{5,40}$/.test(businessId)) continue;
+
+    for (const edge of ['owned_whatsapp_business_accounts', 'client_whatsapp_business_accounts']) {
+      let wabas;
+      try {
+        wabas = await metaFetch('/' + businessId + '/' + edge + '?fields=id,name&limit=100', { token: accessToken });
+      } catch (_) {
+        continue;
+      }
+
+      const listaWabas = Array.isArray(wabas && wabas.data) ? wabas.data : [];
+      for (const waba of listaWabas) {
+        const wabaId = waba && waba.id ? String(waba.id) : '';
+        if (!/^[0-9]{5,40}$/.test(wabaId) || vistos.has(wabaId)) continue;
+        vistos.add(wabaId);
+
+        let numeros;
+        try {
+          numeros = await metaFetch('/' + wabaId + '/phone_numbers?fields=id,display_phone_number,verified_name&limit=100', { token: accessToken });
+        } catch (_) {
+          continue;
+        }
+
+        const listaNumeros = Array.isArray(numeros && numeros.data) ? numeros.data : [];
+        for (const numero of listaNumeros) {
+          const phoneId = numero && numero.id ? String(numero.id) : '';
+          if (!/^[0-9]{5,40}$/.test(phoneId)) continue;
+          candidatos.push({
+            business_id: businessId,
+            business_name: negocio.name || null,
+            waba_id: wabaId,
+            waba_name: waba.name || null,
+            phone_number_id: phoneId,
+            numero_whatsapp: numero.display_phone_number || null,
+            verified_name: numero.verified_name || null,
+          });
+        }
+      }
+    }
+  }
+
+  console.info('[meta embedded signup] descoberta_por_code', {
+    loja_id: lojaId,
+    negocios: listaNegocios.length,
+    candidatos: candidatos.length,
+  });
+
+  if (candidatos.length !== 1) {
+    return {
+      conectado: false,
+      motivo: candidatos.length ? 'MULTIPLOS_NUMEROS' : 'SEM_WABA',
+      candidatos: candidatos.map((x) => ({
+        business_id: x.business_id,
+        business_name: x.business_name,
+        waba_id: x.waba_id,
+        waba_name: x.waba_name,
+        phone_number_id: x.phone_number_id,
+        numero_whatsapp: x.numero_whatsapp,
+        verified_name: x.verified_name,
+      })),
+    };
+  }
+
+  const escolhido = candidatos[0];
+
+  await metaFetch('/' + escolhido.waba_id + '/subscribed_apps', {
+    method: 'POST',
+    token: accessToken,
+    body: {},
+  });
+
+  const existentes = await configuracoes.listarConfiguracoesWhatsapp(lojaId);
+  let config = Array.isArray(existentes)
+    ? (existentes.find((x) => x.provedor === 'meta' && x.ativo) || existentes.find((x) => x.provedor === 'meta'))
+    : null;
+
+  const dados = {
+    provedor: 'meta',
+    numero_whatsapp: escolhido.numero_whatsapp || '',
+    identificador_externo: escolhido.phone_number_id,
+    ativo: true,
+  };
+
+  if (config) config = await configuracoes.atualizarConfiguracaoWhatsapp(config.id, lojaId, dados);
+  else config = await configuracoes.criarConfiguracaoWhatsapp(dados, lojaId);
+
+  await credenciais.salvarCredencialMeta(config.id, lojaId, accessToken);
+
+  return {
+    conectado: true,
+    configuracao: config,
+    ...escolhido,
+  };
+}
+
 async function concluir({ lojaId, code, wabaId, phoneNumberId }) {
   if (!configurado()) {
     throw new ErroEmbeddedSignup('Embedded Signup ainda não foi ativado pelo administrador do SaintsAI.', 503);
@@ -184,6 +292,7 @@ module.exports = {
   ErroEmbeddedSignup,
   obterConfiguracaoPublica,
   concluir,
+  descobrirPeloCode,
 };
 `);
 
@@ -227,6 +336,18 @@ async function eventoEmbeddedSignup(req, res) {
   return res.json({ ok: true });
 }
 
+async function descobrirEmbeddedSignup(req, res) {
+  try {
+    const resultado = await embeddedSignup.descobrirPeloCode({
+      lojaId: req.params.lojaId,
+      code: req.body && req.body.code,
+    });
+    return res.json(resultado);
+  } catch (erro) {
+    return responderErro(res, erro);
+  }
+}
+
 async function concluirEmbeddedSignup(req, res) {
   try {
     const resultado = await embeddedSignup.concluir({
@@ -243,14 +364,14 @@ async function concluirEmbeddedSignup(req, res) {
 
 module.exports = {
   criar, listar, buscar, atualizar, desativar, salvarCredencial,
-  estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, eventoEmbeddedSignup, concluirEmbeddedSignup
+  estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, eventoEmbeddedSignup, descobrirEmbeddedSignup, concluirEmbeddedSignup
 };`
 );
 
 replaceOnce(
   'src/routes/whatsappConfiguracao.routes.js',
   "router.get('/historico/conversas', historicoController.listarConversas);",
-  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/event', controller.eventoEmbeddedSignup);\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
+  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/event', controller.eventoEmbeddedSignup);\nrouter.post('/embedded-signup/discover', controller.descobrirEmbeddedSignup);\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
 );
 
 replaceOnce(
@@ -472,14 +593,47 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
       );
       waTentarConcluirEmbedded();
       if (!waEmbeddedSession) {
-        setTimeout(() => {
-          if (waEmbeddedCode && !waEmbeddedSession) {
-            waRegistrarEventoMeta('timeout_sem_evento_whatsapp', { tem_code: true });
-            waEmbeddedEstado('Meta não abriu o cadastro do WhatsApp', false);
+        const codigoAtual = waEmbeddedCode;
+        setTimeout(async () => {
+          if (!codigoAtual || !waEmbeddedCode || waEmbeddedSession || waEmbeddedEnviando || waEmbeddedCode !== codigoAtual) return;
+          waRegistrarEventoMeta('timeout_sem_evento_whatsapp', { tem_code: true });
+          waEmbeddedEstado('Verificando contas do WhatsApp…', false);
+          waEmbeddedEnviando = true;
+          try {
+            const resultado = await apiFetch('/lojas/' + waLojaId + '/whatsapp/embedded-signup/discover', {
+              method: 'POST',
+              body: JSON.stringify({ code: codigoAtual }),
+            });
+
+            if (resultado && resultado.conectado) {
+              waEmbeddedCode = null;
+              waEmbeddedEstado('Conectado', true);
+              await waCarregarConfiguracao();
+              const ajuda = document.getElementById('wa-embedded-ajuda');
+              if (ajuda) ajuda.textContent = 'Número conectado: ' + (resultado.numero_whatsapp || '');
+              mostrarToast('WhatsApp conectado automaticamente com a Meta.', 'sucesso');
+              return;
+            }
+
+            if (resultado && resultado.motivo === 'MULTIPLOS_NUMEROS') {
+              waEmbeddedEstado('Mais de um número encontrado', false);
+              waErro('A Meta compartilhou mais de um número. O SaintsAI precisa que você escolha qual número conectar.');
+              const ajuda = document.getElementById('wa-embedded-ajuda');
+              if (ajuda) ajuda.textContent = 'Foram encontrados ' + ((resultado.candidatos || []).length) + ' números acessíveis nessa conta.';
+              return;
+            }
+
+            waEmbeddedEstado('Meta não compartilhou o WhatsApp', false);
             const ajuda = document.getElementById('wa-embedded-ajuda');
-            if (ajuda) ajuda.textContent = 'A Meta autenticou o Facebook, mas não iniciou o Embedded Signup do WhatsApp. Verifique o Configuration ID do Facebook Login for Business.';
+            if (ajuda) ajuda.textContent = 'O Facebook foi autorizado, mas nenhum WABA/número foi compartilhado. O Configuration ID da Meta precisa ser WhatsApp Embedded Signup.';
+            waErro('A configuração da Meta usada no SaintsAI está autenticando o Facebook, mas não está compartilhando uma conta do WhatsApp Business.');
+          } catch (erro) {
+            waEmbeddedEstado('Falha ao verificar WhatsApp', false);
+            waErro(erro.message || 'Não foi possível verificar os ativos do WhatsApp autorizados pela Meta.');
+          } finally {
+            waEmbeddedEnviando = false;
           }
-        }, 5000);
+        }, 1800);
       }
     } else {
       waEmbeddedEstado('Cadastro não concluído', false);
