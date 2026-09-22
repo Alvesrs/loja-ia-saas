@@ -16,6 +16,7 @@ const META_APP_SECRET = process.env.META_APP_SECRET || '';
 const META_CONFIG_ID = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
 const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v25.0';
 const META_HOSTED_ES_URL = process.env.META_HOSTED_ES_URL || ''; // legado; não usado no fluxo atual
+const META_REDIRECT_URI = process.env.META_REDIRECT_URI || ((process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '') + '/whatsapp.html');
 
 class ErroEmbeddedSignup extends Error {
   constructor(mensagem, status = 400) {
@@ -42,6 +43,7 @@ function obterConfiguracaoPublica() {
     app_id: META_APP_ID || null,
     config_id: META_CONFIG_ID || null,
     graph_version: META_GRAPH_VERSION,
+    redirect_uri: META_REDIRECT_URI || null,
     hosted_url: null,
   };
 }
@@ -84,6 +86,7 @@ async function trocarCodePorToken(code) {
     client_secret: META_APP_SECRET,
     code,
   });
+  if (META_REDIRECT_URI) params.set('redirect_uri', META_REDIRECT_URI);
   let resposta;
   try {
     resposta = await fetch('https://graph.facebook.com/' + META_GRAPH_VERSION + '/oauth/access_token', {
@@ -100,6 +103,9 @@ async function trocarCodePorToken(code) {
     console.warn('[meta embedded signup] troca_code_falhou', {
       status: resposta.status,
       codigo: data && data.error && data.error.code ? data.error.code : null,
+      subcodigo: data && data.error && data.error.error_subcode ? data.error.error_subcode : null,
+      tipo: data && data.error && data.error.type ? String(data.error.type).slice(0, 80) : null,
+      mensagem: data && data.error && data.error.message ? String(data.error.message).slice(0, 220) : null,
     });
     throw new ErroEmbeddedSignup('A autorização da Meta expirou ou não pôde ser validada. Refaça a conexão.', 502);
   }
@@ -592,49 +598,7 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
         false
       );
       waTentarConcluirEmbedded();
-      if (!waEmbeddedSession) {
-        const codigoAtual = waEmbeddedCode;
-        setTimeout(async () => {
-          if (!codigoAtual || !waEmbeddedCode || waEmbeddedSession || waEmbeddedEnviando || waEmbeddedCode !== codigoAtual) return;
-          waRegistrarEventoMeta('timeout_sem_evento_whatsapp', { tem_code: true });
-          waEmbeddedEstado('Verificando contas do WhatsApp…', false);
-          waEmbeddedEnviando = true;
-          try {
-            const resultado = await apiFetch('/lojas/' + waLojaId + '/whatsapp/embedded-signup/discover', {
-              method: 'POST',
-              body: JSON.stringify({ code: codigoAtual }),
-            });
 
-            if (resultado && resultado.conectado) {
-              waEmbeddedCode = null;
-              waEmbeddedEstado('Conectado', true);
-              await waCarregarConfiguracao();
-              const ajuda = document.getElementById('wa-embedded-ajuda');
-              if (ajuda) ajuda.textContent = 'Número conectado: ' + (resultado.numero_whatsapp || '');
-              mostrarToast('WhatsApp conectado automaticamente com a Meta.', 'sucesso');
-              return;
-            }
-
-            if (resultado && resultado.motivo === 'MULTIPLOS_NUMEROS') {
-              waEmbeddedEstado('Mais de um número encontrado', false);
-              waErro('A Meta compartilhou mais de um número. O SaintsAI precisa que você escolha qual número conectar.');
-              const ajuda = document.getElementById('wa-embedded-ajuda');
-              if (ajuda) ajuda.textContent = 'Foram encontrados ' + ((resultado.candidatos || []).length) + ' números acessíveis nessa conta.';
-              return;
-            }
-
-            waEmbeddedEstado('Meta não compartilhou o WhatsApp', false);
-            const ajuda = document.getElementById('wa-embedded-ajuda');
-            if (ajuda) ajuda.textContent = 'O Facebook foi autorizado, mas nenhum WABA/número foi compartilhado. O Configuration ID da Meta precisa ser WhatsApp Embedded Signup.';
-            waErro('A configuração da Meta usada no SaintsAI está autenticando o Facebook, mas não está compartilhando uma conta do WhatsApp Business.');
-          } catch (erro) {
-            waEmbeddedEstado('Falha ao verificar WhatsApp', false);
-            waErro(erro.message || 'Não foi possível verificar os ativos do WhatsApp autorizados pela Meta.');
-          } finally {
-            waEmbeddedEnviando = false;
-          }
-        }, 1800);
-      }
     } else {
       waEmbeddedEstado('Cadastro não concluído', false);
     }
@@ -642,9 +606,11 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
     config_id: waEmbeddedCfg.config_id,
     auth_type: 'rerequest',
     response_type: 'code',
+    ...(waEmbeddedCfg.redirect_uri ? { redirect_uri: waEmbeddedCfg.redirect_uri } : {}),
     override_default_response_type: true,
     extras: {
-      setup: {}
+      setup: {},
+      featureType: 'whatsapp_business_app_onboarding'
     }
   });
 });
@@ -655,7 +621,7 @@ fs.writeFileSync('public/js/whatsapp.js', js);
 
 if (fs.existsSync('.env.example')) {
   let env = fs.readFileSync('.env.example', 'utf8');
-  if (!env.includes('META_APP_ID=')) env += '\n# Meta Embedded Signup\nMETA_APP_ID=\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\nMETA_GRAPH_VERSION=v25.0\nMETA_HOSTED_ES_URL=\n';
+  if (!env.includes('META_APP_ID=')) env += '\n# Meta Embedded Signup\nMETA_APP_ID=\nMETA_EMBEDDED_SIGNUP_CONFIG_ID=\nMETA_GRAPH_VERSION=v25.0\nMETA_HOSTED_ES_URL=\nMETA_REDIRECT_URI=https://backend-prod-production-f338.up.railway.app/whatsapp.html\n';
   fs.writeFileSync('.env.example', env);
 }
 
