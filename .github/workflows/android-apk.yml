@@ -33,7 +33,7 @@ jobs:
       - name: Test backend proxy
         run: |
           set -e
-          curl -sS -D /tmp/admin-headers.txt -o /tmp/admin-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/"
+          curl -sS -D /tmp/admin-headers.txt -o /tmp/admin-body.txt "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel"
           echo "=== ADMIN HEADERS ==="
           cat /tmp/admin-headers.txt
           echo "=== ADMIN BODY START ==="
