@@ -214,6 +214,19 @@ replaceOnce(
   return res.json(embeddedSignup.obterConfiguracaoPublica());
 }
 
+async function eventoEmbeddedSignup(req, res) {
+  const corpo = req.body || {};
+  console.info('[meta embedded signup] evento_cliente', {
+    loja_id: req.params.lojaId,
+    etapa: typeof corpo.etapa === 'string' ? corpo.etapa.slice(0, 80) : null,
+    evento: typeof corpo.evento === 'string' ? corpo.evento.slice(0, 80) : null,
+    tem_waba: Boolean(corpo.tem_waba),
+    tem_phone: Boolean(corpo.tem_phone),
+    tem_code: Boolean(corpo.tem_code),
+  });
+  return res.json({ ok: true });
+}
+
 async function concluirEmbeddedSignup(req, res) {
   try {
     const resultado = await embeddedSignup.concluir({
@@ -230,14 +243,15 @@ async function concluirEmbeddedSignup(req, res) {
 
 module.exports = {
   criar, listar, buscar, atualizar, desativar, salvarCredencial,
-  estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, concluirEmbeddedSignup
+  estadoCredencial, removerCredencial, configuracaoEmbeddedSignup, eventoEmbeddedSignup, concluirEmbeddedSignup
 };`
 );
 
 replaceOnce(
   'src/routes/whatsappConfiguracao.routes.js',
   "router.get('/historico/conversas', historicoController.listarConversas);",
-  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
+  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/event', controller.eventoEmbeddedSignup);
+router.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
 );
 
 replaceOnce(
@@ -303,6 +317,27 @@ function waMetaOrigemValida(origin) {
   } catch (_) { return false; }
 }
 
+function waRegistrarEventoMeta(etapa, dados = {}) {
+  try {
+    if (!waLojaId) return;
+    fetch('/api/lojas/' + waLojaId + '/whatsapp/embedded-signup/event', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(localStorage.getItem('lojaia_token') ? { Authorization: 'Bearer ' + localStorage.getItem('lojaia_token') } : {})
+      },
+      body: JSON.stringify({
+        etapa,
+        evento: dados.evento || null,
+        tem_waba: Boolean(dados.tem_waba),
+        tem_phone: Boolean(dados.tem_phone),
+        tem_code: Boolean(dados.tem_code),
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (_) {}
+}
+
 function waEmbeddedEstado(texto, ok) {
   const badge = document.getElementById('wa-embedded-status');
   if (!badge) return;
@@ -349,6 +384,12 @@ window.addEventListener('message', (event) => {
   let data = event.data;
   try { if (typeof data === 'string') data = JSON.parse(data); } catch (_) { return; }
   if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+  waRegistrarEventoMeta('mensagem_meta', {
+    evento: data.event,
+    tem_waba: Boolean(data.data && data.data.waba_id),
+    tem_phone: Boolean(data.data && data.data.phone_number_id),
+    tem_code: Boolean(waEmbeddedCode),
+  });
   if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
     if (data.data && data.data.waba_id) {
       waEmbeddedSession = {
@@ -430,6 +471,7 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
   FB.login((response) => {
     if (response && response.authResponse && response.authResponse.code) {
       waEmbeddedCode = String(response.authResponse.code);
+      waRegistrarEventoMeta('facebook_login_callback', { tem_code: true, tem_waba: Boolean(waEmbeddedSession && waEmbeddedSession.waba_id), tem_phone: Boolean(waEmbeddedSession && waEmbeddedSession.phone_number_id) });
       waEmbeddedEstado(
         waEmbeddedSession ? 'Concluindo conexão…' : 'Autorizado — aguardando WhatsApp…',
         false
@@ -444,7 +486,7 @@ document.getElementById('wa-conectar-meta').addEventListener('click', () => {
     override_default_response_type: true,
     extras: {
       setup: {},
-      featureType: 'whatsapp_business_app_onboarding',
+      featureType: '',
       sessionInfoVersion: '3'
     }
   });
