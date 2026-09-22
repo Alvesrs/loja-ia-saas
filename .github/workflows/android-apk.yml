@@ -33,7 +33,7 @@ jobs:
       - name: Test Supabase endpoint
         run: |
           set -e
-          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://cdn.jsdelivr.net/gh/Alvesrs/loja-ia-saas@main/docs/index.html"
+          curl -sS -D /tmp/headers.txt -o /tmp/body.txt "https://raw.githack.com/Alvesrs/loja-ia-saas/main/docs/index.html"
           echo "=== HEADERS ==="
           cat /tmp/headers.txt
           echo "=== BODY START ==="
