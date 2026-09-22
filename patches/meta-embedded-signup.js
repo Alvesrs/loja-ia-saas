@@ -250,8 +250,7 @@ module.exports = {
 replaceOnce(
   'src/routes/whatsappConfiguracao.routes.js',
   "router.get('/historico/conversas', historicoController.listarConversas);",
-  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/event', controller.eventoEmbeddedSignup);
-router.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
+  "router.get('/embedded-signup/config', controller.configuracaoEmbeddedSignup);\nrouter.post('/embedded-signup/event', controller.eventoEmbeddedSignup);\nrouter.post('/embedded-signup/complete', controller.concluirEmbeddedSignup);\n\nrouter.get('/historico/conversas', historicoController.listarConversas);"
 );
 
 replaceOnce(
