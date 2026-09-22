@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String APP_HOST = "backend-prod-production-f338.up.railway.app";
 
     private WebView webView;
-    private boolean limpezaWebConcluida = false;
+    private View splashView;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -43,12 +43,18 @@ public class MainActivity extends AppCompatActivity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(5, 5, 7));
-        webView.setVisibility(View.VISIBLE);
+        webView.setVisibility(View.INVISIBLE);
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        splashView = new View(this);
+        splashView.setBackgroundResource(R.drawable.splash_background);
+        root.addView(splashView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
         setContentView(root);
 
@@ -70,13 +76,11 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, false);
 
-        webView.clearCache(true);
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -92,21 +96,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                Uri atual = Uri.parse(url);
-                if (!limpezaWebConcluida
-                        && "https".equalsIgnoreCase(atual.getScheme())
-                        && APP_HOST.equalsIgnoreCase(atual.getHost())) {
-                    limpezaWebConcluida = true;
-                    view.evaluateJavascript(
-                            "(async()=>{try{" +
-                            "if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}" +
-                            "if(window.caches){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}" +
-                            "const u=new URL(location.href);if(!u.searchParams.has('_appfresh')){u.searchParams.set('_appfresh','1');location.replace(u.toString());}" +
-                            "}catch(e){}})();",
-                            null
-                    );
-                }
                 webView.setVisibility(View.VISIBLE);
+                if (splashView != null && splashView.getVisibility() == View.VISIBLE) {
+                    splashView.animate()
+                            .alpha(0f)
+                            .setDuration(250)
+                            .withEndAction(() -> splashView.setVisibility(View.GONE))
+                            .start();
+                }
             }
         });
 
@@ -115,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.restoreState(savedInstanceState);
             webView.setVisibility(View.VISIBLE);
+            splashView.setVisibility(View.GONE);
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
