@@ -1,0 +1,54 @@
+name: Evolution integration inspect
+
+on:
+  push:
+    branches:
+      - evolution-integration
+    paths:
+      - '.github/workflows/evolution-inspect.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rebuild backend source exactly like Railway
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
+          node patches/fix-public-ia-route.js
+          node patches/log-ai-response-origin.js
+          node patches/stock-last-unit-policy.js
+          node patches/order-status-management.js
+          node patches/expose-plan-dashboard.js
+          node patches/admin-dashboard-link.js
+          node patches/meta-embedded-signup.js
+          node patches/login-email-usuario.js
+          node patches/cadastro-clientes.js
+          node patches/cliente-estoque-agente.js
+          node patches/fix-cliente-estoque-iframe.js
+          node patches/admin-client-management.js
+          node patches/admin-managed-store-selector.js
+          node patches/client-product-registration.js
+          node patches/serve-public-panel.js
+
+      - name: Print integration targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in             src/app.js             src/routes/ia.routes.js             src/controllers/ia.controller.js             src/services/ia.service.js             src/routes/whatsappConfiguracao.routes.js             src/controllers/whatsappConfiguracao.controller.js             src/services/whatsappConfiguracao.service.js             src/services/whatsappCredencial.service.js             src/workers/whatsapp.worker.js             src/services/whatsapp.service.js             package.json
+          do
+            echo "::group::$f"
+            if [ -f "$f" ]; then
+              sed -n '1,260p' "$f"
+            else
+              echo "MISSING"
+            fi
+            echo "::endgroup::"
+          done
