@@ -23,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -150,7 +151,7 @@ public class MainActivity extends Activity {
         if (reason == null || reason.trim().isEmpty()) reason = status >= 400 ? "Error" : "OK";
 
         InputStream raw = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
-        if (raw == null) raw = InputStream.nullInputStream();
+        if (raw == null) raw = new ByteArrayInputStream(new byte[0]);
         InputStream body = new BufferedInputStream(raw);
 
         String mime = guessMime(Uri.parse(url), conn.getContentType());
