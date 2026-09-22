@@ -132,7 +132,7 @@ public class MainActivity extends Activity {
                 + "fetch('" + safeUrl + "',{credentials:'include',cache:'no-store'})"
                 + ".then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})"
                 + ".then(function(html){document.open();document.write(html);document.close();})"
-                + ".catch(function(e){document.body.innerHTML='<pre style=\\"color:white;background:#0a0a0f;padding:20px;white-space:pre-wrap\\">Falha ao carregar SaintsAI: '+e.message+'</pre>';});"
+                + ".catch(function(e){document.body.textContent='Falha ao carregar SaintsAI: '+e.message;});"
                 + "</script></body></html>";
 
         webView.loadDataWithBaseURL(url, bootstrap, "text/html", "UTF-8", url);
