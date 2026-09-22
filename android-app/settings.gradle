@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "LojaIA"
-include(":app")
-include(":clientapp")
+rootProject.name = "SaintsAI"
+include(":adminapp")
+include(":estoqueapp")
