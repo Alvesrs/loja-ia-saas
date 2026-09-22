@@ -1,0 +1,25 @@
+name: Evolution DB inspect
+on:
+  push:
+    branches: [evolution-integration]
+    paths: ['.github/workflows/evolution-db-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
+          echo "=== MIGRATIONS ==="
+          grep -RniE "whatsapp_(configuracoes|credenciais)|provedor" src/db/migrations src/db/schema.sql | head -n 300 || true
+          echo "=== CREDENTIAL MIGRATIONS ==="
+          for f in src/db/migrations/*whatsapp* src/db/schema.sql; do
+            [ -f "$f" ] || continue
+            echo "###FILE:$f"
+            sed -n '1,420p' "$f"
+            echo "###END:$f"
+          done
