@@ -19,7 +19,7 @@ import android.view.Gravity;
 import android.widget.LinearLayout;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
+    private static final String APP_URL = "https://mobile-proxy-production.up.railway.app/painel/";
 
     private WebView webView;
     private ProgressBar loading;
