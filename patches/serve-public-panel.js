@@ -3,22 +3,24 @@ const fs = require('node:fs');
 const file = 'src/app.js';
 let src = fs.readFileSync(file, 'utf8');
 
-if (src.includes('SAINTSAI_PUBLIC_PANEL_MOUNT')) {
-  console.log('Mount público do painel já aplicado.');
+const marker = '// SAINTSAI_PUBLIC_PANEL_V2_20260922';
+if (src.includes(marker)) {
+  console.log('Mount público /painel V2 já aplicado.');
   process.exit(0);
 }
 
-if (!src.includes("require('node:path')") && !src.includes('require("node:path")')) {
-  src = "const path = require('node:path');\n" + src;
-}
-
 const block = `
-// SAINTSAI_PUBLIC_PANEL_MOUNT
-const saintsaiPublicDir = path.join(process.cwd(), 'public');
+// SAINTSAI_PUBLIC_PANEL_V2_20260922
+const __saintsaiPath = require('node:path');
+const __saintsaiPublicDir = __saintsaiPath.join(process.cwd(), 'public');
+
 app.get('/painel', (_req, res) => {
-  res.sendFile(path.join(saintsaiPublicDir, 'login.html'));
+  res.sendFile(__saintsaiPath.join(__saintsaiPublicDir, 'login.html'));
 });
-app.use('/painel', express.static(saintsaiPublicDir, {
+app.get('/painel/', (_req, res) => {
+  res.sendFile(__saintsaiPath.join(__saintsaiPublicDir, 'login.html'));
+});
+app.use('/painel', require('express').static(__saintsaiPublicDir, {
   index: false,
   fallthrough: true,
   redirect: false,
@@ -26,19 +28,25 @@ app.use('/painel', express.static(saintsaiPublicDir, {
 `;
 
 let insertAt = -1;
-const notFoundText = 'Rota não encontrada.';
-const nf = src.indexOf(notFoundText);
-if (nf >= 0) {
-  insertAt = src.lastIndexOf('\napp.use', nf);
+const apiAuthSingle = src.indexOf("app.use('/api/auth'");
+const apiAuthDouble = src.indexOf('app.use("/api/auth"');
+if (apiAuthSingle >= 0 && apiAuthDouble >= 0) insertAt = Math.min(apiAuthSingle, apiAuthDouble);
+else insertAt = Math.max(apiAuthSingle, apiAuthDouble);
+
+if (insertAt < 0) {
+  const firstUse = src.indexOf('app.use(');
+  if (firstUse >= 0) insertAt = firstUse;
 }
+
 if (insertAt < 0) {
   const exported = src.indexOf('module.exports = app');
   if (exported >= 0) insertAt = exported;
 }
+
 if (insertAt < 0) {
-  throw new Error('Não foi possível localizar o ponto seguro para montar /painel.');
+  throw new Error('Não foi possível localizar ponto para montar /painel.');
 }
 
-src = src.slice(0, insertAt) + '\n' + block + '\n' + src.slice(insertAt);
+src = src.slice(0, insertAt) + block + '\n' + src.slice(insertAt);
 fs.writeFileSync(file, src);
-console.log('Mount público /painel aplicado.');
+console.log('Mount público /painel V2 aplicado sem cache.');
