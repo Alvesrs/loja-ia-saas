@@ -111,8 +111,28 @@ async function concluir({ lojaId, code, wabaId, phoneNumberId }) {
     throw new ErroEmbeddedSignup('Embedded Signup ainda não foi ativado pelo administrador do SaintsAI.', 503);
   }
   const waba_id = textoId(wabaId, 'WABA ID');
-  const phone_number_id = textoId(phoneNumberId, 'Phone Number ID');
   const accessToken = await trocarCodePorToken(code);
+
+  let phone_number_id = null;
+  if (typeof phoneNumberId === 'string' && /^[0-9]{5,40}$/.test(phoneNumberId.trim())) {
+    phone_number_id = phoneNumberId.trim();
+  }
+
+  // Em versões recentes/coexistência do Embedded Signup, a Meta pode concluir
+  // o onboarding retornando apenas o WABA ID. Nesse caso descobrimos o número
+  // automaticamente pelo Graph API, sem pedir IDs ao cliente.
+  if (!phone_number_id) {
+    const numeros = await metaFetch('/' + waba_id + '/phone_numbers?fields=id,display_phone_number,verified_name', {
+      token: accessToken,
+    });
+    const lista = Array.isArray(numeros && numeros.data) ? numeros.data : [];
+    if (!lista.length) {
+      throw new ErroEmbeddedSignup('A Meta autorizou a conta, mas ainda não disponibilizou o número do WhatsApp. Conclua a seleção/verificação do número e tente novamente.', 502);
+    }
+    // O Embedded Signup normalmente disponibiliza o número recém-onboarded.
+    // Se houver vários, prioriza o primeiro retornado pela própria Meta.
+    phone_number_id = textoId(String(lista[0].id || ''), 'Phone Number ID');
+  }
 
   const infoNumero = await metaFetch('/' + phone_number_id + '?fields=display_phone_number,verified_name', {
     token: accessToken,
@@ -292,7 +312,7 @@ function waEmbeddedEstado(texto, ok) {
 }
 
 async function waTentarConcluirEmbedded() {
-  if (waEmbeddedEnviando || !waEmbeddedCode || !waEmbeddedSession || !waLojaId) return;
+  if (waEmbeddedEnviando || !waEmbeddedCode || !waEmbeddedSession || !waEmbeddedSession.waba_id || !waLojaId) return;
   waEmbeddedEnviando = true;
   const botao = document.getElementById('wa-conectar-meta');
   if (botao) { botao.disabled = true; botao.textContent = 'Concluindo conexão…'; }
@@ -330,11 +350,15 @@ window.addEventListener('message', (event) => {
   try { if (typeof data === 'string') data = JSON.parse(data); } catch (_) { return; }
   if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
   if (data.event === 'FINISH' || data.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
-    if (data.data && data.data.waba_id && data.data.phone_number_id) {
+    if (data.data && data.data.waba_id) {
       waEmbeddedSession = {
         waba_id: String(data.data.waba_id),
-        phone_number_id: String(data.data.phone_number_id),
+        phone_number_id: data.data.phone_number_id ? String(data.data.phone_number_id) : null,
       };
+      waEmbeddedEstado(
+        data.data.phone_number_id ? 'Concluindo conexão…' : 'WhatsApp autorizado — identificando número…',
+        false
+      );
       waTentarConcluirEmbedded();
     }
   } else if (data.event === 'CANCEL') {
