@@ -433,3 +433,5 @@ setInterval(waConsultarWaha,10000);
 write('public/js/whatsapp.js',wjs);
 
 console.log('Patch WAHA multi-tenant aplicado.');
+
+// build-trigger: waha-integration
