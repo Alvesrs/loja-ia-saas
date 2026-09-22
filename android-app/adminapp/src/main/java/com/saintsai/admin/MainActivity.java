@@ -109,12 +109,12 @@ public class MainActivity extends Activity {
                     in.close();
 
                     String contentType = conn.getHeaderField("Content-Type");
-                    boolean isHtmlPage = url.endsWith("/painel/")
-                            || url.contains("/painel/login.html")
-                            || url.contains("/painel/dashboard.html")
-                            || url.contains("/painel/cliente-estoque.html")
-                            || url.contains("/painel/estoque.html")
-                            || (contentType != null && contentType.toLowerCase().contains("text/html"));
+                    boolean isHtmlPage = url.contains("/functions/v1/saintsai-proxy/painel/")
+                            && (contentType == null
+                                || contentType.toLowerCase().contains("text/plain")
+                                || contentType.toLowerCase().contains("text/html")
+                                || url.endsWith("/")
+                                || url.matches(".*\\.html(?:\\?.*)?$"));
 
                     if (isHtmlPage) {
                         return new WebResourceResponse(
