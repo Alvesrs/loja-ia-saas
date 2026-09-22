@@ -219,8 +219,9 @@ function sessionName(lojaId){
   return 'saintsai_'+lojaId.replace(/-/g,'');
 }
 function numero(valor){
-  const d=String(valor||'').replace(/\\D/g,'');
-  if(d.length<10||d.length>15) throw new ErroWaha('Informe o número com DDI e DDD.',400);
+  let d=String(valor||'').replace(/\\D/g,'');
+  if(d.length===10||d.length===11) d='55'+d;
+  if(d.length<12||d.length>15) throw new ErroWaha('Informe um número válido com DDI e DDD.',400);
   return d;
 }
 async function chamar(path,opcoes={}){
