@@ -251,7 +251,7 @@ async function iniciarPareamento(lojaId,phoneNumber){
     name:sessao,
     config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message'],hmac:{key:e.hmac}}]}
   })});
-  if(!criado.ok && criado.status!==409) throw new ErroWaha('Não foi possível preparar a sessão do WhatsApp.',502);
+  if(!criado.ok && criado.status!==409 && criado.status!==422) throw new ErroWaha('Não foi possível preparar a sessão do WhatsApp.',502);
 
   const iniciado=await chamar('/api/sessions/'+encodeURIComponent(sessao)+'/start',{method:'POST'});
   if(!iniciado.ok && iniciado.status!==409) throw new ErroWaha('Não foi possível iniciar a sessão do WhatsApp.',502);
