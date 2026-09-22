@@ -24,8 +24,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String APP_URL = "https://mobile-proxy-production.up.railway.app/painel/";
-    private static final String APP_HOST = "mobile-proxy-production.up.railway.app";
+    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
+    private static final String APP_HOST = "ldpiryzsunxwuhyvvogg.supabase.co";
 
     private WebView webView;
     private ProgressBar progress;
