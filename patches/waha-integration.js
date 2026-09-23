@@ -164,6 +164,58 @@ const workerService = require('../services/whatsappWorker.service');
 const idempotenciaService = require('../services/whatsappIdempotencia.service');
 
 const CONTEXTO = Object.freeze({provedor:'waha'});
+const pendentes = new Map();
+
+function janelaAgrupamentoMs(){
+  const valor = Number(process.env.WHATSAPP_AGRUPAMENTO_MS);
+  if (!Number.isFinite(valor)) return 5000;
+  return Math.max(1500, Math.min(valor, 15000));
+}
+
+function chaveConversa(evento){
+  return evento.destinatarioId + '|' + evento.contato;
+}
+
+async function liberarReservas(itens){
+  for (const item of itens) {
+    try {
+      await idempotenciaService.liberarEventoWhatsapp({provedor:'waha',idExterno:item.idExterno});
+    } catch (_) {}
+  }
+}
+
+async function processarLote(chave){
+  const lote = pendentes.get(chave);
+  if (!lote) return;
+  pendentes.delete(chave);
+  const itens = lote.eventos;
+  if (!itens.length) return;
+
+  const ultimo = itens[itens.length - 1];
+  const combinado = Object.freeze({
+    ...ultimo,
+    texto: itens.map((item) => item.texto).filter(Boolean).join('\n'),
+  });
+
+  try {
+    console.log('[waha.webhook] agrupado', JSON.stringify({
+      contato: combinado.contato,
+      destinatarioId: combinado.destinatarioId,
+      mensagens: itens.length,
+      janelaMs: janelaAgrupamentoMs(),
+    }));
+    const interna = await webhookService.processarEventoWhatsapp(combinado, CONTEXTO);
+    const job = await filaService.enfileirarMensagemWhatsapp(interna,{
+      provedor:'waha',
+      destinatarioId:combinado.destinatarioId
+    });
+    await workerService.processarJob(job);
+    console.log('[waha.webhook] lote_processado', combinado.idExterno);
+  } catch (erro) {
+    console.error('[waha.webhook] erro_lote', erro && (erro.stack || erro.message || erro));
+    await liberarReservas(itens);
+  }
+}
 
 async function receber(req,res){
   let evento;
@@ -171,21 +223,32 @@ async function receber(req,res){
   catch (_) { return res.status(400).json({erro:'Evento WAHA inválido.'}); }
   if (!evento) return res.status(200).json({status:'sem_mensagem_processavel'});
 
-  const chave={provedor:'waha',idExterno:evento.idExterno};
-  let reservou=false;
+  const chaveId={provedor:'waha',idExterno:evento.idExterno};
   try{
-    const interna=await webhookService.processarEventoWhatsapp(evento, CONTEXTO);
-    reservou=await idempotenciaService.reservarEventoWhatsapp(chave);
+    const reservou = await idempotenciaService.reservarEventoWhatsapp(chaveId);
     if(!reservou) return res.status(200).json({status:'duplicado_ignorado'});
-    const job=await filaService.enfileirarMensagemWhatsapp(interna,{provedor:'waha',destinatarioId:evento.destinatarioId});
-    res.status(200).json({status:'recebido'});
-    console.log('[waha.webhook] processando', JSON.stringify({idExterno:evento.idExterno,contato:evento.contato,destinatarioId:evento.destinatarioId}));
-    await workerService.processarJob(job);
-    console.log('[waha.webhook] processado', evento.idExterno);
-    return res;
+
+    const chave = chaveConversa(evento);
+    const anterior = pendentes.get(chave);
+    if (anterior && anterior.timer) clearTimeout(anterior.timer);
+
+    const eventos = anterior ? anterior.eventos : [];
+    eventos.push(evento);
+
+    const timer = setTimeout(() => {
+      processarLote(chave).catch((erro) => {
+        console.error('[waha.webhook] falha_assincrona', erro && (erro.stack || erro.message || erro));
+      });
+    }, janelaAgrupamentoMs());
+
+    pendentes.set(chave,{eventos,timer});
+    return res.status(200).json({
+      status:'recebido_agrupando',
+      mensagens_no_lote:eventos.length
+    });
   }catch(erro){
     console.error('[waha.webhook] erro', erro && (erro.stack || erro.message || erro));
-    if(reservou){ try{await idempotenciaService.liberarEventoWhatsapp(chave);}catch(__){} }
+    try{await idempotenciaService.liberarEventoWhatsapp(chaveId);}catch(_){}
     if(!res.headersSent) return res.status(500).json({erro:'Erro interno ao processar o evento.'});
     return res;
   }
