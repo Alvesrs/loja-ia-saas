@@ -1,0 +1,27 @@
+name: Verify SaintsAI Admin Mobile Link
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-admin-mobile.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live admin mobile page through Supabase proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel"
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/admin-mobile.html" -o /tmp/admin.html
+          grep -F "Registrar novo cliente" /tmp/admin.html
+          grep -F "Prompt Mestre" /tmp/admin.html
+          grep -F "Personalidade do agente" /tmp/admin.html
+          grep -F "Gerar Pix" /tmp/admin.html
+          grep -F "Número oficial do dono" /tmp/admin.html
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/login.html?next=admin-mobile.html" -o /tmp/login.html
+          grep -F "admin-mobile.html" /tmp/login.html
+          echo "LIVE_ADMIN_MOBILE_OK"
