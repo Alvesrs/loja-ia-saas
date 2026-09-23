@@ -71,15 +71,15 @@ module.exports=router;
 
 let app=read('src/app.js');
 if(!app.includes("adminVendasRoutes")){
- app=app.replace("const adminRoutes = require('./routes/admin.routes');","const adminRoutes = require('./routes/admin.routes');\\nconst adminVendasRoutes = require('./routes/adminVendas.routes');");
- app=app.replace("app.use('/api/admin', adminRoutes);","app.use('/api/admin', adminRoutes);\\napp.use('/api/admin/vendas', adminVendasRoutes);");
+ app=app.replace("const adminRoutes = require('./routes/admin.routes');","const adminRoutes = require('./routes/admin.routes');\nconst adminVendasRoutes = require('./routes/adminVendas.routes');");
+ app=app.replace("app.use('/api/admin', adminRoutes);","app.use('/api/admin', adminRoutes);\napp.use('/api/admin/vendas', adminVendasRoutes);");
 }
 write('src/app.js',app);
 
 let h=read('public/admin-mobile.html');
 h=h.replace('window.SAINTSAI_ADMIN_UI_VERSION="v4"','window.SAINTSAI_ADMIN_UI_VERSION="v5"').replaceAll('js/config.js?v=4','js/config.js?v=5').replaceAll('js/auth.js?v=4','js/auth.js?v=5').replaceAll('js/api.js?v=4','js/api.js?v=5');
-h=h.replace('<nav class="nav">','<nav class="nav">\\n  <button data-view="home" class="active">🏠 INÍCIO</button>');
-h=h.replace('<button data-view="registro" class="active">＋ REGISTRAR NOVO CLIENTE</button>','<button data-view="vendas">💰 VENDAS</button>\\n  <button data-view="registro">＋ REGISTRAR NOVO CLIENTE</button>');
+h=h.replace('<nav class="nav">','<nav class="nav">\n  <button data-view="home" class="active">🏠 INÍCIO</button>');
+h=h.replace('<button data-view="registro" class="active">＋ REGISTRAR NOVO CLIENTE</button>','<button data-view="vendas">💰 VENDAS</button>\n  <button data-view="registro">＋ REGISTRAR NOVO CLIENTE</button>');
 
 const bloco=`
 <section id="view-home" class="view">
@@ -118,7 +118,7 @@ async function loadHistorico(){try{const id=$('vLoja').value,xs=await apiFetch('
 async function registrarVenda(){const p=vendaProdutos[Number($('vProduto').value)],st=$('vStatus');st.className='status';st.classList.remove('hidden');if(!p||!$('vLoja').value){st.textContent='Selecione loja e produto.';return}const q=Number($('vQtd').value);if(q>p.quantidade){st.textContent='Estoque insuficiente. Disponível: '+p.quantidade;return}const b=$('registrarVenda');b.disabled=true;try{const r=await apiFetch('/admin/vendas',{method:'POST',body:JSON.stringify({loja_id:$('vLoja').value,produto_id:p.produto_id,estoque_id:p.estoque_id,quantidade:q,valor_unitario:Number($('vValor').value),custo_unitario:Number($('vCusto').value),forma_pagamento:$('vForma').value,cliente_nome:$('vCliente').value.trim()})});st.className='status ok';st.textContent='Venda registrada. Lucro: '+brl(r.lucro_total)+' · estoque restante: '+r.estoque_restante;$('vQtd').value=1;$('vCliente').value='';await loadVendaProdutos();await loadHome()}catch(e){st.textContent=e.message||'Não foi possível registrar.'}finally{b.disabled=false}}
 `;
 h=h.replace("loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');", "loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');");
-h=h.replace("const th=$('adminTheme');", js+"\\n$('homeLoja').onchange=loadHome;$('vLoja').onchange=loadVendaProdutos;$('vProduto').onchange=chooseVendaProduto;['vQtd','vValor','vCusto'].forEach(id=>$(id).oninput=vendaPreview);$('registrarVenda').onclick=registrarVenda;\\nconst th=$('adminTheme');");
+h=h.replace("const th=$('adminTheme');", js+"\n$('homeLoja').onchange=loadHome;$('vLoja').onchange=loadVendaProdutos;$('vProduto').onchange=chooseVendaProduto;['vQtd','vValor','vCusto'].forEach(id=>$(id).oninput=vendaPreview);$('registrarVenda').onclick=registrarVenda;\nconst th=$('adminTheme');");
 h=h.replace("loadClients();const initial=(location.hash||'#registro').slice(1);showView(titles[initial]?initial:'registro');", "loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');");
 write('public/admin-mobile.html',h);
 write('public/admin.html','<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-store"><script>location.replace("admin-mobile.html?v=5#home")</script></head><body></body></html>');
