@@ -2,7 +2,7 @@ const fs=require('node:fs');
 const read=p=>fs.readFileSync(p,'utf8');
 const write=(p,s)=>fs.writeFileSync(p,s);
 
-write('src/controllers/adminVendas.controller.js', \`
+write('src/controllers/adminVendas.controller.js', `
 const supabase = require('../config/supabase');
 const moeda = v => Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : 0;
 const uuid = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||'')) ? String(v) : null;
@@ -56,9 +56,9 @@ async function registrar(req,res){
   }catch(e){console.error('[vendas.registrar]',e?.message||e);res.status(500).json({erro:'Não foi possível registrar a venda.'});}
 }
 module.exports={resumo,produtos,listar,registrar};
-\`);
+`);
 
-write('src/routes/adminVendas.routes.js', \`
+write('src/routes/adminVendas.routes.js', `
 const express=require('express');
 const { exigirLogin }=require('../middleware/auth');
 const { exigirAdmin }=require('../middleware/admin');
@@ -67,7 +67,7 @@ const router=express.Router();
 router.use(exigirLogin);router.use(exigirAdmin);
 router.get('/resumo',c.resumo);router.get('/produtos',c.produtos);router.get('/',c.listar);router.post('/',c.registrar);
 module.exports=router;
-\`);
+`);
 
 let app=read('src/app.js');
 if(!app.includes("adminVendasRoutes")){
@@ -81,7 +81,7 @@ h=h.replace('window.SAINTSAI_ADMIN_UI_VERSION="v4"','window.SAINTSAI_ADMIN_UI_VE
 h=h.replace('<nav class="nav">','<nav class="nav">\\n  <button data-view="home" class="active">🏠 INÍCIO</button>');
 h=h.replace('<button data-view="registro" class="active">＋ REGISTRAR NOVO CLIENTE</button>','<button data-view="vendas">💰 VENDAS</button>\\n  <button data-view="registro">＋ REGISTRAR NOVO CLIENTE</button>');
 
-const bloco=\`
+const bloco=`
 <section id="view-home" class="view">
  <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:end;flex-wrap:wrap"><div><h2>Visão geral</h2><p class="sub">Vendas, lucro, clientes e estoque.</p></div><select id="homeLoja"><option value="">Todas as lojas</option></select></div></div>
  <div class="metricGrid"><div class="metric"><small>Vendas hoje</small><strong id="mVendasHoje">0</strong></div><div class="metric"><small>Faturamento hoje</small><strong id="mFatHoje">R$ 0,00</strong></div><div class="metric"><small>Lucro hoje</small><strong id="mLucroHoje">R$ 0,00</strong></div><div class="metric"><small>Faturamento mês</small><strong id="mFatMes">R$ 0,00</strong></div><div class="metric"><small>Lucro mês</small><strong id="mLucroMes">R$ 0,00</strong></div><div class="metric"><small>Ticket médio</small><strong id="mTicket">R$ 0,00</strong></div></div>
@@ -101,13 +101,13 @@ const bloco=\`
  </div>
  <div class="card"><h2>Histórico</h2><div id="vHistorico" class="salesList"><p class="sub">Nenhuma venda registrada.</p></div></div>
 </section>
-\`;
+`;
 h=h.replace('<main class="app">','<main class="app">'+bloco);
 h=h.replace('<section id="view-registro" class="view">','<section id="view-registro" class="view hidden">');
 h=h.replace('.testMark{display:inline-block;padding:5px 9px;border-radius:999px;background:rgba(34,197,94,.12);color:#4ade80;font-size:11px;font-weight:900;margin-bottom:10px}', '.testMark{display:inline-block;padding:5px 9px;border-radius:999px;background:rgba(34,197,94,.12);color:#4ade80;font-size:11px;font-weight:900;margin-bottom:10px}.metricGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}.metric{background:#11111a;border:1px solid var(--line);border-radius:16px;padding:13px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.metric strong{font-size:18px}.homeLine{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(190,185,215,.08)}.salePreview{display:grid;grid-template-columns:1fr auto;gap:8px;margin:10px 0 14px;padding:12px;border:1px solid rgba(139,92,246,.2);border-radius:13px}.salesList{display:grid;gap:8px}.saleRow{display:flex;justify-content:space-between;gap:12px;padding:11px;border-radius:12px;background:#0d0d16;border:1px solid rgba(190,185,215,.1)}.saleRow small{display:block;color:var(--muted);margin-top:3px}.positive{color:#4ade80}');
 h=h.replace("const titles={clientes:", "const titles={home:['Início','Resumo do seu negócio'],vendas:['Vendas','Registre vendas e acompanhe lucro'],clientes:");
 
-const js=\`
+const js=`
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});let vendaProdutos=[];
 function fillStoreSelects(){const all='<option value="">Todas as lojas</option>'+clientesCache.map(c=>'<option value="'+c.loja_id+'">'+esc(c.nome)+'</option>').join('');$('homeLoja').innerHTML=all;$('vLoja').innerHTML='<option value="">Selecione a loja</option>'+clientesCache.map(c=>'<option value="'+c.loja_id+'">'+esc(c.nome)+'</option>').join('')}
 async function loadHome(){try{const id=$('homeLoja').value,q=id?'?loja_id='+encodeURIComponent(id):'',r=await apiFetch('/admin/vendas/resumo'+q);$('mVendasHoje').textContent=r.hoje.vendas;$('mFatHoje').textContent=brl(r.hoje.faturamento);$('mLucroHoje').textContent=brl(r.hoje.lucro);$('mFatMes').textContent=brl(r.mes.faturamento);$('mLucroMes').textContent=brl(r.mes.lucro);$('mTicket').textContent=brl(r.mes.ticket_medio);$('mBaixo').textContent=r.estoque.baixo;$('mZerado').textContent=r.estoque.zerado;$('mClientes').textContent=id?1:clientesCache.length;$('mClientesAtivos').textContent=id?(clientesCache.find(c=>c.loja_id===id)?.ativa?1:0):clientesCache.filter(c=>c.ativa).length;$('homeRecentes').innerHTML=(r.recentes||[]).length?r.recentes.map(v=>'<div class="saleRow"><div><strong>'+brl(v.subtotal)+'</strong><small>'+new Date(v.vendida_em).toLocaleString('pt-BR')+'</small></div><div><strong class="positive">'+brl(v.lucro_total)+'</strong><small>lucro</small></div></div>').join(''):'<p class="sub">Nenhuma venda registrada.</p>'}catch(e){console.warn(e)}}
@@ -116,7 +116,7 @@ function vendaPreview(){const q=Math.max(1,Number($('vQtd').value)||1),v=Number(
 function chooseVendaProduto(){const p=vendaProdutos[Number($('vProduto').value)];if(p){$('vValor').value=p.preco;$('vCusto').value=p.custo;$('vQtd').max=p.quantidade}vendaPreview()}
 async function loadHistorico(){try{const id=$('vLoja').value,xs=await apiFetch('/admin/vendas'+(id?'?loja_id='+encodeURIComponent(id):''));$('vHistorico').innerHTML=xs.length?xs.map(v=>'<div class="saleRow"><div><strong>'+brl(v.subtotal)+'</strong><small>'+new Date(v.vendida_em).toLocaleString('pt-BR')+'</small></div><div><strong class="positive">'+brl(v.lucro_total)+'</strong><small>lucro</small></div></div>').join(''):'<p class="sub">Nenhuma venda registrada.</p>'}catch(e){}}
 async function registrarVenda(){const p=vendaProdutos[Number($('vProduto').value)],st=$('vStatus');st.className='status';st.classList.remove('hidden');if(!p||!$('vLoja').value){st.textContent='Selecione loja e produto.';return}const q=Number($('vQtd').value);if(q>p.quantidade){st.textContent='Estoque insuficiente. Disponível: '+p.quantidade;return}const b=$('registrarVenda');b.disabled=true;try{const r=await apiFetch('/admin/vendas',{method:'POST',body:JSON.stringify({loja_id:$('vLoja').value,produto_id:p.produto_id,estoque_id:p.estoque_id,quantidade:q,valor_unitario:Number($('vValor').value),custo_unitario:Number($('vCusto').value),forma_pagamento:$('vForma').value,cliente_nome:$('vCliente').value.trim()})});st.className='status ok';st.textContent='Venda registrada. Lucro: '+brl(r.lucro_total)+' · estoque restante: '+r.estoque_restante;$('vQtd').value=1;$('vCliente').value='';await loadVendaProdutos();await loadHome()}catch(e){st.textContent=e.message||'Não foi possível registrar.'}finally{b.disabled=false}}
-\`;
+`;
 h=h.replace("loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');", "loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');");
 h=h.replace("const th=$('adminTheme');", js+"\\n$('homeLoja').onchange=loadHome;$('vLoja').onchange=loadVendaProdutos;$('vProduto').onchange=chooseVendaProduto;['vQtd','vValor','vCusto'].forEach(id=>$(id).oninput=vendaPreview);$('registrarVenda').onclick=registrarVenda;\\nconst th=$('adminTheme');");
 h=h.replace("loadClients();const initial=(location.hash||'#registro').slice(1);showView(titles[initial]?initial:'registro');", "loadClients().then(()=>{fillStoreSelects();loadHome();loadHistorico();});const initial=(location.hash||'#home').slice(1);showView(titles[initial]?initial:'home');");
