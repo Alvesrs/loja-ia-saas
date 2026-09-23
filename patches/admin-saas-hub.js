@@ -48,7 +48,7 @@ async function atualizarContatosClienteGerenciado(req,res){
 
     if(numeroAgente){
       const {data:configs,error:erroConfigs}=await supabase.from('whatsapp_configuracoes')
-        .select('id,ativo').eq('loja_id',lojaId).order('created_at',{ascending:false});
+        .select('id,ativo').eq('loja_id',lojaId).order('criado_em',{ascending:false});
       if(erroConfigs) throw erroConfigs;
       const atual=Array.isArray(configs)?(configs.find(x=>x.ativo)||configs[0]):null;
       if(atual){
