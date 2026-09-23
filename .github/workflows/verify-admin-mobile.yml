@@ -43,6 +43,17 @@ jobs:
           fi
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/configuracoes.html" -o /tmp/config.html
           grep -F "admin-mobile.html?v=4#config" /tmp/config.html
+          grep -F "🏠 INÍCIO" /tmp/admin.html
+          grep -F "💰 VENDAS" /tmp/admin.html
+          grep -F "Faturamento hoje" /tmp/admin.html
+          grep -F "Lucro hoje" /tmp/admin.html
+          grep -F "Ticket médio" /tmp/admin.html
+          grep -F "Registrar venda e baixar estoque" /tmp/admin.html
+          grep -F "SAINTSAI_ADMIN_UI_VERSION=\"v5\"" /tmp/admin.html
+          code=$(curl -sS -o /tmp/vendas-api.txt -w "%{http_code}" "https://backend-prod-production-f338.up.railway.app/api/admin/vendas/resumo")
+          echo "Vendas API sem login: HTTP $code"
+          test "$code" -ne 404
+          test "$code" -ge 400
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/login.html?next=admin-mobile.html" -o /tmp/login.html
           grep -F "admin-mobile.html" /tmp/login.html
           echo "LIVE_ADMIN_MOBILE_OK"
