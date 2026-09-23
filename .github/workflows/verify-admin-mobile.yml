@@ -84,3 +84,15 @@ jobs:
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/login.html?next=admin-mobile.html" -o /tmp/login.html
           grep -F "admin-mobile.html" /tmp/login.html
           echo "LIVE_ADMIN_MOBILE_OK"
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/gerenciador.html" -o /tmp/manager-dashboard.html
+          grep -F "Meu Dashboard" /tmp/manager-dashboard.html
+          grep -F "Ranking SaintsAI" /tmp/manager-dashboard.html
+          grep -F "Ranking de vendedores" /tmp/manager-dashboard.html
+          grep -F "Registrar venda" /tmp/manager-dashboard.html
+          grep -F "/gerenciador/me/dashboard" /tmp/manager-dashboard.html
+          grep -F "/gerenciador/me/ranking" /tmp/manager-dashboard.html
+          code=$(curl -sS -o /tmp/manager-context.txt -w "%{http_code}" "https://backend-prod-production-f338.up.railway.app/api/gerenciador/me/contexto")
+          echo "Manager private API sem login: HTTP $code"
+          test "$code" -ne 404
+          test "$code" -ge 400
+          echo "RANKING_MANAGER_OK"
