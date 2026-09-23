@@ -64,7 +64,7 @@ jobs:
           grep -F "Cliente cria o próprio login pelo link" /tmp/admin.html
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/cadastro-gerenciador.html?token=teste" -o /tmp/manager-signup.html
           grep -F "Criar seu acesso" /tmp/manager-signup.html
-          grep -F "Este link serve somente para criar seu login" /tmp/manager-signup.html
+          grep -F "Este link serve apenas para criar seu login" /tmp/manager-signup.html
           code=$(curl -sS -o /tmp/manager-api.txt -w "%{http_code}" "https://backend-prod-production-f338.up.railway.app/api/gerenciador/cadastro/info?token=teste")
           echo "Manager invite API: HTTP $code"
           test "$code" -ne 404
