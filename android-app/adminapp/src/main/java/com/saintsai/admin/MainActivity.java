@@ -57,7 +57,9 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setLoadsImagesAutomatically(true);
-        s.setJavaScriptCanOpenWindowsAutomatically(true);\n        s.setCacheMode(WebSettings.LOAD_NO_CACHE);\n        webView.clearCache(true);
+        s.setJavaScriptCanOpenWindowsAutomatically(true);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.clearCache(true);
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
