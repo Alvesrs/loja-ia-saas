@@ -194,7 +194,7 @@ async function processarLote(chave){
   const ultimo = itens[itens.length - 1];
   const combinado = Object.freeze({
     ...ultimo,
-    texto: itens.map((item) => item.texto).filter(Boolean).join('\n'),
+    texto: itens.map((item) => item.texto).filter(Boolean).join('\\n'),
   });
 
   try {
