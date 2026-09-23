@@ -23,7 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=admin-mobile.html&ui=15";
+    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=admin-mobile.html&ui=16";
     private static final String PROXY_PREFIX = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
 
     private WebView webView;
@@ -72,8 +72,14 @@ public class MainActivity extends Activity {
                         && "GET".equalsIgnoreCase(request.getMethod())
                         && request.getUrl().toString().startsWith(PROXY_PREFIX)) {
                     String target = request.getUrl().toString();
-                    if (target.contains("/admin.html") || target.contains("/configuracoes.html")) {
-                        target = PROXY_PREFIX + "admin-mobile.html?v=4#config";
+                    if (target.contains("/configuracoes.html")) {
+                        target = PROXY_PREFIX + "admin-mobile.html?v=6#config";
+                    } else if (target.contains("/admin.html")
+                            || target.contains("/dashboard.html")
+                            || target.contains("/pedidos.html")
+                            || target.contains("/produtos.html")
+                            || target.contains("/clientes.html")) {
+                        target = PROXY_PREFIX + "admin-mobile.html?v=6#home";
                     }
                     loadHtmlPage(target);
                     return true;
