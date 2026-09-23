@@ -57,6 +57,17 @@ jobs:
           grep -F "justify-content:center!important" /tmp/admin.html
           grep -F "left:14px!important" /tmp/admin.html
           grep -F "right:auto!important" /tmp/admin.html
+          grep -F "Tipo de cliente" /tmp/admin.html
+          grep -F "🤖 Agente" /tmp/admin.html
+          grep -F "📊 Gerenciador" /tmp/admin.html
+          grep -F "Gerenciador de vendas" /tmp/admin.html
+          grep -F "Cliente cria o próprio login pelo link" /tmp/admin.html
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/cadastro-gerenciador.html?token=teste" -o /tmp/manager-signup.html
+          grep -F "Criar seu acesso" /tmp/manager-signup.html
+          grep -F "Este link serve somente para criar seu login" /tmp/manager-signup.html
+          code=$(curl -sS -o /tmp/manager-api.txt -w "%{http_code}" "https://backend-prod-production-f338.up.railway.app/api/gerenciador/cadastro/info?token=teste")
+          echo "Manager invite API: HTTP $code"
+          test "$code" -ne 404
           python3 -c 'from pathlib import Path; s=Path("/tmp/admin.html").read_text(); h=s.find("class=\"saintsHeader\""); home=s.find("id=\"view-home\""); assert h>=0 and home>=0 and h<home, (h,home); print("HEADER_ORDER_OK",h,home)'
           grep -F "SaintsAI" /tmp/admin.html
           grep -F "By Alves" /tmp/admin.html
