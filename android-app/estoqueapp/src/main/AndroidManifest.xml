@@ -4,7 +4,9 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:label="SaintsAI Estoque"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:icon="@drawable/ic_launcher_saintsai_stock"
+        android:roundIcon="@drawable/ic_launcher_saintsai_stock">
         <activity
             android:name=".MainActivity"
             android:exported="true"
