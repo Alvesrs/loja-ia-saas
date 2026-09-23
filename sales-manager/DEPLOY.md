@@ -1,0 +1,1 @@
+Sales Manager web service. Desktop-first responsive dashboard. This file also triggers a fresh Railway deployment from the current main branch.
