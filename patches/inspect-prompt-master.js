@@ -13,3 +13,15 @@ for(const p of [...walk('src'),...walk('public')]){
   const i=s.indexOf('prompt-mestre');
   if(i>=0) console.log('[prompt-master-inspect]',p,'\n'+s.slice(Math.max(0,i-1200),i+2200));
 }
+
+{
+  const p='public/js/atendente.js';
+  if(fs.existsSync(p)){
+    const s=fs.readFileSync(p,'utf8');
+    let pos=0, n=0;
+    while((pos=s.indexOf('prompt-mestre',pos))>=0 && n<12){
+      console.log('[prompt-save-inspect]',n,'\n'+s.slice(Math.max(0,pos-1000),pos+1800));
+      pos+=12; n++;
+    }
+  }
+}
