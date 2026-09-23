@@ -42,7 +42,7 @@ jobs:
             exit 1
           fi
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/configuracoes.html" -o /tmp/config.html
-          grep -F "admin-mobile.html?v=4#config" /tmp/config.html
+          grep -F "admin-mobile.html?v=6#config" /tmp/config.html
           grep -F "🏠 INÍCIO" /tmp/admin.html
           grep -F "💰 VENDAS" /tmp/admin.html
           grep -F "Faturamento hoje" /tmp/admin.html
