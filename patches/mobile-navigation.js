@@ -4,13 +4,6 @@ function write(p,s){fs.writeFileSync(p,s);}
 
 let l=read('public/js/layout.js');
 
-if(!l.includes("configuracoes: '<svg")) {
-  l=l.replace(
-    "  sair: '<svg",
-    "  configuracoes: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.3 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1A1.7 1.7 0 0 0 19.4 9c.3.6.9 1 1.6 1h.1v4H21c-.7 0-1.3.4-1.6 1Z"/></svg>',\n  sair: '<svg"
-  );
-}
-
 const oldTab=`function montarTabbar(paginaAtiva, admin = false) {
   const itens = menuVisivel(admin).map((item) => \`
     <a href="\${item.href}" class="\${item.id === paginaAtiva ? 'active' : ''}">
@@ -23,28 +16,31 @@ const oldTab=`function montarTabbar(paginaAtiva, admin = false) {
 const newTab=`function montarTabbar(paginaAtiva, admin = false) {
   const itens = admin
     ? [
-        { id:'dashboard', label:'Início', href:'dashboard.html' },
-        { id:'admin', label:'Clientes', href:'admin.html' },
-        { id:'pedidos', label:'Pedidos', href:'pedidos.html' },
-        { id:'configuracoes', label:'Configurações', href:'configuracoes.html' },
+        { id:'dashboard', label:'Início', href:'dashboard.html', icon:'dashboard' },
+        { id:'admin', label:'Clientes', href:'admin.html', icon:'clientes' },
+        { id:'pedidos', label:'Pedidos', href:'pedidos.html', icon:'pedidos' },
+        { id:'configuracoes', label:'Configurações', href:'configuracoes.html', icon:'plano' },
       ]
     : [
-        { id:'dashboard', label:'Início', href:'dashboard.html' },
-        { id:'produtos', label:'Produtos', href:'produtos.html' },
-        { id:'pedidos', label:'Pedidos', href:'pedidos.html' },
-        { id:'configuracoes', label:'Configurações', href:'configuracoes.html' },
+        { id:'dashboard', label:'Início', href:'dashboard.html', icon:'dashboard' },
+        { id:'produtos', label:'Produtos', href:'produtos.html', icon:'produtos' },
+        { id:'pedidos', label:'Pedidos', href:'pedidos.html', icon:'pedidos' },
+        { id:'configuracoes', label:'Configurações', href:'configuracoes.html', icon:'plano' },
       ];
 
   const ativo = (paginaAtiva === 'admin-cliente' || paginaAtiva === 'onboarding') ? 'admin' : paginaAtiva;
   return '<nav class="tabbar tabbar-principal">' + itens.map((item) => \`
     <a href="\${item.href}" class="\${item.id === ativo ? 'active' : ''}">
-      \${ICONES[item.id] || ICONES.onboarding}
+      \${ICONES[item.icon] || ICONES.onboarding}
       <span>\${item.label}</span>
     </a>\`).join('') + '</nav>';
 }`;
 
-if(!l.includes(oldTab)) throw new Error('montarTabbar original não encontrado');
-l=l.replace(oldTab,newTab);
+if(l.includes(oldTab)) {
+  l=l.replace(oldTab,newTab);
+} else if(!l.includes("tabbar-principal")) {
+  throw new Error('montarTabbar original não encontrado');
+}
 write('public/js/layout.js',l);
 
 let css=read('public/css/styles.css');
