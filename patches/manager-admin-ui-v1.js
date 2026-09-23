@@ -48,3 +48,4 @@ c=c.replace("criado_em: loja.criado_em\n      };","criado_em: loja.criado_em,\n 
 fs.writeFileSync('src/controllers/admin.controller.js',c);
 
 console.log('Manager admin UI v1 aplicado: escolha Agente/Gerenciador.');
+// manager final deploy marker
