@@ -32,3 +32,4 @@ for(const f of functional){const p='public/'+f;let x=read(p);if(!x)continue;x=x.
 
 if(fs.existsSync('public/service-worker.js')){let sw=read('public/service-worker.js');sw=sw.replace(/saintsai-v\d+/g,'saintsai-v6');if(!sw.includes("SAINTSAI_ADMIN_CACHE_BUSTER='v6'"))sw="const SAINTSAI_ADMIN_CACHE_BUSTER='v6';\n"+sw;write('public/service-worker.js',sw)}
 console.log('Admin UI v6 aplicado: legado neutralizado, header superior e tema claro azul/branco.');
+// v6 redeploy marker
