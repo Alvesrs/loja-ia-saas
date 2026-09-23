@@ -124,7 +124,7 @@ function interpretarPayloadWebhookWaha(body) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) throw new ErroWebhookWahaInvalido();
   if (p.fromMe === true) return null;
   if (!ehStringNaoVazia(p.id) || !ehStringNaoVazia(p.from)) throw new ErroWebhookWahaInvalido();
-  if (!p.from.endsWith('@c.us')) return null;
+  if (!p.from.endsWith('@c.us') && !p.from.endsWith('@lid')) return null;
   if (!ehStringNaoVazia(p.body)) return null;
 
   return Object.freeze({
