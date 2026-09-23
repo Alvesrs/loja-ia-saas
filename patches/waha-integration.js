@@ -179,9 +179,12 @@ async function receber(req,res){
     if(!reservou) return res.status(200).json({status:'duplicado_ignorado'});
     const job=await filaService.enfileirarMensagemWhatsapp(interna,{provedor:'waha',destinatarioId:evento.destinatarioId});
     res.status(200).json({status:'recebido'});
+    console.log('[waha.webhook] processando', JSON.stringify({idExterno:evento.idExterno,contato:evento.contato,destinatarioId:evento.destinatarioId}));
     await workerService.processarJob(job);
+    console.log('[waha.webhook] processado', evento.idExterno);
     return res;
-  }catch(_){
+  }catch(erro){
+    console.error('[waha.webhook] erro', erro && (erro.stack || erro.message || erro));
     if(reservou){ try{await idempotenciaService.liberarEventoWhatsapp(chave);}catch(__){} }
     if(!res.headersSent) return res.status(500).json({erro:'Erro interno ao processar o evento.'});
     return res;
