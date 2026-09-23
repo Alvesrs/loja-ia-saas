@@ -1,6 +1,6 @@
 const fs=require('node:fs');
 
-const html=\`<!DOCTYPE html>
+const html=`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -198,7 +198,7 @@ $('whatsappBtn').onclick=()=>{if(lojaId)location.href='admin-cliente-whatsapp.ht
 
 loadClients();
 </script>
-</body></html>\`;
+</body></html>`;
 
 fs.writeFileSync('public/admin-mobile.html',html);
 
