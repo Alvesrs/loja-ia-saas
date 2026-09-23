@@ -22,6 +22,16 @@ jobs:
           grep -F "Personalidade do agente" /tmp/admin.html
           grep -F "Gerar Pix" /tmp/admin.html
           grep -F "Número oficial do dono" /tmp/admin.html
+          grep -F "REGISTRO TESTE" /tmp/admin.html
+          grep -F "ESTOQUE" /tmp/admin.html
+          grep -F "Selecionar cliente" /tmp/admin.html
+          grep -F "Criar teste e liberar WhatsApp" /tmp/admin.html
+          grep -F "admin-estoque.html" /tmp/admin.html
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/admin.html" -o /tmp/admin-old.html
+          grep -F "admin-mobile.html" /tmp/admin-old.html
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/admin-estoque.html?loja=00000000-0000-0000-0000-000000000000" -o /tmp/estoque.html
+          grep -F "Estoque do cliente" /tmp/estoque.html
+          grep -F "admin-mobile.html#estoque" /tmp/estoque.html
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/login.html?next=admin-mobile.html" -o /tmp/login.html
           grep -F "admin-mobile.html" /tmp/login.html
           echo "LIVE_ADMIN_MOBILE_OK"
