@@ -37,7 +37,7 @@ jobs:
         run: |
           set -e
           for path in \
-            "/painel/login.html?next=admin.html" \
+            "/painel/login.html?next=admin-mobile.html" \
             "/painel/login.html?next=cliente-estoque.html"; do
             echo "===== $path ====="
             code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy$path")
@@ -89,14 +89,14 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.12.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.13.apk
           cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.12.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.12
-          path: android-app/Agente-SaintsAI-v1.0.12.apk
+          name: Agente-SaintsAI-APK-v1.0.13
+          path: android-app/Agente-SaintsAI-v1.0.13.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
