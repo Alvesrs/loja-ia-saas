@@ -56,7 +56,11 @@ jobs:
           grep -F "estoqueSubmenu" /tmp/admin-mobile.html
           grep -F "Abrir estoque sincronizado" /tmp/admin-mobile.html
           grep -F "Preferências do Agente SaintsAI" /tmp/admin-mobile.html
-          grep -F "SAINTSAI_ADMIN_UI_VERSION" /tmp/admin-mobile.html
+          grep -F "SAINTSAI_ADMIN_UI_VERSION=\"v6\"" /tmp/admin-mobile.html
+          grep -F "class=\"saintsHeader\"" /tmp/admin-mobile.html
+          grep -F "By Alves" /tmp/admin-mobile.html
+          grep -F "data-saints-theme=\"light\"" /tmp/admin-mobile.html
+          grep -F "#1677ff" /tmp/admin-mobile.html
 
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
@@ -99,14 +103,14 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.15.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
           cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.12.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.15
-          path: android-app/Agente-SaintsAI-v1.0.15.apk
+          name: Agente-SaintsAI-APK-v1.0.16
+          path: android-app/Agente-SaintsAI-v1.0.16.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
