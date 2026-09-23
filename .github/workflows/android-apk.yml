@@ -47,6 +47,11 @@ jobs:
             test "$code" -ge 200
             test "$code" -lt 400
           done
+          curl -fsSL "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/admin-mobile.html" -o /tmp/admin-mobile.html
+          grep -F "REGISTRO TESTE" /tmp/admin-mobile.html
+          grep -F "ESTOQUE" /tmp/admin-mobile.html
+          grep -F "Selecionar cliente" /tmp/admin-mobile.html
+          grep -F "Criar teste e liberar WhatsApp" /tmp/admin-mobile.html
 
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
@@ -89,14 +94,14 @@ jobs:
 
       - name: Rename APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.13.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.14.apk
           cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.12.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.13
-          path: android-app/Agente-SaintsAI-v1.0.13.apk
+          name: Agente-SaintsAI-APK-v1.0.14
+          path: android-app/Agente-SaintsAI-v1.0.14.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Estoque
