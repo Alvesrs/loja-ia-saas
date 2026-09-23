@@ -3,7 +3,7 @@ const fs=require('node:fs');
 function write(p,s){fs.writeFileSync(p,s);}
 function read(p){return fs.readFileSync(p,'utf8');}
 
-const html=\`<!DOCTYPE html>
+const html=`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -127,15 +127,15 @@ $('criarTeste').onclick=async()=>{const st=$('testStatus'),b=$('criarTeste');st.
 
 loadClients();const initial=(location.hash||'#registro').slice(1);showView(titles[initial]?initial:'registro');
 </script>
-</body></html>\`;
+</body></html>`;
 
 write('public/admin-mobile.html',html);
 
 // Qualquer rota antiga do Admin agora cai sempre no novo painel.
-write('public/admin.html',\`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=admin-mobile.html"><script>location.replace('admin-mobile.html'+(location.hash||''))</script><title>SaintsAI Admin</title></head><body></body></html>\`);
+write('public/admin.html',`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=admin-mobile.html"><script>location.replace('admin-mobile.html'+(location.hash||''))</script><title>SaintsAI Admin</title></head><body></body></html>`);
 
 // Estoque administrativo do cliente escolhido: mantém retorno para o painel novo.
-const estoque=\`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090812"><title>Estoque do cliente · SaintsAI</title><style>html,body{margin:0;background:#090812;color:#fff;font-family:system-ui,sans-serif}.bar{height:58px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid rgba(157,92,255,.25);background:#0d0c15}.bar a{color:#fff;text-decoration:none;font-weight:800}.bar strong{font-size:16px}iframe{width:100%;height:calc(100vh - 58px);border:0;background:#090812}</style></head><body><div class="bar"><a href="admin-mobile.html#estoque">← Voltar</a><strong>Estoque do cliente</strong></div><iframe id="f" title="Estoque"></iframe><script>const id=new URLSearchParams(location.search).get('loja');if(!id){location.replace('admin-mobile.html#estoque')}else{try{localStorage.setItem('lojaia_loja_atual_id',id);sessionStorage.setItem('lojaia_loja_atual',JSON.stringify({id:id}))}catch(_){}document.getElementById('f').src='estoque.html';document.getElementById('f').addEventListener('load',function(){try{const d=this.contentDocument,s=d.createElement('style');s.textContent='#sidebar-container,#topbar-container,#tabbar-container{display:none!important}.app-shell{display:block!important}.main-col{display:block!important}.page{padding:16px!important;padding-bottom:40px!important}';d.head.appendChild(s)}catch(_){}})}</script></body></html>\`;
+const estoque=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090812"><title>Estoque do cliente · SaintsAI</title><style>html,body{margin:0;background:#090812;color:#fff;font-family:system-ui,sans-serif}.bar{height:58px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid rgba(157,92,255,.25);background:#0d0c15}.bar a{color:#fff;text-decoration:none;font-weight:800}.bar strong{font-size:16px}iframe{width:100%;height:calc(100vh - 58px);border:0;background:#090812}</style></head><body><div class="bar"><a href="admin-mobile.html#estoque">← Voltar</a><strong>Estoque do cliente</strong></div><iframe id="f" title="Estoque"></iframe><script>const id=new URLSearchParams(location.search).get('loja');if(!id){location.replace('admin-mobile.html#estoque')}else{try{localStorage.setItem('lojaia_loja_atual_id',id);sessionStorage.setItem('lojaia_loja_atual',JSON.stringify({id:id}))}catch(_){}document.getElementById('f').src='estoque.html';document.getElementById('f').addEventListener('load',function(){try{const d=this.contentDocument,s=d.createElement('style');s.textContent='#sidebar-container,#topbar-container,#tabbar-container{display:none!important}.app-shell{display:block!important}.main-col{display:block!important}.page{padding:16px!important;padding-bottom:40px!important}';d.head.appendChild(s)}catch(_){}})}</script></body></html>`;
 write('public/admin-estoque.html',estoque);
 
 // Links de retorno conhecidos deixam de apontar ao Admin antigo.
