@@ -52,6 +52,11 @@ jobs:
           grep -F "SAINTSAI_ADMIN_UI_VERSION=\"v6\"" /tmp/admin.html
           grep -F "saints-v6-theme" /tmp/admin.html
           grep -F "class=\"saintsHeader\"" /tmp/admin.html
+          grep -F "saints-header-v8" /tmp/admin.html
+          grep -F ".app{padding-top:0!important}" /tmp/admin.html
+          grep -F "justify-content:center!important" /tmp/admin.html
+          grep -F "left:14px!important" /tmp/admin.html
+          grep -F "right:auto!important" /tmp/admin.html
           python3 -c 'from pathlib import Path; s=Path("/tmp/admin.html").read_text(); h=s.find("class=\"saintsHeader\""); home=s.find("id=\"view-home\""); assert h>=0 and home>=0 and h<home, (h,home); print("HEADER_ORDER_OK",h,home)'
           grep -F "SaintsAI" /tmp/admin.html
           grep -F "By Alves" /tmp/admin.html
