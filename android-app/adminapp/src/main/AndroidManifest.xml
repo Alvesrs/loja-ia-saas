@@ -3,8 +3,10 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="SaintsAI Admin"
-        android:theme="@style/AppTheme">
+        android:label="Agente SaintsAI"
+        android:theme="@style/AppTheme"
+        android:icon="@drawable/ic_launcher_saintsai"
+        android:roundIcon="@drawable/ic_launcher_saintsai">
         <activity
             android:name=".MainActivity"
             android:exported="true"
