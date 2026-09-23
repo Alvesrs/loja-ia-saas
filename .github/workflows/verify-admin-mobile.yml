@@ -32,6 +32,17 @@ jobs:
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/admin-estoque.html?loja=00000000-0000-0000-0000-000000000000" -o /tmp/estoque.html
           grep -F "Estoque do cliente" /tmp/estoque.html
           grep -F "admin-mobile.html#estoque" /tmp/estoque.html
+          grep -F "clientesSubmenu" /tmp/admin.html
+          grep -F "estoqueSubmenu" /tmp/admin.html
+          grep -F "Abrir estoque sincronizado" /tmp/admin.html
+          grep -F "Preferências do Agente SaintsAI" /tmp/admin.html
+          grep -F "SAINTSAI_ADMIN_UI_VERSION" /tmp/admin.html
+          if grep -F "location.href='configuracoes.html'" /tmp/admin.html; then
+            echo "Configurações ainda aponta para o legado" >&2
+            exit 1
+          fi
+          curl -fsSL --retry 3 --retry-delay 2 "$BASE/configuracoes.html" -o /tmp/config.html
+          grep -F "admin-mobile.html?v=4#config" /tmp/config.html
           curl -fsSL --retry 3 --retry-delay 2 "$BASE/login.html?next=admin-mobile.html" -o /tmp/login.html
           grep -F "admin-mobile.html" /tmp/login.html
           echo "LIVE_ADMIN_MOBILE_OK"
