@@ -75,11 +75,25 @@ const {createClient}=require('@supabase/supabase-js');
     if(!xr.ok) throw new Error('Excel mensal falhou: '+xr.status);
     const xb=Buffer.from(await xr.arrayBuffer());
     if(xb.length<1000||xb[0]!==0x50||xb[1]!==0x4b) throw new Error('Excel mensal inválido');
+    const ExcelJS=require('exceljs');
+    const wbCheck=new ExcelJS.Workbook();
+    await wbCheck.xlsx.load(xb);
+    const resumo=wbCheck.getWorksheet('Resumo do mês');
+    const vendasWs=wbCheck.getWorksheet('Vendas');
+    if(!resumo||!vendasWs) throw new Error('Abas do Excel não encontradas');
+    let commissionFound=false;
+    resumo.eachRow(row=>{
+      if(String(row.getCell(1).value||'')==='Valor da comissão'){
+        const val=Number(row.getCell(2).value||0);
+        if(Math.abs(val-(249.9*0.03))<0.01) commissionFound=true;
+      }
+    });
+    if(!commissionFound) throw new Error('Excel mensal com comissão de 3% inválida');
 
     const dash=await req(base,'/api/gv/dashboard',{headers:uh});
     if(Number(dash.body.metricas?.vendas)<1||Number(dash.body.metricas?.faturamento)<249.9) throw new Error('dashboard não refletiu valor corrigido');
 
-    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + edicao + Excel mensal + dashboard');
+    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + edicao + Excel mensal com comissão + dashboard');
   } finally {
     try{if(server) await new Promise(r=>server.close(r))}catch{}
     try{if(empresaId) await db.from('gv_empresas').delete().eq('id',empresaId)}catch{}
