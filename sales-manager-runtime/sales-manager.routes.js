@@ -107,6 +107,57 @@ router.post('/vendas',requireUser,async(req,res)=>{
   }catch(e){console.error('[gv venda create]',e);res.status(500).json({erro:'Não foi possível registrar a venda.'});}
 });
 
+
+router.put('/vendas/:id',requireUser,async(req,res)=>{
+  try{
+    const id=String(req.params.id||'').trim();
+    const cliente_nome=String(req.body?.cliente_nome||'').trim();
+    const valor=money(req.body?.valor);
+    if(!id) return res.status(400).json({erro:'Venda inválida.'});
+    if(!cliente_nome||!(valor>0)) return res.status(400).json({erro:'Informe cliente e valor maior que zero.'});
+
+    const {data:existente,error:findErr}=await db.from('gv_vendas')
+      .select('id,empresa_id,cliente_id,observacao')
+      .eq('id',id).eq('empresa_id',req.gv.empresa.id).maybeSingle();
+    if(findErr) throw findErr;
+    if(!existente) return res.status(404).json({erro:'Venda não encontrada.'});
+
+    let cliente_id=req.body?.cliente_id||existente.cliente_id||null;
+    if(!cliente_id){
+      const {data:ex}=await db.from('gv_clientes').select('id')
+        .eq('empresa_id',req.gv.empresa.id).ilike('nome',cliente_nome).limit(1).maybeSingle();
+      if(ex?.id) cliente_id=ex.id;
+      else{
+        const {data:n,error:e}=await db.from('gv_clientes')
+          .insert({empresa_id:req.gv.empresa.id,nome:cliente_nome}).select('id').single();
+        if(e) throw e; cliente_id=n.id;
+      }
+    }
+
+    const tipo=(String(req.body?.tipo_cliente||'novo').toLowerCase()==='recorrente')?'recorrente':'novo';
+    const obsLivre=String(req.body?.observacao||'').trim();
+    const payload={
+      cliente_id,
+      produto_id:req.body?.produto_id||null,
+      cliente_nome,
+      produto_nome:String(req.body?.produto_nome||'').trim()||null,
+      categoria:String(req.body?.categoria||'').trim()||null,
+      origem:String(req.body?.origem||'WhatsApp').trim(),
+      valor,
+      custo:money(req.body?.custo),
+      observacao:'[CLIENTE_TIPO]'+tipo+(obsLivre?'\n'+obsLivre:''),
+      vendido_em:req.body?.vendido_em?new Date(req.body.vendido_em).toISOString():new Date().toISOString()
+    };
+    const {data,error}=await db.from('gv_vendas').update(payload)
+      .eq('id',id).eq('empresa_id',req.gv.empresa.id).select('*').single();
+    if(error) throw error;
+    res.json({venda:data});
+  }catch(e){
+    console.error('[gv venda update]',e);
+    res.status(500).json({erro:'Não foi possível editar a venda.'});
+  }
+});
+
 router.get('/clientes',requireUser,async(req,res)=>{
   const {data,error}=await db.from('gv_clientes').select('*').eq('empresa_id',req.gv.empresa.id).order('nome');
   if(error) return res.status(500).json({erro:'Não foi possível carregar clientes.'}); res.json({clientes:data||[]});
