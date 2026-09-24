@@ -2,6 +2,8 @@ const fs=require('node:fs');
 const p='public/admin-mobile.html';
 let h=fs.readFileSync(p,'utf8');
 
+h=h.replace('Cria um cliente de teste e libera o plano por 24 horas, sem Pix.','Cria um cliente de teste com validade escolhida por você, sem Pix.');
+
 if(!h.includes('id="tvalidade"')){
   const alvo='<div class="grid2"><div class="field"><label>Número do agente</label><input id="tagente" type="tel"></div><div class="field"><label>Número oficial do dono</label><input id="tdono" type="tel"></div></div>';
   const novo=alvo+'<div class="field"><label>Validade do teste</label><input id="tvalidade" type="date"><div class="note">Escolha até que dia este teste ficará ativo.</div></div>';
@@ -9,7 +11,7 @@ if(!h.includes('id="tvalidade"')){
   h=h.replace(alvo,novo);
 }
 
-const re=/\$\('criarTeste'\)\.onclick=async\(\)=>\{[\s\S]*?\n\nloadClients\(\)/;
+const re=/\$\('criarTeste'\)\.onclick=async\(\)=>\{[\s\S]*?\}finally\{b\.disabled=false\}\};/;
 const replacement=`$('criarTeste').onclick=async()=>{
  const st=$('testStatus'),b=$('criarTeste');
  st.className='status';st.classList.remove('hidden');
