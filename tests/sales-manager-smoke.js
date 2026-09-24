@@ -63,13 +63,17 @@ const {createClient}=require('@supabase/supabase-js');
     const sale=await req(base,'/api/gv/vendas',{method:'POST',headers:uh,body:JSON.stringify({cliente_nome:'Cliente Smoke',produto_id:prod.body.produto.id,produto_nome:'Produto Smoke',categoria:'Teste',origem:'WhatsApp',valor:199.90,custo:80})});
     if(!sale.body.venda?.id) throw new Error('venda não criada');
 
+    const edit=await req(base,'/api/gv/vendas/'+sale.body.venda.id,{method:'PUT',headers:uh,body:JSON.stringify({cliente_nome:'Cliente Smoke',produto_nome:'Produto Smoke',categoria:'CAIXAS',origem:'WhatsApp',tipo_cliente:'recorrente',valor:249.90,custo:80,vendido_em:new Date().toISOString()})});
+    if(Number(edit.body.venda?.valor)!==249.9) throw new Error('valor corrigido não persistiu');
+    if(!String(edit.body.venda?.observacao||'').includes('[CLIENTE_TIPO]recorrente')) throw new Error('tipo recorrente não persistiu');
+
     const vendas=await req(base,'/api/gv/vendas?limit=10',{headers:uh});
     if(!(vendas.body.vendas||[]).some(v=>v.id===sale.body.venda.id)) throw new Error('venda não apareceu na listagem');
 
     const dash=await req(base,'/api/gv/dashboard',{headers:uh});
-    if(Number(dash.body.metricas?.vendas)<1||Number(dash.body.metricas?.faturamento)<199.9) throw new Error('dashboard não refletiu a venda');
+    if(Number(dash.body.metricas?.vendas)<1||Number(dash.body.metricas?.faturamento)<249.9) throw new Error('dashboard não refletiu valor corrigido');
 
-    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + dashboard');
+    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + edicao + dashboard');
   } finally {
     try{if(server) await new Promise(r=>server.close(r))}catch{}
     try{if(empresaId) await db.from('gv_empresas').delete().eq('id',empresaId)}catch{}
