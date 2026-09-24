@@ -223,6 +223,8 @@ router.get('/exportar-excel',requireUser,async(req,res)=>{
     const faturamento=rows.reduce((s,v)=>s+Number(v.valor||0),0);
     const custo=rows.reduce((s,v)=>s+Number(v.custo||0),0);
     const lucro=faturamento-custo;
+    const comissaoPercentual=3;
+    const comissao=faturamento*(comissaoPercentual/100);
     const ticket=rows.length?faturamento/rows.length:0;
     const clientes=new Set(rows.map(v=>v.cliente_id||v.cliente_nome).filter(Boolean)).size;
     const tipos={novo:0,recorrente:0},origens={},categorias={};
@@ -270,6 +272,17 @@ router.get('/exportar-excel',requireUser,async(req,res)=>{
     ws.getColumn('data').numFmt='dd/mm/yyyy';
     ['valor','custo','lucro'].forEach(k=>ws.getColumn(k).numFmt='"R$" #,##0.00');
 
+    ws.addRow({});
+    const totalRow=ws.addRow({produto:'TOTAL VENDIDO',valor:faturamento});
+    totalRow.font={bold:true};
+    totalRow.getCell('valor').numFmt='"R$" #,##0.00';
+    const pctRow=ws.addRow({produto:'COMISSÃO',valor:comissaoPercentual/100});
+    pctRow.font={bold:true};
+    pctRow.getCell('valor').numFmt='0.00%';
+    const commissionRow=ws.addRow({produto:'VALOR DA COMISSÃO',valor:comissao});
+    commissionRow.font={bold:true};
+    commissionRow.getCell('valor').numFmt='"R$" #,##0.00';
+
     const rs=wb.addWorksheet('Resumo do mês');
     rs.columns=[{header:'Indicador',key:'indicador',width:32},{header:'Valor',key:'valor',width:24}];
     rs.getRow(1).font={bold:true};
@@ -283,9 +296,12 @@ router.get('/exportar-excel',requireUser,async(req,res)=>{
       ['Clientes novos',tipos.novo||0],
       ['Clientes recorrentes',tipos.recorrente||0],
       ['Custo total',custo],
-      ['Lucro',lucro]
+      ['Lucro',lucro],
+      ['Comissão (%)',comissaoPercentual],
+      ['Valor da comissão',comissao]
     ].forEach(([indicador,valor])=>rs.addRow({indicador,valor}));
-    [4,6,10,11].forEach(n=>{ if(rs.getCell('B'+n)) rs.getCell('B'+n).numFmt='"R$" #,##0.00'; });
+    [4,6,10,11,13].forEach(n=>{ if(rs.getCell('B'+n)) rs.getCell('B'+n).numFmt='"R$" #,##0.00'; });
+    if(rs.getCell('B12')) rs.getCell('B12').numFmt='0.00"%"';
 
     rs.addRow({});
     rs.addRow({indicador:'Vendas por origem'});
