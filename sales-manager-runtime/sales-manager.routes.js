@@ -157,13 +157,53 @@ router.post('/admin/contas',requireOwner,async(req,res)=>{
   try{
     const empresaNome=String(req.body?.empresa||'').trim(),nome=String(req.body?.nome||'').trim(),email=String(req.body?.email||'').trim().toLowerCase(),senha=String(req.body?.senha||'');
     if(!empresaNome||!email||senha.length<6) return res.status(400).json({erro:'Informe empresa, e-mail e senha com pelo menos 6 caracteres.'});
-    const {data:created,error:uErr}=await db.auth.admin.createUser({email,password:senha,email_confirm:true,app_metadata:{product:'sales_manager',gv_managed:true}});
-    if(uErr||!created?.user) return res.status(400).json({erro:uErr?.message||'Não foi possível criar usuário.'});
+    let user=null, createdNow=false;
+    const {data:created,error:uErr}=await db.auth.admin.createUser({
+      email,password:senha,email_confirm:true,
+      app_metadata:{product:'sales_manager',gv_managed:true}
+    });
+
+    if(!uErr && created?.user){
+      user=created.user; createdNow=true;
+    }else{
+      const msg=String(uErr?.message||'').toLowerCase();
+      if(!msg.includes('already') && !msg.includes('registered') && !msg.includes('exists')){
+        return res.status(400).json({erro:uErr?.message||'Não foi possível criar usuário.'});
+      }
+
+      let page=1, found=null;
+      while(page<=20 && !found){
+        const {data:list,error:lErr}=await db.auth.admin.listUsers({page,perPage:1000});
+        if(lErr) throw lErr;
+        found=(list?.users||[]).find(u=>String(u.email||'').toLowerCase()===email)||null;
+        if(!list?.nextPage) break;
+        page=list.nextPage;
+      }
+      if(!found) return res.status(400).json({erro:'O e-mail já existe, mas não foi possível localizar o usuário.'});
+      user=found;
+
+      const {data:ja}=await db.from('gv_membros').select('id,empresa_id').eq('user_id',user.id).limit(1).maybeSingle();
+      if(ja) return res.status(409).json({erro:'Este e-mail já possui uma conta do Gerenciador.'});
+
+      await db.auth.admin.updateUserById(user.id,{
+        app_metadata:{...(user.app_metadata||{}),product:'sales_manager',gv_managed:true}
+      });
+    }
+
     const {data:empresa,error:eErr}=await db.from('gv_empresas').insert({nome:empresaNome}).select('*').single();
-    if(eErr){await db.auth.admin.deleteUser(created.user.id);throw eErr;}
-    const {error:mErr}=await db.from('gv_membros').insert({empresa_id:empresa.id,user_id:created.user.id,nome:nome||empresaNome,papel:'admin'});
+    if(eErr){
+      if(createdNow) await db.auth.admin.deleteUser(user.id);
+      throw eErr;
+    }
+    const {error:mErr}=await db.from('gv_membros').insert({
+      empresa_id:empresa.id,user_id:user.id,nome:nome||empresaNome,papel:'admin'
+    });
     if(mErr) throw mErr;
-    res.status(201).json({empresa,usuario:{id:created.user.id,email:created.user.email,nome:nome||empresaNome}});
+    res.status(201).json({
+      empresa,
+      usuario:{id:user.id,email:user.email,nome:nome||empresaNome},
+      usuario_reaproveitado:!createdNow
+    });
   }catch(e){console.error('[gv admin create]',e);res.status(500).json({erro:'Não foi possível criar a conta do Gerenciador.'});}
 });
 
