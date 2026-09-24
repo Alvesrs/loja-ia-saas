@@ -20,10 +20,38 @@ c=c.replace(
 "const idempotenciaService = require('../services/whatsappIdempotencia.service');",
 "const idempotenciaService = require('../services/whatsappIdempotencia.service');\nconst supabase = require('../config/supabase');"
 );
-c=c.replace(
-"const CONTEXTO = Object.freeze({provedor:'waha'});",
-"const GATILHO_VENDAS = 'oi! tudo bem? vi a empresa de vocês e queria te mostrar uma ferramenta que estou lançando. ela atende clientes automaticamente pelo whatsapp, responde dúvidas sobre produtos e ajuda a não perder vendas quando ninguém consegue responder na hora. posso te mostrar rapidinho como funciona?';\\n\\nfunction normalizarTextoVenda(valor){\\n  return String(valor||'').trim().toLowerCase().replace(/\\\\s+/g,' ');\\n}\\n\\nasync function ativarConversaVenda(evento){\\n  const payload={\\n    session_id:evento.destinatarioId,\\n    contato:evento.contato,\\n    ativo:true,\\n    atualizado_em:new Date().toISOString(),\\n    ultimo_evento_id:evento.idExterno\\n  };\\n  const {error}=await supabase.from('saintsai_sales_conversations')\\n    .upsert(payload,{onConflict:'session_id,contato'});\\n  if(error) throw error;\\n}\\n\\nasync function desativarConversaVenda(evento){\\n  const {error}=await supabase.from('saintsai_sales_conversations')\\n    .update({ativo:false,atualizado_em:new Date().toISOString(),ultimo_evento_id:evento.idExterno})\\n    .eq('session_id',evento.destinatarioId).eq('contato',evento.contato);\\n  if(error) throw error;\\n}\nconst CONTEXTO = Object.freeze({provedor:'waha'});"
-);
+
+const bloco=[
+"const GATILHO_VENDAS = 'oi! tudo bem? vi a empresa de vocês e queria te mostrar uma ferramenta que estou lançando. ela atende clientes automaticamente pelo whatsapp, responde dúvidas sobre produtos e ajuda a não perder vendas quando ninguém consegue responder na hora. posso te mostrar rapidinho como funciona?';",
+"",
+"function normalizarTextoVenda(valor){",
+"  return String(valor||'').trim().toLowerCase().replace(/\\s+/g,' ');",
+"}",
+"",
+"async function ativarConversaVenda(evento){",
+"  const payload={",
+"    session_id:evento.destinatarioId,",
+"    contato:evento.contato,",
+"    ativo:true,",
+"    atualizado_em:new Date().toISOString(),",
+"    ultimo_evento_id:evento.idExterno",
+"  };",
+"  const {error}=await supabase.from('saintsai_sales_conversations')",
+"    .upsert(payload,{onConflict:'session_id,contato'});",
+"  if(error) throw error;",
+"}",
+"",
+"async function desativarConversaVenda(evento){",
+"  const {error}=await supabase.from('saintsai_sales_conversations')",
+"    .update({ativo:false,atualizado_em:new Date().toISOString(),ultimo_evento_id:evento.idExterno})",
+"    .eq('session_id',evento.destinatarioId).eq('contato',evento.contato);",
+"  if(error) throw error;",
+"}",
+"const CONTEXTO = Object.freeze({provedor:'waha'});"
+].join('\n');
+
+c=c.replace("const CONTEXTO = Object.freeze({provedor:'waha'});",bloco);
+
 c=c.replace(
 "  if (!evento) return res.status(200).json({status:'sem_mensagem_processavel'});\n\n  const chaveId={provedor:'waha',idExterno:evento.idExterno};",
 "  if (!evento) return res.status(200).json({status:'sem_mensagem_processavel'});\n\n  if (evento.fromMe === true) {\n    try {\n      const texto=normalizarTextoVenda(evento.texto);\n      if (texto === GATILHO_VENDAS) {\n        await ativarConversaVenda(evento);\n        console.log('[waha.sales] conversa_ativada', evento.contato);\n        return res.status(200).json({status:'vendedor_saintsai_ativado'});\n      }\n      if (texto === '/parar') {\n        await desativarConversaVenda(evento);\n        console.log('[waha.sales] conversa_desativada', evento.contato);\n        return res.status(200).json({status:'vendedor_saintsai_desativado'});\n      }\n      return res.status(200).json({status:'mensagem_propria_ignorada'});\n    } catch (erro) {\n      console.error('[waha.sales] erro_gatilho', erro && (erro.stack || erro.message || erro));\n      return res.status(500).json({erro:'Não foi possível atualizar o modo de vendas.'});\n    }\n  }\n\n  const chaveId={provedor:'waha',idExterno:evento.idExterno};"
