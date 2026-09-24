@@ -8,9 +8,9 @@
 .hidden{display:none!important}
 </style></head><body><div class="loginGate" id="loginGate"><form class="loginCard" id="loginForm"><div class="eyebrow">GERENCIADOR DE VENDAS</div><h1>Entrar</h1><p>Acesse a conta da sua empresa.</p><label>E-mail<input id="loginEmail" type="email" autocomplete="username" required></label><label>Senha<input id="loginSenha" type="password" autocomplete="current-password" required></label><div class="loginError" id="loginError"></div><button class="primary" type="submit">Entrar no Gerenciador</button></form></div><div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">GV</div><div><b>Gerenciador</b><span>Vendas & desempenho</span></div></div><nav class="nav"><button class="on" data-p="dashboard">▦ Dashboard</button><button data-p="vendas">◫ Vendas</button><button data-p="clientes">◎ Clientes</button><button data-p="produtos">◇ Produtos</button><button data-p="relatorios">↗ Relatórios</button></nav><div class="bottom">SaintsAI · Gerenciador de Vendas<br>Projeto separado do Agente IA</div></aside><main class="main"><header class="top"><button class="menu" id="menu">☰</button><div><div class="eyebrow">VISÃO GERAL</div><h1 id="title">Dashboard</h1></div><div class="actions"><select><option>Este mês</option><option>Últimos 30 dias</option><option>Este ano</option></select><button class="primary open">＋ Registrar venda</button><button class="logout" id="logoutBtn">Sair</button></div></header>
 <section class="page on" id="dashboard"><div class="kpis"><div class="card"><div class="row"><span>Faturamento</span><span class="pill">+12,8%</span></div><strong id="kpiFat">R$ 0,00</strong><small>vs. período anterior</small></div><div class="card"><div class="row"><span>Vendas</span><span class="pill">+8,4%</span></div><strong id="kpiVendas">0</strong><small>vendas registradas</small></div><div class="card"><div class="row"><span>Ticket médio</span><span class="pill">+4,1%</span></div><strong id="kpiTicket">R$ 0,00</strong><small>média por venda</small></div><div class="card"><div class="row"><span>Clientes</span><span class="pill">+16,2%</span></div><strong id="kpiClientes">0</strong><small>31 novos no período</small></div></div><div class="grid"><div class="panel"><div class="eyebrow">DESEMPENHO</div><h2>Evolução de faturamento</h2><div class="chart" id="chart"></div></div><div class="panel"><div class="eyebrow">CANAIS</div><h2>Origem das vendas</h2><div class="donutWrap"><div class="donut"><div><b>327</b><small>vendas</small></div></div><div class="sources"><div><span>WhatsApp</span><b>44%</b></div><div><span>Instagram</span><b>27%</b></div><div><span>Loja física</span><b>18%</b></div><div><span>Outros</span><b>11%</b></div></div></div></div></div><div class="lists"><div class="panel"><div class="eyebrow">CATEGORIAS</div><h2>Top categorias</h2><div class="line"><span class="bubble">1</span><span><b>Eletrônicos</b><small>112 vendas</small></span><em>R$ 31.840</em></div><div class="line"><span class="bubble">2</span><span><b>Acessórios</b><small>86 vendas</small></span><em>R$ 18.120</em></div><div class="line"><span class="bubble">3</span><span><b>Moda</b><small>74 vendas</small></span><em>R$ 16.740</em></div></div><div class="panel"><div class="eyebrow">VENDAS</div><h2>Últimas vendas</h2><div class="line"><span class="bubble">W</span><span><b>Mariana Costa</b><small>WhatsApp · 12 min</small></span><em>R$ 289,90</em></div><div class="line"><span class="bubble">I</span><span><b>João Pedro</b><small>Instagram · 34 min</small></span><em>R$ 149,00</em></div><div class="line"><span class="bubble">L</span><span><b>Ana Clara</b><small>Loja física · 1h</small></span><em>R$ 399,90</em></div></div></div></section>
-<section class="page" id="vendas"><div class="toolbar"><input class="input" placeholder="Buscar cliente, produto ou vendedor"><select class="input" id="channelFilter"><option value="">Todos os canais</option><option>WhatsApp</option><option>Instagram</option><option>Loja física</option></select><select class="input" id="clientTypeFilter"><option value="">Todos os clientes</option><option value="novo">Clientes Novos</option><option value="recorrente">Clientes Recorrentes</option></select><button class="primary open">＋ Registrar venda</button></div><div class="panel table"><table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Origem</th><th>Categoria</th><th>Vendedor</th><th>Valor</th><th>Status</th></tr></thead><tbody id="salesBody"></tbody></table></div></section>
+<section class="page" id="vendas"><div class="toolbar"><input class="input" placeholder="Buscar cliente, produto ou vendedor"><select class="input" id="channelFilter"><option value="">Todos os canais</option><option>WhatsApp</option><option>Instagram</option><option>Loja física</option></select><select class="input" id="clientTypeFilter"><option value="">Todos os clientes</option><option value="novo">Clientes Novos</option><option value="recorrente">Clientes Recorrentes</option></select><button class="primary open">＋ Registrar venda</button></div><div class="panel table"><table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Origem</th><th>Categoria</th><th>Vendedor</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody id="salesBody"></tbody></table></div></section>
 <section class="page" id="clientes"><div class="panel placeholder"><div><b>Clientes</b>Cadastro, histórico de compras, ticket médio e recorrência.</div></div></section><section class="page" id="produtos"><div class="panel placeholder"><div><b>Produtos & Categorias</b>Catálogo e organização das vendas por categoria.</div></div></section><section class="page" id="relatorios"><div class="panel placeholder"><div><b>Relatórios</b>Filtros por período, canal, vendedor, categoria e exportação.</div></div></section></main></div>
-<div class="modal" id="modal"><div class="modalBox"><div class="modalHead"><div><div class="eyebrow">NOVA VENDA</div><h2>Registrar venda</h2></div><button id="close">×</button></div><form id="sale"><div class="form"><label>Cliente<input required name="cliente" placeholder="Nome do cliente"></label><label>Valor<input required name="valor" type="number" step=".01" placeholder="0,00"></label><label>Origem<select name="origem"><option>WhatsApp</option><option>Instagram</option><option>Loja física</option><option>Outro</option></select></label><label>Categoria<select name="categoria"><option>SACOLAS</option><option>CAIXAS</option><option>PAPEL SEDA</option><option>COPO 100 ML</option><option>POTE 360 ML</option><option>POTE 500 ML</option><option>PAPEL ANTIGORDURA</option></select></label><label>Tipo de cliente<select name="tipo_cliente"><option value="novo">Cliente Novo</option><option value="recorrente">Cliente Recorrente</option></select></label><label>Vendedor<input name="vendedor" placeholder="Nome"></label><label>Data<input name="data" type="date"></label></div><div class="modalActions"><button type="button" class="secondary" id="cancel">Cancelar</button><button class="primary">Salvar venda</button></div></form></div></div>
+<div class="modal" id="modal"><div class="modalBox"><div class="modalHead"><div><div class="eyebrow">NOVA VENDA</div><h2>Registrar venda</h2></div><button id="close">×</button></div><form id="sale"><input type="hidden" name="venda_id" id="vendaId"><div class="form"><label>Cliente<input required name="cliente" placeholder="Nome do cliente"></label><label>Valor<input required name="valor" type="number" step=".01" placeholder="0,00"></label><label>Origem<select name="origem"><option>WhatsApp</option><option>Instagram</option><option>Loja física</option><option>Outro</option></select></label><label>Categoria<select name="categoria"><option>SACOLAS</option><option>CAIXAS</option><option>PAPEL SEDA</option><option>COPO 100 ML</option><option>POTE 360 ML</option><option>POTE 500 ML</option><option>PAPEL ANTIGORDURA</option></select></label><label>Tipo de cliente<select name="tipo_cliente"><option value="novo">Cliente Novo</option><option value="recorrente">Cliente Recorrente</option></select></label><label>Vendedor<input name="vendedor" placeholder="Nome"></label><label>Data<input name="data" type="date"></label></div><div class="modalActions"><button type="button" class="secondary" id="cancel">Cancelar</button><button class="primary" id="saveSaleBtn">Salvar venda</button></div></form></div></div>
 <script>
 const API='/api/gv';
 const ps=[...document.querySelectorAll('.page')],ns=[...document.querySelectorAll('.nav button')],title=document.getElementById('title'),side=document.getElementById('side');
@@ -52,7 +52,7 @@ loginForm.onsubmit=async e=>{
 logoutBtn.onclick=clearSession;
 
 const modal=document.getElementById('modal');
-document.querySelectorAll('.open').forEach(b=>b.onclick=()=>modal.classList.add('on'));
+document.querySelectorAll('.open').forEach(b=>b.onclick=()=>{sale.reset();vendaId.value='';saveSaleBtn.textContent='Salvar venda';modal.classList.add('on')});
 close.onclick=cancel.onclick=()=>modal.classList.remove('on');
 
 function renderBars(items){
@@ -77,10 +77,25 @@ function tipoCliente(v){return String(v.observacao||'').includes('[CLIENTE_TIPO]
 function renderSales(){
   const cf=document.getElementById('channelFilter')?.value||'',tf=document.getElementById('clientTypeFilter')?.value||'';
   const xs=salesCache.filter(v=>(!cf||v.origem===cf)&&(!tf||tipoCliente(v)===tf));
-  salesBody.innerHTML=xs.map(v=>'<tr><td>'+new Date(v.vendido_em).toLocaleDateString('pt-BR')+'</td><td>'+v.cliente_nome+'</td><td><span class="status">'+(tipoCliente(v)==='recorrente'?'Recorrente':'Novo')+'</span></td><td>'+v.origem+'</td><td>'+(v.categoria||'—')+'</td><td>'+(contexto?.usuario?.nome||'—')+'</td><td>'+money(v.valor)+'</td><td><span class="status">Concluída</span></td></tr>').join('')||'<tr><td colspan="8">Nenhuma venda encontrada.</td></tr>';
+  salesBody.innerHTML=xs.map(v=>'<tr><td>'+new Date(v.vendido_em).toLocaleDateString('pt-BR')+'</td><td>'+v.cliente_nome+'</td><td><span class="status">'+(tipoCliente(v)==='recorrente'?'Recorrente':'Novo')+'</span></td><td>'+v.origem+'</td><td>'+(v.categoria||'—')+'</td><td>'+(contexto?.usuario?.nome||'—')+'</td><td>'+money(v.valor)+'</td><td><span class="status">Concluída</span></td><td><button class="secondary edit-sale" data-id="'+v.id+'" type="button">Editar</button></td></tr>').join('')||'<tr><td colspan="9">Nenhuma venda encontrada.</td></tr>';
+  document.querySelectorAll('.edit-sale').forEach(b=>b.onclick=()=>abrirEdicao(b.dataset.id));
 }
 async function loadSales(){
   const d=await api('/vendas?limit=100');salesCache=d.vendas||[];renderSales();
+}
+function abrirEdicao(id){
+  const v=salesCache.find(x=>String(x.id)===String(id));if(!v)return;
+  const f=document.getElementById('sale');
+  f.elements.venda_id.value=v.id;
+  f.elements.cliente.value=v.cliente_nome||'';
+  f.elements.valor.value=Number(v.valor||0);
+  f.elements.origem.value=v.origem||'WhatsApp';
+  f.elements.categoria.value=v.categoria||'SACOLAS';
+  if(f.elements.tipo_cliente)f.elements.tipo_cliente.value=tipoCliente(v);
+  if(f.elements.vendedor)f.elements.vendedor.value=contexto?.usuario?.nome||'';
+  if(f.elements.data)f.elements.data.value=String(v.vendido_em||'').slice(0,10);
+  saveSaleBtn.textContent='Salvar correção';
+  modal.classList.add('on');
 }
 document.getElementById('channelFilter')?.addEventListener('change',renderSales);
 document.getElementById('clientTypeFilter')?.addEventListener('change',renderSales);
@@ -88,10 +103,12 @@ sale.onsubmit=async e=>{
   e.preventDefault();
   const fd=new FormData(e.target);
   try{
-    await api('/vendas',{method:'POST',body:JSON.stringify({
+    const vendaIdAtual=fd.get('venda_id');
+    const payload={
       cliente_nome:fd.get('cliente'),valor:Number(fd.get('valor')),origem:fd.get('origem'),categoria:fd.get('categoria'),
       vendedor:fd.get('vendedor'),tipo_cliente:fd.get('tipo_cliente'),vendido_em:fd.get('data')?fd.get('data')+'T12:00:00':''
-    })});
+    };
+    await api(vendaIdAtual?'/vendas/'+encodeURIComponent(vendaIdAtual):'/vendas',{method:vendaIdAtual?'PUT':'POST',body:JSON.stringify(payload)});
     e.target.reset();modal.classList.remove('on');await loadDashboard();go('vendas');
   }catch(err){alert(err.message)}
 };
