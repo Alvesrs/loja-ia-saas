@@ -201,6 +201,113 @@ router.get('/dashboard',requireUser,async(req,res)=>{
   }catch(e){console.error('[gv dashboard]',e);res.status(500).json({erro:'Não foi possível carregar o dashboard.'});}
 });
 
+
+router.get('/exportar-excel',requireUser,async(req,res)=>{
+  try{
+    const ExcelJS=require('exceljs');
+    const mes=String(req.query?.mes||'').trim();
+    if(!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({erro:'Informe o mês no formato AAAA-MM.'});
+    const [anoStr,mesStr]=mes.split('-');
+    const ano=Number(anoStr),mesNum=Number(mesStr);
+    if(mesNum<1||mesNum>12) return res.status(400).json({erro:'Mês inválido.'});
+    const ini=new Date(Date.UTC(ano,mesNum-1,1));
+    const fim=new Date(Date.UTC(ano,mesNum,1));
+
+    const {data:vendas,error}=await db.from('gv_vendas').select('*')
+      .eq('empresa_id',req.gv.empresa.id)
+      .gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString())
+      .order('vendido_em',{ascending:true});
+    if(error) throw error;
+
+    const rows=vendas||[];
+    const faturamento=rows.reduce((s,v)=>s+Number(v.valor||0),0);
+    const custo=rows.reduce((s,v)=>s+Number(v.custo||0),0);
+    const lucro=faturamento-custo;
+    const ticket=rows.length?faturamento/rows.length:0;
+    const clientes=new Set(rows.map(v=>v.cliente_id||v.cliente_nome).filter(Boolean)).size;
+    const tipos={novo:0,recorrente:0},origens={},categorias={};
+    for(const v of rows){
+      const tipo=String(v.observacao||'').includes('[CLIENTE_TIPO]recorrente')?'recorrente':'novo';
+      tipos[tipo]=(tipos[tipo]||0)+1;
+      origens[v.origem||'Outro']=(origens[v.origem||'Outro']||0)+1;
+      categorias[v.categoria||'Sem categoria']=(categorias[v.categoria||'Sem categoria']||0)+Number(v.valor||0);
+    }
+
+    const wb=new ExcelJS.Workbook();
+    wb.creator='Gerenciador de Vendas';
+    wb.created=new Date();
+
+    const ws=wb.addWorksheet('Vendas');
+    ws.columns=[
+      {header:'Data',key:'data',width:14},
+      {header:'Cliente',key:'cliente',width:28},
+      {header:'Tipo de cliente',key:'tipo',width:18},
+      {header:'Origem',key:'origem',width:16},
+      {header:'Categoria',key:'categoria',width:22},
+      {header:'Produto',key:'produto',width:24},
+      {header:'Valor',key:'valor',width:14},
+      {header:'Custo',key:'custo',width:14},
+      {header:'Lucro',key:'lucro',width:14},
+      {header:'Status',key:'status',width:14}
+    ];
+    ws.getRow(1).font={bold:true};
+    ws.views=[{state:'frozen',ySplit:1}];
+    for(const v of rows){
+      const tipo=String(v.observacao||'').includes('[CLIENTE_TIPO]recorrente')?'Recorrente':'Novo';
+      ws.addRow({
+        data:new Date(v.vendido_em),
+        cliente:v.cliente_nome||'',
+        tipo,
+        origem:v.origem||'',
+        categoria:v.categoria||'',
+        produto:v.produto_nome||'',
+        valor:Number(v.valor||0),
+        custo:Number(v.custo||0),
+        lucro:Number(v.valor||0)-Number(v.custo||0),
+        status:'Concluída'
+      });
+    }
+    ws.getColumn('data').numFmt='dd/mm/yyyy';
+    ['valor','custo','lucro'].forEach(k=>ws.getColumn(k).numFmt='"R$" #,##0.00');
+
+    const rs=wb.addWorksheet('Resumo do mês');
+    rs.columns=[{header:'Indicador',key:'indicador',width:32},{header:'Valor',key:'valor',width:24}];
+    rs.getRow(1).font={bold:true};
+    [
+      ['Empresa',req.gv.empresa.nome],
+      ['Mês',mes],
+      ['Faturamento',faturamento],
+      ['Total de vendas',rows.length],
+      ['Ticket médio',ticket],
+      ['Clientes únicos',clientes],
+      ['Clientes novos',tipos.novo||0],
+      ['Clientes recorrentes',tipos.recorrente||0],
+      ['Custo total',custo],
+      ['Lucro',lucro]
+    ].forEach(([indicador,valor])=>rs.addRow({indicador,valor}));
+    [4,6,10,11].forEach(n=>{ if(rs.getCell('B'+n)) rs.getCell('B'+n).numFmt='"R$" #,##0.00'; });
+
+    rs.addRow({});
+    rs.addRow({indicador:'Vendas por origem'});
+    Object.entries(origens).sort((a,b)=>b[1]-a[1]).forEach(([nome,total])=>rs.addRow({indicador:nome,valor:total}));
+    rs.addRow({});
+    rs.addRow({indicador:'Faturamento por categoria'});
+    Object.entries(categorias).sort((a,b)=>b[1]-a[1]).forEach(([nome,valor])=>{
+      const r=rs.addRow({indicador:nome,valor});
+      r.getCell(2).numFmt='"R$" #,##0.00';
+    });
+
+    const buffer=await wb.xlsx.writeBuffer();
+    const nome='vendas-'+mes+'.xlsx';
+    res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition','attachment; filename="'+nome+'"');
+    res.send(Buffer.from(buffer));
+  }catch(e){
+    console.error('[gv excel]',e);
+    res.status(500).json({erro:'Não foi possível gerar a planilha Excel.'});
+  }
+});
+
 router.get('/admin/contas',requireOwner,async(_req,res)=>{
   const {data,error}=await db.from('gv_empresas').select('id,nome,ativo,criado_em,gv_membros(id,user_id,nome,papel,ativo)');
   if(error) return res.status(500).json({erro:'Não foi possível listar contas.'}); res.json({contas:data||[]});
