@@ -2,6 +2,13 @@ const fs=require('node:fs');
 const p='public/admin-mobile.html';
 let h=fs.readFileSync(p,'utf8');
 
+if(!h.includes('id="tvalidade"')){
+  const alvo='<div class="grid2"><div class="field"><label>Número do agente</label><input id="tagente" type="tel"></div><div class="field"><label>Número oficial do dono</label><input id="tdono" type="tel"></div></div>';
+  const novo=alvo+'<div class="field"><label>Validade do teste</label><input id="tvalidade" type="date"><div class="note">Escolha até que dia este teste ficará ativo.</div></div>';
+  if(!h.includes(alvo)) throw new Error('Campos do Registro Teste não encontrados.');
+  h=h.replace(alvo,novo);
+}
+
 const re=/\$\('criarTeste'\)\.onclick=async\(\)=>\{[\s\S]*?\n\nloadClients\(\)/;
 const replacement=`$('criarTeste').onclick=async()=>{
  const st=$('testStatus'),b=$('criarTeste');
@@ -35,7 +42,7 @@ const replacement=`$('criarTeste').onclick=async()=>{
   const validade=$('tvalidade').value;if(!validade)throw new Error('Escolha a data de validade do teste.');const d=new Date(validade+'T23:59:59');if(Number.isNaN(d.getTime()))throw new Error('Data de validade inválida.');
   await apiFetch('/admin/lojas/'+encodeURIComponent(id)+'/assinatura',{method:'PUT',body:JSON.stringify({plano:'trial',status:'ativo',valido_ate:d.toISOString()})});
 
-  st.className='status ok';st.textContent='Teste liberado por 24 horas. Abrindo WhatsApp…';
+  st.className='status ok';st.textContent='Teste liberado até '+new Date(d).toLocaleDateString('pt-BR')+'. Abrindo WhatsApp…';
   await loadClients();
   setTimeout(()=>location.href='admin-cliente-whatsapp.html?loja='+encodeURIComponent(id),500);
  }catch(e){
@@ -49,4 +56,4 @@ loadClients()`;
 if(!re.test(h)) throw new Error('Fluxo Registro Teste não encontrado no painel final.');
 h=h.replace(re,replacement);
 fs.writeFileSync(p,h);
-console.log('Registro Teste: cliente existente agora é reutilizado em vez de bloquear.');
+console.log('Registro Teste: reutilização de cliente e validade escolhida pelo admin aplicadas.');
