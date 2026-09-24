@@ -70,10 +70,16 @@ const {createClient}=require('@supabase/supabase-js');
     const vendas=await req(base,'/api/gv/vendas?limit=10',{headers:uh});
     if(!(vendas.body.vendas||[]).some(v=>v.id===sale.body.venda.id)) throw new Error('venda não apareceu na listagem');
 
+    const mesAtual=new Date().toISOString().slice(0,7);
+    const xr=await fetch(base+'/api/gv/exportar-excel?mes='+mesAtual,{headers:{authorization:'Bearer '+login.body.access_token}});
+    if(!xr.ok) throw new Error('Excel mensal falhou: '+xr.status);
+    const xb=Buffer.from(await xr.arrayBuffer());
+    if(xb.length<1000||xb[0]!==0x50||xb[1]!==0x4b) throw new Error('Excel mensal inválido');
+
     const dash=await req(base,'/api/gv/dashboard',{headers:uh});
     if(Number(dash.body.metricas?.vendas)<1||Number(dash.body.metricas?.faturamento)<249.9) throw new Error('dashboard não refletiu valor corrigido');
 
-    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + edicao + dashboard');
+    console.log('[gv-smoke] PASS admin-create/reuse + login + contexto + cliente + produto + venda + edicao + Excel mensal + dashboard');
   } finally {
     try{if(server) await new Promise(r=>server.close(r))}catch{}
     try{if(empresaId) await db.from('gv_empresas').delete().eq('id',empresaId)}catch{}
