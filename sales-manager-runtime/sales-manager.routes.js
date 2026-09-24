@@ -99,7 +99,7 @@ router.post('/vendas',requireUser,async(req,res)=>{
       empresa_id:req.gv.empresa.id,cliente_id,produto_id:req.body?.produto_id||null,vendedor_user_id:req.gv.user.id,
       cliente_nome,produto_nome:String(req.body?.produto_nome||'').trim()||null,categoria:String(req.body?.categoria||'').trim()||null,
       origem:String(req.body?.origem||'WhatsApp').trim(),valor,custo:money(req.body?.custo),
-      observacao:String(req.body?.observacao||'').trim()||null,
+      observacao:'[CLIENTE_TIPO]'+((String(req.body?.tipo_cliente||'novo').toLowerCase()==='recorrente')?'recorrente':'novo')+(String(req.body?.observacao||'').trim()?'\n'+String(req.body.observacao).trim():''),
       vendido_em:req.body?.vendido_em?new Date(req.body.vendido_em).toISOString():new Date().toISOString()
     };
     const {data,error}=await db.from('gv_vendas').insert(payload).select('*').single();
@@ -137,13 +137,14 @@ router.get('/dashboard',requireUser,async(req,res)=>{
     const vendas=atual||[],prev=anterior||[];
     const faturamento=vendas.reduce((s,v)=>s+Number(v.valor||0),0),lucro=vendas.reduce((s,v)=>s+Number(v.valor||0)-Number(v.custo||0),0),prevFat=prev.reduce((s,v)=>s+Number(v.valor||0),0);
     const clientes=new Set(vendas.map(v=>v.cliente_id||v.cliente_nome).filter(Boolean)).size,ticket=vendas.length?faturamento/vendas.length:0;
-    const porDia={},origens={},categorias={};
-    for(const v of vendas){const dia=String(v.vendido_em).slice(0,10);porDia[dia]=(porDia[dia]||0)+Number(v.valor||0);origens[v.origem||'Outro']=(origens[v.origem||'Outro']||0)+1;categorias[v.categoria||'Sem categoria']=(categorias[v.categoria||'Sem categoria']||0)+Number(v.valor||0);}
+    const porDia={},origens={},categorias={},tipos={novo:0,recorrente:0};
+    for(const v of vendas){const dia=String(v.vendido_em).slice(0,10);porDia[dia]=(porDia[dia]||0)+Number(v.valor||0);origens[v.origem||'Outro']=(origens[v.origem||'Outro']||0)+1;categorias[v.categoria||'Sem categoria']=(categorias[v.categoria||'Sem categoria']||0)+Number(v.valor||0);const tipo=String(v.observacao||'').includes('[CLIENTE_TIPO]recorrente')?'recorrente':'novo';tipos[tipo]=(tipos[tipo]||0)+1;v.tipo_cliente=tipo;}
     res.json({
       metricas:{faturamento,lucro,vendas:vendas.length,ticket_medio:ticket,clientes,faturamento_anterior:prevFat,variacao_faturamento_pct:prevFat>0?((faturamento-prevFat)/prevFat)*100:null},
       por_dia:Object.entries(porDia).map(([data,valor])=>({data,valor})).sort((a,b)=>a.data.localeCompare(b.data)),
       origens:Object.entries(origens).map(([nome,total])=>({nome,total})).sort((a,b)=>b.total-a.total),
       categorias:Object.entries(categorias).map(([nome,valor])=>({nome,valor})).sort((a,b)=>b.valor-a.valor).slice(0,8),
+      tipos_clientes:tipos,
       ultimas_vendas:[...vendas].sort((a,b)=>String(b.vendido_em).localeCompare(String(a.vendido_em))).slice(0,10)
     });
   }catch(e){console.error('[gv dashboard]',e);res.status(500).json({erro:'Não foi possível carregar o dashboard.'});}
