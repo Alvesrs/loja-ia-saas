@@ -32,7 +32,7 @@ const replacement=`$('criarTeste').onclick=async()=>{
   await apiFetch('/admin/clientes-gerenciados/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({nome,prompt_mestre:prompt,numero_whatsapp:''})});
   await apiFetch('/admin/clientes-gerenciados/'+encodeURIComponent(id)+'/personalidade',{method:'PUT',body:JSON.stringify({personalidade:'amigavel'})});
   await apiFetch('/admin/clientes-gerenciados/'+encodeURIComponent(id)+'/contatos',{method:'PUT',body:JSON.stringify({numero_whatsapp:agente,numero_dono_whatsapp:dono})});
-  const d=new Date();d.setHours(d.getHours()+24);
+  const validade=$('tvalidade').value;if(!validade)throw new Error('Escolha a data de validade do teste.');const d=new Date(validade+'T23:59:59');if(Number.isNaN(d.getTime()))throw new Error('Data de validade inválida.');
   await apiFetch('/admin/lojas/'+encodeURIComponent(id)+'/assinatura',{method:'PUT',body:JSON.stringify({plano:'trial',status:'ativo',valido_ate:d.toISOString()})});
 
   st.className='status ok';st.textContent='Teste liberado por 24 horas. Abrindo WhatsApp…';
