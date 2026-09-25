@@ -21,12 +21,12 @@ write('src/services/salesVoice.service.js', [
 "",
 "function texto(v){return String(v||'').trim()}",
 "",
-"function pedidoExplicitoDeAudio(pergunta){
-  const p=texto(pergunta).toLowerCase();
-  return /(manda|mande|envia|envie|pode mandar|pode enviar|quero|faz|faça|grava|grave).{0,24}(áudio|audio|voz|mensagem de voz)|^(áudio|audio|voz)(\s|$)/i.test(p);
-}
-
-function assuntoEstrategico(pergunta,resposta){",
+"function pedidoExplicitoDeAudio(pergunta){",
+"  const p=texto(pergunta).toLowerCase();",
+"  return /(manda|mande|envia|envie|pode mandar|pode enviar|quero|faz|faça|grava|grave).{0,24}(áudio|audio|voz|mensagem de voz)|^(áudio|audio|voz)(\\s|$)/i.test(p);",
+"}",
+"",
+"function assuntoEstrategico(pergunta,resposta){",
 "  const p=(texto(pergunta)+' '+texto(resposta)).toLowerCase();",
 "  if(texto(resposta).length<120 || texto(resposta).length>1200) return false;",
 "  return /(como funciona|funciona|preço|preco|valor|mensalidade|implant|configur|seguran|errad|rob[oô]|humano|equipe|assum|transfer|demonstra|demo|whatsapp|n[uú]mero|estoque|cat[aá]logo|obje[cç][aã]o|medo|receio|d[uú]vida|contrat|fechar)/i.test(p);",
@@ -57,8 +57,8 @@ function assuntoEstrategico(pergunta,resposta){",
 "      voice:e.voice,",
 "      input:fala.slice(0,4096),",
 "      response_format:'mp3',",
-"      speed:0.94,",
-"      instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora e consultiva, com entonação humana e espontânea. Use pausas curtas, ritmo natural e evite soar como locutora de propaganda ou robô.'",
+"      speed:0.96,",
+"      instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora, espontânea e consultiva. Use pausas curtas e ritmo humano. Nunca soe robótica, agressiva ou como locutora de propaganda.'",
 "    })",
 "  });",
 "  if(!r.ok) throw new Error('tts_http_'+r.status);",
@@ -81,16 +81,20 @@ function assuntoEstrategico(pergunta,resposta){",
 "",
 "async function enviarSeAplicavel(mensagem,resposta,contexto){",
 "  const e=env();",
-"  if(!e.enabled || !e.apiKey || !e.wahaBase || !e.wahaKey) return {enviado:false,motivo:'indisponivel'};",
+"  const pedidoAudio=pedidoExplicitoDeAudio(mensagem&&mensagem.texto);",
+"  if(!e.enabled || !e.apiKey || !e.wahaBase || !e.wahaKey) {",
+"    if(pedidoAudio) console.log('[salesVoice] pedido_audio_sem_tts_configurado', mensagem&&mensagem.contato||'');",
+"    return {enviado:false,motivo:'indisponivel'};",
+"  }",
 "  if(!contexto || contexto.provedor!=='waha') return {enviado:false,motivo:'provedor'};",
-"  const pedidoAudio=pedidoExplicitoDeAudio(mensagem&&mensagem.texto);",\n"  if(!pedidoAudio && !assuntoEstrategico(mensagem&&mensagem.texto,resposta&&resposta.resposta)) return {enviado:false,motivo:'nao_estrategico'};",
+"  if(!pedidoAudio && !assuntoEstrategico(mensagem&&mensagem.texto,resposta&&resposta.resposta)) return {enviado:false,motivo:'nao_estrategico'};",
 "  const est=await estadoVenda(contexto.destinatarioId,mensagem.contato);",
 "  if(!est || (!pedidoAudio && !cooldownOk(est.ultimo_audio_em))) return {enviado:false,motivo:'cooldown'};",
 "  try{",
 "    const data=await gerarAudio(resposta.resposta,!est.audio_divulgado);",
 "    await enviarWaha(contexto.destinatarioId,mensagem.contato,data);",
 "    await supabase.from('saintsai_sales_conversations').update({ultimo_audio_em:new Date().toISOString(),audio_divulgado:true,atualizado_em:new Date().toISOString()}).eq('id',est.id);",
-"    console.log('[salesVoice] audio_enviado',mensagem.contato);",
+"    console.log('[salesVoice] audio_enviado',mensagem.contato,pedidoAudio?'pedido_explicito':'estrategico');",
 "    return {enviado:true};",
 "  }catch(erro){",
 "    console.error('[salesVoice] falha; usando texto. Tipo:',(erro&&erro.message)||'erro');",
@@ -120,4 +124,4 @@ write(worker,w);
 
 cp.execFileSync(process.execPath,['--check','src/services/salesVoice.service.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check',worker],{stdio:'inherit'});
-console.log('Voz do vendedor SaintsAI integrada com fallback seguro para texto.');
+console.log('Voz feminina SaintsAI + audio sob pedido explicito integrados.');
