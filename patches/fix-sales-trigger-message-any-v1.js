@@ -50,7 +50,7 @@ if(!w.includes('async function garantirWebhooksAtivos')){
 "      console.log('[waha] webhook_message_any_ok',sessao);",
 "    }",
 "  }",
-}",
+"}",
 ""
   ].join('\n');
   w=w.replace('async function status(lojaId){',bloco+'\nasync function status(lojaId){');
