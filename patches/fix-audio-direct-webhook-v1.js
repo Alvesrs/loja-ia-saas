@@ -5,12 +5,14 @@ function write(p,s){fs.writeFileSync(p,s)}
 
 const controller='src/controllers/whatsappWahaWebhook.controller.js';
 let c=read(controller);
+
 if(!c.includes("const salesVoice = require('../services/salesVoice.service');")){
   c=c.replace(
     "const idempotenciaService = require('../services/whatsappIdempotencia.service');",
     "const idempotenciaService = require('../services/whatsappIdempotencia.service');\nconst salesVoice = require('../services/salesVoice.service');"
   );
 }
+
 if(!c.includes('function pedidoAudioDireto')){
   c=c.replace(
     "function chaveConversa(evento){",
@@ -56,10 +58,10 @@ if(c.includes(anchor) && !c.includes("audio_direto_concluido")){
     "        return res.status(200).json({status:'audio_enviado'});",
     "      }",
     "      try{await idempotenciaService.liberarEventoWhatsapp(chaveId);}catch(_){ }",
-    "    }",
-    "    "
+    "    }"
   ].join('\n'));
 }
-write(controller,c);
 
-cp.execFileSync(process.execPath,['--check',controller],{stdio:'inherit'});\nconsole.log('Áudio explícito agora bypassa fila e segue direto para o TTS.');\n
+write(controller,c);
+cp.execFileSync(process.execPath,['--check',controller],{stdio:'inherit'});
+console.log('Áudio explícito agora bypassa fila e segue direto para o TTS.');
