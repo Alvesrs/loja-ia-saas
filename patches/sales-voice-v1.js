@@ -12,7 +12,7 @@ write('src/services/salesVoice.service.js', [
 "    enabled:String(process.env.SAINTSAI_TTS_ENABLED||'false').toLowerCase()==='true',",
 "    apiKey:String(process.env.OPENAI_API_KEY||'').trim(),",
 "    model:String(process.env.SAINTSAI_TTS_MODEL||'gpt-4o-mini-tts').trim(),",
-"    voice:String(process.env.SAINTSAI_TTS_VOICE||'onyx').trim(),",
+"    voice:String(process.env.SAINTSAI_TTS_VOICE||'coral').trim(),",
 "    base:String(process.env.OPENAI_API_BASE||'https://api.openai.com/v1').replace(/\\/+$/,''),",
 "    wahaBase:String(process.env.WAHA_BASE_URL||'').replace(/\\/+$/,''),",
 "    wahaKey:String(process.env.WAHA_API_KEY||'').trim()",
@@ -21,7 +21,12 @@ write('src/services/salesVoice.service.js', [
 "",
 "function texto(v){return String(v||'').trim()}",
 "",
-"function assuntoEstrategico(pergunta,resposta){",
+"function pedidoExplicitoDeAudio(pergunta){
+  const p=texto(pergunta).toLowerCase();
+  return /(manda|mande|envia|envie|pode mandar|pode enviar|quero|faz|faça|grava|grave).{0,24}(áudio|audio|voz|mensagem de voz)|^(áudio|audio|voz)(\s|$)/i.test(p);
+}
+
+function assuntoEstrategico(pergunta,resposta){",
 "  const p=(texto(pergunta)+' '+texto(resposta)).toLowerCase();",
 "  if(texto(resposta).length<120 || texto(resposta).length>1200) return false;",
 "  return /(como funciona|funciona|preço|preco|valor|mensalidade|implant|configur|seguran|errad|rob[oô]|humano|equipe|assum|transfer|demonstra|demo|whatsapp|n[uú]mero|estoque|cat[aá]logo|obje[cç][aã]o|medo|receio|d[uú]vida|contrat|fechar)/i.test(p);",
@@ -53,7 +58,7 @@ write('src/services/salesVoice.service.js', [
 "      input:fala.slice(0,4096),",
 "      response_format:'mp3',",
 "      speed:0.94,",
-"      instructions:'Fale em português do Brasil com voz masculina adulta, séria, calma, profissional, confiante e persuasiva. Soe natural e consultivo, nunca agressivo. Use pausas curtas e entonação humana. Não pareça locutor de propaganda.'",
+"      instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora e consultiva, com entonação humana e espontânea. Use pausas curtas, ritmo natural e evite soar como locutora de propaganda ou robô.'",
 "    })",
 "  });",
 "  if(!r.ok) throw new Error('tts_http_'+r.status);",
@@ -78,9 +83,9 @@ write('src/services/salesVoice.service.js', [
 "  const e=env();",
 "  if(!e.enabled || !e.apiKey || !e.wahaBase || !e.wahaKey) return {enviado:false,motivo:'indisponivel'};",
 "  if(!contexto || contexto.provedor!=='waha') return {enviado:false,motivo:'provedor'};",
-"  if(!assuntoEstrategico(mensagem&&mensagem.texto,resposta&&resposta.resposta)) return {enviado:false,motivo:'nao_estrategico'};",
+"  const pedidoAudio=pedidoExplicitoDeAudio(mensagem&&mensagem.texto);",\n"  if(!pedidoAudio && !assuntoEstrategico(mensagem&&mensagem.texto,resposta&&resposta.resposta)) return {enviado:false,motivo:'nao_estrategico'};",
 "  const est=await estadoVenda(contexto.destinatarioId,mensagem.contato);",
-"  if(!est || !cooldownOk(est.ultimo_audio_em)) return {enviado:false,motivo:'cooldown'};",
+"  if(!est || (!pedidoAudio && !cooldownOk(est.ultimo_audio_em))) return {enviado:false,motivo:'cooldown'};",
 "  try{",
 "    const data=await gerarAudio(resposta.resposta,!est.audio_divulgado);",
 "    await enviarWaha(contexto.destinatarioId,mensagem.contato,data);",
@@ -93,7 +98,7 @@ write('src/services/salesVoice.service.js', [
 "  }",
 "}",
 "",
-"module.exports={enviarSeAplicavel,assuntoEstrategico};"
+"module.exports={enviarSeAplicavel,assuntoEstrategico,pedidoExplicitoDeAudio};"
 ].join('\n'));
 
 // Integra no worker com fallback automático para texto.
