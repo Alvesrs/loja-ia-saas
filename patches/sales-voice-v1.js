@@ -61,7 +61,7 @@ write('src/services/salesVoice.service.js', [
 "      instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora, espontânea e consultiva. Use pausas curtas e ritmo humano. Nunca soe robótica, agressiva ou como locutora de propaganda.'",
 "    })",
 "  });",
-"  if(!r.ok) throw new Error('tts_http_'+r.status);",
+"  if(!r.ok) {",\n"    let detalhe='';",\n"    try{ const j=await r.json(); detalhe=String((j&&j.error&&(j.error.code||j.error.type||j.error.message))||'').slice(0,180); }catch(_){}",\n"    throw new Error('tts_http_'+r.status+(detalhe?('_'+detalhe):''));",\n"  }",
 "  const b=Buffer.from(await r.arrayBuffer());",
 "  if(!b.length) throw new Error('tts_vazio');",
 "  return b.toString('base64');",
