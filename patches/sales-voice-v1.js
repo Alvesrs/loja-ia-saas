@@ -3,7 +3,6 @@ const cp=require('node:child_process');
 function read(p){return fs.readFileSync(p,'utf8')}
 function write(p,s){fs.writeFileSync(p,s)}
 
-// Serviço de voz do vendedor SaintsAI: TTS OpenAI -> WAHA sendVoice.
 write('src/services/salesVoice.service.js', [
 "const supabase=require('../config/supabase');",
 "",
@@ -23,7 +22,7 @@ write('src/services/salesVoice.service.js', [
 "",
 "function pedidoExplicitoDeAudio(pergunta){",
 "  const p=texto(pergunta).toLowerCase();",
-"  return /(manda|mande|envia|envie|pode mandar|pode enviar|quero|faz|faça|grava|grave).{0,24}(áudio|audio|voz|mensagem de voz)|^(áudio|audio|voz)(\\s|$)/i.test(p);",
+"  return /(manda|mande|envia|envie|pode mandar|pode enviar|quero|faz|faça|grava|grave|mi manda|me manda).{0,35}(áudio|audio|voz|mensagem de voz)|^(áudio|audio|voz)(\\s|$)/i.test(p);",
 "}",
 "",
 "function assuntoEstrategico(pergunta,resposta){",
@@ -49,19 +48,29 @@ write('src/services/salesVoice.service.js', [
 "async function gerarAudio(textoFalado,divulgar){",
 "  const e=env();",
 "  const fala=(divulgar ? 'Só para deixar claro: esta é uma voz gerada por inteligência artificial do SaintsAI. ' : '') + textoFalado;",
-"  const r=await fetch(e.base+'/audio/speech',{",
-"    method:'POST',",
-"    headers:{Authorization:'Bearer '+e.apiKey,'Content-Type':'application/json'},",
-"    body:JSON.stringify({",
-"      model:e.model,",
-"      voice:e.voice,",
-"      input:fala.slice(0,4096),",
-"      response_format:'mp3',",
-"      speed:0.96,",
-"      instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora, espontânea e consultiva. Use pausas curtas e ritmo humano. Nunca soe robótica, agressiva ou como locutora de propaganda.'",
-"    })",
-"  });",
-"  if(!r.ok) {",\n"    let detalhe='';",\n"    try{ const j=await r.json(); detalhe=String((j&&j.error&&(j.error.code||j.error.type||j.error.message))||'').slice(0,180); }catch(_){}",\n"    throw new Error('tts_http_'+r.status+(detalhe?('_'+detalhe):''));",\n"  }",
+"  const ctrl=new AbortController();",
+"  const timer=setTimeout(()=>ctrl.abort(),30000);",
+"  let r;",
+"  try{",
+"    r=await fetch(e.base+'/audio/speech',{",
+"      method:'POST',",
+"      headers:{Authorization:'Bearer '+e.apiKey,'Content-Type':'application/json'},",
+"      body:JSON.stringify({",
+"        model:e.model,",
+"        voice:e.voice,",
+"        input:fala.slice(0,4096),",
+"        response_format:'mp3',",
+"        speed:0.96,",
+"        instructions:'Fale em português do Brasil com voz feminina adulta, natural, humanizada, simpática, profissional, confiante e persuasiva. Soe acolhedora, espontânea e consultiva. Use pausas curtas e ritmo humano. Nunca soe robótica, agressiva ou como locutora de propaganda.'",
+"      }),",
+"      signal:ctrl.signal",
+"    });",
+"  } finally { clearTimeout(timer); }",
+"  if(!r.ok) {",
+"    let detalhe='';",
+"    try{ const j=await r.json(); detalhe=String((j&&j.error&&(j.error.code||j.error.type||j.error.message))||'').slice(0,180); }catch(_){}",
+"    throw new Error('tts_http_'+r.status+(detalhe?('_'+detalhe):''));",
+"  }",
 "  const b=Buffer.from(await r.arrayBuffer());",
 "  if(!b.length) throw new Error('tts_vazio');",
 "  return b.toString('base64');",
@@ -69,12 +78,22 @@ write('src/services/salesVoice.service.js', [
 "",
 "async function enviarWaha(session,contato,data){",
 "  const e=env();",
-"  const r=await fetch(e.wahaBase+'/api/sendVoice',{",
-"    method:'POST',",
-"    headers:{Accept:'application/json','Content-Type':'application/json','X-Api-Key':e.wahaKey},",
-"    body:JSON.stringify({session,chatId:contato,file:{mimetype:'audio/mpeg',data},convert:true})",
-"  });",
-"  if(!r.ok) throw new Error('waha_voice_http_'+r.status);",
+"  const ctrl=new AbortController();",
+"  const timer=setTimeout(()=>ctrl.abort(),30000);",
+"  let r;",
+"  try{",
+"    r=await fetch(e.wahaBase+'/api/sendVoice',{",
+"      method:'POST',",
+"      headers:{Accept:'application/json','Content-Type':'application/json','X-Api-Key':e.wahaKey},",
+"      body:JSON.stringify({session,chatId:contato,file:{mimetype:'audio/mpeg',data},convert:true}),",
+"      signal:ctrl.signal",
+"    });",
+"  } finally { clearTimeout(timer); }",
+"  if(!r.ok) {",
+"    let detalhe='';",
+"    try{ const j=await r.json(); detalhe=String(j&&((j.message)||(j.error&&j.error.message)||j.error)||'').slice(0,180); }catch(_){}",
+"    throw new Error('waha_voice_http_'+r.status+(detalhe?('_'+detalhe):''));",
+"  }",
 "  let j=null; try{j=await r.json();}catch(_){}",
 "  return j;",
 "}",
@@ -105,7 +124,6 @@ write('src/services/salesVoice.service.js', [
 "module.exports={enviarSeAplicavel,assuntoEstrategico,pedidoExplicitoDeAudio};"
 ].join('\n'));
 
-// Integra no worker com fallback automático para texto.
 const worker='src/services/whatsappWorker.service.js';
 let w=read(worker);
 if(!w.includes("const salesVoice = require('./salesVoice.service');")){
@@ -124,4 +142,4 @@ write(worker,w);
 
 cp.execFileSync(process.execPath,['--check','src/services/salesVoice.service.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check',worker],{stdio:'inherit'});
-console.log('Voz feminina SaintsAI + audio sob pedido explicito integrados.');
+console.log('Voz feminina SaintsAI integrada com diagnóstico TTS/WAHA.');
