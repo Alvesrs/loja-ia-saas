@@ -73,7 +73,7 @@ if(!s.includes('[salesVoice.test] replay_recente')){
     "  try{",
     "    const supabase=require('./config/supabase');",
     "    const salesVoice=require('./services/salesVoice.service');",
-    "    const desde=new Date(Date.now()-30*60*1000).toISOString();",
+    "    const desde=new Date(Date.now()-2*60*60*1000).toISOString();",
     "    const {data:jobs,error}=await supabase.from('whatsapp_fila_processamento')",
     "      .select('id,destinatario_id,contato,texto,status,criado_em')",
     "      .eq('loja_id','d9244132-557c-4603-986e-76897d449ab6')",
