@@ -23,7 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-estoque.html";
+    private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=cliente-central.html";
     private static final String PROXY_PREFIX = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
 
     private WebView webView;
@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
         lp.gravity = Gravity.CENTER;
         root.addView(loading, lp);
 
-        errorView = makeMessage("Falha ao carregar SaintsAI Estoque");
+        errorView = makeMessage("Falha ao carregar SaintsAI Cliente");
         errorView.setVisibility(View.GONE);
         root.addView(errorView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
