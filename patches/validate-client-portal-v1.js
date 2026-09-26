@@ -133,7 +133,43 @@ while((pm=pre.exec(publicHtml))){
 }
 if(pi===0) throw new Error('Página pública sem JavaScript');
 
-console.log('Portal cliente validado: Home, abas, Prompt dinâmico, agendamento clicável e confirmação PagBank.');
+
+for(const p of [
+  'public/css/cliente-dashboard-polish-v3.css',
+  'public/js/cliente-dashboard-polish-v3.js',
+  'public/js/cliente-config-polish-v3.js',
+  'src/controllers/servicoImagem.controller.js',
+  'src/routes/servicoImagem.routes.js'
+]){
+  if(!fs.existsSync(p)) throw new Error('Polimento v3 incompleto: '+p);
+}
+const dashCss=fs.readFileSync('public/css/cliente-dashboard-polish-v3.css','utf8');
+const dashJs=fs.readFileSync('public/js/cliente-dashboard-polish-v3.js','utf8');
+const configJs=fs.readFileSync('public/js/cliente-config-polish-v3.js','utf8');
+for(const m of ['SAINTSAI_DASHBOARD_POLISH_V3','dashboard-setup','dash-stats','dash-record']){
+  if(!dashCss.includes(m)) throw new Error('CSS Dashboard v3 incompleto: '+m);
+}
+for(const m of ['SaintsAI Dashboard','Clientes de hoje','Vendas de hoje','Registros recentes','carregarOnboarding=async function','carregarHomeNegocio=async function']){
+  if(!dashJs.includes(m)) throw new Error('Dashboard v3 incompleto: '+m);
+}
+for(const m of ['Cadastre seu trabalho','Foto do trabalho','renderEquipePolish','quantidade_profissionais','servico-imagem']){
+  if(!configJs.includes(m)) throw new Error('Configuração v3 incompleta: '+m);
+}
+cp.execFileSync(process.execPath,['--check','public/js/cliente-dashboard-polish-v3.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','public/js/cliente-config-polish-v3.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/controllers/servicoImagem.controller.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/routes/servicoImagem.routes.js'],{stdio:'inherit'});
+if(!hub.includes("titulo:'Cadastre seu trabalho'")) throw new Error('Onboarding sem cadastro do trabalho');
+if(!hub.includes("titulo:'Configure sua equipe'")) throw new Error('Onboarding sem equipe');
+if(!hub.includes("titulo:'Conecte o PagBank'")) throw new Error('Onboarding sem PagBank');
+if(!hub.includes('clientes_hoje')) throw new Error('Dashboard sem clientes de hoje');
+if(!hub.includes('vendas_hoje')) throw new Error('Dashboard sem vendas de hoje');
+if(!hub.includes('salvarEquipe')) throw new Error('Backend sem configuração da equipe');
+if(!app.includes("servicoImagemRoutes")) throw new Error('Upload de foto do trabalho não montado');
+if(!configHtml.includes('cliente-config-polish-v3.js')) throw new Error('Configuração não carrega polish v3');
+if(!html.includes('cliente-dashboard-polish-v3.js')) throw new Error('Home não carrega Dashboard v3');
+
+console.log('Portal cliente validado: SaintsAI Dashboard v3, setup progressivo, fotos, equipe, PagBank e registros operacionais.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -144,3 +180,5 @@ console.log('Portal cliente validado: Home, abas, Prompt dinâmico, agendamento 
 // SAINTSAI_CLIENT_HUB_ADMIN_ACCESS_FINAL
 
 // SAINTSAI_FINAL_BOOKING_VALIDATION
+
+// SAINTSAI_DASHBOARD_POLISH_V3_VALIDATION
