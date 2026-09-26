@@ -169,7 +169,29 @@ if(!app.includes("servicoImagemRoutes")) throw new Error('Upload de foto do trab
 if(!configHtml.includes('cliente-config-polish-v3.js')) throw new Error('Configuração não carrega polish v3');
 if(!html.includes('cliente-dashboard-polish-v3.js')) throw new Error('Home não carrega Dashboard v3');
 
-console.log('Portal cliente validado: SaintsAI Dashboard v3, setup progressivo, fotos, equipe, PagBank e registros operacionais.');
+
+const clienteWhatsapp='public/cliente-whatsapp.html';
+if(!fs.existsSync(clienteWhatsapp)) throw new Error('Tela WhatsApp exclusiva do cliente não foi criada');
+const clienteWhatsappHtml=fs.readFileSync(clienteWhatsapp,'utf8');
+for(const m of ['SaintsAI · WhatsApp','Abrir WhatsApp para teste','cliente-hub/whatsapp/status','cliente-hub/whatsapp/pair']){
+  if(!clienteWhatsappHtml.includes(m)) throw new Error('WhatsApp cliente incompleto: '+m);
+}
+if(clienteWhatsappHtml.includes('dashboard.html')||clienteWhatsappHtml.includes('/painel')) throw new Error('WhatsApp cliente ainda referencia painel antigo');
+if(configHtml.includes("location.href='whatsapp.html'")) throw new Error('Etapa WhatsApp ainda abre a página antiga');
+if(!configHtml.includes("location.href='cliente-whatsapp.html'")) throw new Error('Etapa WhatsApp não aponta para a página exclusiva');
+if(!hub.includes('statusWhatsappCliente')||!hub.includes('parearWhatsappCliente')) throw new Error('Backend WhatsApp do cliente incompleto');
+if(!app.includes("'/cliente/cliente-whatsapp.html'")||!app.includes("'/cliente/whatsapp.html'")) throw new Error('Rotas isoladas do WhatsApp cliente não montadas');
+if(!app.includes("'/painel/cliente-whatsapp.html'")) throw new Error('Rota do APK cliente para WhatsApp não montada');
+const wre=/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;let wm,wi=0;
+while((wm=wre.exec(clienteWhatsappHtml))){
+  const code=wm[1].trim();if(!code)continue;
+  const tmp=path.join(os.tmpdir(),'saintsai-client-whatsapp-validate-'+(++wi)+'.js');
+  fs.writeFileSync(tmp,code);
+  try{cp.execFileSync(process.execPath,['--check',tmp],{stdio:'inherit'});}finally{try{fs.unlinkSync(tmp)}catch(_){}}
+}
+if(wi===0) throw new Error('Tela WhatsApp cliente sem JavaScript');
+
+console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado do painel antigo.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -182,3 +204,5 @@ console.log('Portal cliente validado: SaintsAI Dashboard v3, setup progressivo, 
 // SAINTSAI_FINAL_BOOKING_VALIDATION
 
 // SAINTSAI_DASHBOARD_POLISH_V3_VALIDATION
+
+// SAINTSAI_CLIENT_WHATSAPP_ISOLATION_VALIDATION
