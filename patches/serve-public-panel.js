@@ -12,30 +12,18 @@ if (src.includes(marker)) {
 const block = `
 // SAINTSAI_PUBLIC_PANEL_V2_20260922
 const __saintsaiPath = require('node:path');
-const __saintsaiFs = require('node:fs');
 const __saintsaiPublicDir = __saintsaiPath.join(process.cwd(), 'public');
 
-function __saintsaiSendHtml(res, arquivo) {
-  res.status(200);
-  res.set('Content-Type', 'text/html; charset=utf-8');
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.set('Pragma', 'no-cache');
-  return res.send(__saintsaiFs.readFileSync(__saintsaiPath.join(__saintsaiPublicDir, arquivo), 'utf8'));
-}
-app.get('/painel', (_req, res) => __saintsaiSendHtml(res, 'login.html'));
-app.get('/painel/', (_req, res) => __saintsaiSendHtml(res, 'login.html'));
-app.get('/painel/login.html', (_req, res) => __saintsaiSendHtml(res, 'login.html'));
-app.get('/painel/cliente-central.html', (_req, res) => __saintsaiSendHtml(res, 'cliente-central.html'));
+app.get('/painel', (_req, res) => {
+  res.sendFile(__saintsaiPath.join(__saintsaiPublicDir, 'login.html'));
+});
+app.get('/painel/', (_req, res) => {
+  res.sendFile(__saintsaiPath.join(__saintsaiPublicDir, 'login.html'));
+});
 app.use('/painel', require('express').static(__saintsaiPublicDir, {
   index: false,
   fallthrough: true,
   redirect: false,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    else if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    else if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store');
-  }
 }));
 `;
 
