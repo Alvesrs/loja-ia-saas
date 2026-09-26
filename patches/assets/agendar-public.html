@@ -25,6 +25,7 @@
 const token=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
 const $=id=>document.getElementById(id);
 let dados=null,servico=null,dia=null,hora=null,pagamento=null,agendamentoId=null,poll=null;
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dataBR(v){const [a,m,d]=String(v).split('-');return d+'/'+m+'/'+a}
 async function api(path='',opts={}){
@@ -36,12 +37,12 @@ function erro(msg){$('erro').textContent=msg;$('erro').classList.remove('hidden'
 function esconderApos(n){for(let i=n;i<=4;i++)$('s'+i)?.classList.add('hidden')}
 function renderReview(){
  if(!servico||!dia||!hora)return;
- $('review').innerHTML='<strong>'+servico.nome+'</strong><br>'+dataBR(dia)+' às '+hora+'<br>Valor atual: <strong>'+brl(servico.preco)+'</strong>'+(pagamento?'<br>Pagamento: '+(dados.pagamentos.opcoes.find(x=>x.id===pagamento)?.nome||pagamento):'');
+ $('review').innerHTML='<strong>'+esc(servico.nome)+'</strong><br>'+dataBR(dia)+' às '+hora+'<br>Valor atual: <strong>'+brl(servico.preco)+'</strong>'+(pagamento?'<br>Pagamento: '+esc(dados.pagamentos.opcoes.find(x=>x.id===pagamento)?.nome||pagamento):'');
 }
 async function load(){
  try{
   dados=await api();$('loja').textContent=dados.loja.nome;$('nome').value=dados.cliente_nome||'';
-  $('servicos').innerHTML=dados.servicos.map(s=>'<button class="choice" data-s="'+s.id+'"><strong>'+s.nome+' · '+brl(s.preco)+'</strong><small>'+(s.descricao||('Duração: '+s.duracao_min+' min'))+'</small></button>').join('')||'<div class="muted">Nenhuma opção disponível.</div>';
+  $('servicos').innerHTML=dados.servicos.map(s=>'<button class="choice" data-s="'+s.id+'"><strong>'+esc(s.nome)+' · '+brl(s.preco)+'</strong><small>'+esc(s.descricao||('Duração: '+s.duracao_min+' min'))+'</small></button>').join('')||'<div class="muted">Nenhuma opção disponível.</div>';
   document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>escolherServico(b.dataset.s));
   $('pagamentos').innerHTML=dados.pagamentos.opcoes.map(p=>'<button class="chip" data-p="'+p.id+'">'+p.nome+'</button>').join('');
   document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{pagamento=b.dataset.p;document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x.dataset.p===pagamento));renderReview();});
