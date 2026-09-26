@@ -141,6 +141,8 @@ booking=booking.replace("duracao_min:Number(s.duracao_min||0)}))","duracao_min:N
 write('src/services/bookingPublic.service.js',booking);
 
 let central=read('public/cliente-central.html');
+central=central.replace('<title>SaintsAI Cliente</title>','<title>SaintsAI Dashboard</title>');
+central=central.replace('<div class="brand">SaintsAI Cliente</div>','<div class="brand">SaintsAI Dashboard</div>');
 if(!central.includes('cliente-dashboard-polish-v3.css'))central=central.replace('</head>','<link rel="stylesheet" href="css/cliente-dashboard-polish-v3.css"></head>');
 if(!central.includes('cliente-dashboard-polish-v3.js'))central=central.replace('</body>','<script src="js/cliente-dashboard-polish-v3.js"></script></body>');
 write('public/cliente-central.html',central);
