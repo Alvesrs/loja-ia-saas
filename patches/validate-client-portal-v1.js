@@ -98,3 +98,5 @@ console.log('Portal cliente validado: Home + onboarding + configuração em abas
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
 // SAINTSAI_ONBOARDING_REFERENCE_DEPLOY_HEAD
+
+// SAINTSAI_CONFIG_TABS_FINAL_HEAD
