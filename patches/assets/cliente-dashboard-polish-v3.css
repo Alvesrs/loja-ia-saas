@@ -1,0 +1,56 @@
+
+/* SAINTSAI_DASHBOARD_POLISH_V3 */
+body[data-client-view="inicio"] .client-hero,
+body[data-client-view="inicio"] .app>.cards,
+body[data-client-view="inicio"] .modules{display:none!important}
+.dashboard-setup{border:1px solid rgba(152,85,255,.28);border-radius:25px;padding:20px;background:linear-gradient(145deg,rgba(38,18,63,.98),rgba(15,11,23,.99));box-shadow:0 20px 48px rgba(0,0,0,.25)}
+.dash-setup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.dash-setup-kicker{font-size:10px;font-weight:950;letter-spacing:.15em;color:#aa68ff;text-transform:uppercase}
+.dash-setup-title{font-size:22px;font-weight:950;margin-top:7px;letter-spacing:-.03em}
+.dash-setup-pct{font-size:24px;font-weight:950;color:#d1b0ff}
+.dash-track{height:9px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:16px 0 14px}
+.dash-track>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8035ed,#b45bff)}
+.dash-tasks{display:grid;gap:9px}
+.dash-task{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(255,255,255,.07);background:rgba(8,7,12,.52);border-radius:17px;padding:13px;text-align:left;color:#fff;width:100%;font:inherit}
+.dash-task-num{width:38px;height:38px;border-radius:12px;background:rgba(128,60,238,.16);display:grid;place-items:center;color:#bd8cff;font-weight:950}
+.dash-task-title{font-size:13px;font-weight:900;display:block}
+.dash-task-desc{font-size:11px;color:#91899b;margin-top:3px;line-height:1.35;display:block}
+.dash-task-go{color:#9e72e6;font-size:18px}
+.dashboard-live{display:grid;gap:12px}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash-stat{min-height:128px;border:1px solid rgba(255,255,255,.07);border-radius:21px;padding:17px;background:linear-gradient(180deg,rgba(23,19,32,.97),rgba(13,11,19,.99))}
+.dash-stat-label{font-size:12px;color:#9e96aa;font-weight:800}
+.dash-stat-value{font-size:29px;font-weight:1000;letter-spacing:-.05em;margin-top:14px}
+.dash-stat-foot{font-size:10px;color:#706979;margin-top:8px}
+.dash-feed{border:1px solid rgba(255,255,255,.07);border-radius:22px;padding:17px;background:linear-gradient(180deg,rgba(18,15,27,.97),rgba(11,9,16,.99))}
+.dash-feed h2{margin:0;font-size:18px}
+.dash-feed-sub{font-size:11px;color:#81798d;margin-top:4px}
+.dash-record{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:11px;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.055)}
+.dash-record:last-child{border-bottom:0}
+.dash-record-img{width:48px;height:48px;border-radius:13px;object-fit:cover;background:#100d17;border:1px solid rgba(255,255,255,.06)}
+.dash-record-fallback{display:grid;place-items:center;color:#9b6be5}
+.dash-record-name{font-size:13px;font-weight:900}
+.dash-record-sub{font-size:11px;color:#8c8498;margin-top:3px}
+.dash-record-money{font-size:13px;font-weight:950;color:#69dca9;white-space:nowrap}
+.dash-empty{padding:24px 8px;text-align:center;color:#766e80;font-size:12px}
+#business-home{display:none}
+.setup-wrap.hidden-setup + #business-home{display:block}
+.service-preview{height:150px;border-radius:17px;border:1px dashed rgba(166,103,255,.28);background:#09080d;display:grid;place-items:center;overflow:hidden;color:#756d80;font-size:12px}
+.service-preview img{width:100%;height:100%;object-fit:cover}
+.service-row{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.service-thumb{width:62px;height:62px;border-radius:15px;object-fit:cover;background:#0a090e;border:1px solid rgba(255,255,255,.07)}
+.service-empty{display:grid;place-items:center;color:#8b5cf6;font-size:22px}
+.service-main{min-width:0}
+.service-actions{display:flex;gap:6px;flex-direction:column;align-items:stretch}
+.mini{border:1px solid rgba(255,255,255,.08);background:#17131f;color:#c9c0d2;border-radius:10px;padding:8px;font:inherit;font-size:10px;font-weight:800}
+@media(max-width:560px){
+ .dashboard-setup{padding:17px}
+ .dash-task{grid-template-columns:36px minmax(0,1fr) auto}
+ .dash-stat{min-height:116px;padding:15px}
+ .dash-stat-value{font-size:25px}
+ .dash-record{grid-template-columns:44px minmax(0,1fr) auto}
+ .dash-record-img{width:44px;height:44px}
+ .service-row{grid-template-columns:54px minmax(0,1fr)}
+ .service-thumb{width:54px;height:54px}
+ .service-actions{grid-column:2/3;flex-direction:row}
+}
