@@ -43,7 +43,10 @@ async function extrair(texto,servicos,estado){
   ].join('\\n');
   try{
     let r=String(await llm.gerarResposta({systemPrompt:system,pergunta:String(texto||'')})).trim();
-    r=r.replace(/^\\`\\`\\`(?:json)?/i,'').replace(/\\`\\`\\`$/,'').trim();
+    const fence=String.fromCharCode(96).repeat(3);
+    if(r.startsWith(fence))r=r.slice(3).replace(/^json\\s*/i,'');
+    if(r.endsWith(fence))r=r.slice(0,-3);
+    r=r.trim();
     const o=JSON.parse(r);return o&&typeof o==='object'?o:{};
   }catch(_){return {};}
 }
