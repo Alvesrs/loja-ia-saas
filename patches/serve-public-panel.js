@@ -12,6 +12,7 @@ if (src.includes(marker)) {
 const block = `
 // SAINTSAI_PUBLIC_PANEL_V2_20260922
 const __saintsaiPath = require('node:path');
+const __saintsaiFs = require('node:fs');
 const __saintsaiPublicDir = __saintsaiPath.join(process.cwd(), 'public');
 
 function __saintsaiSendHtml(res, arquivo) {
@@ -19,7 +20,7 @@ function __saintsaiSendHtml(res, arquivo) {
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
-  return res.send(fs.readFileSync(__saintsaiPath.join(__saintsaiPublicDir, arquivo), 'utf8'));
+  return res.send(__saintsaiFs.readFileSync(__saintsaiPath.join(__saintsaiPublicDir, arquivo), 'utf8'));
 }
 app.get('/painel', (_req, res) => __saintsaiSendHtml(res, 'login.html'));
 app.get('/painel/', (_req, res) => __saintsaiSendHtml(res, 'login.html'));
