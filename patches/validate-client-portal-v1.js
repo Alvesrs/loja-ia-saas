@@ -32,4 +32,13 @@ while((m=re.exec(html))){
   }
 }
 if(i===0) throw new Error('Nenhum script inline encontrado no portal cliente.');
+
+if(html.includes('await const ')) throw new Error('JavaScript inválido detectado: await const');
+
+const ids=new Set([...html.matchAll(/\sid=["']([^"']+)["']/g)].map(m=>m[1]));
+const refs=new Set();
+for(const m of html.matchAll(/\$\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
+for(const m of html.matchAll(/getElementById\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
+const faltando=[...refs].filter(id=>!ids.has(id));
+if(faltando.length) throw new Error('Elementos ausentes usados pelo JavaScript: '+faltando.join(', '));
 console.log('Portal cliente validado: UI, onboarding e '+i+' script(s) inline sem erro de sintaxe.');
