@@ -9,8 +9,15 @@ if(!c.includes('async function obterConfiguracaoIa')){
   const insert=`
 function separarPromptCliente(prompt){
   const s=String(prompt||'');
-  const m=s.match(/\[SAINTSAI_CONFIG_CLIENTE\][\s\S]*?\[\/SAINTSAI_CONFIG_CLIENTE\]/);
-  return {base:s.replace(/\n*\[SAINTSAI_CONFIG_CLIENTE\][\s\S]*?\[\/SAINTSAI_CONFIG_CLIENTE\]\n*/g,'\n').trim(),gerenciado:m?m[0]:''};
+  const ini='[SAINTSAI_CONFIG_CLIENTE]';
+  const fim='[/SAINTSAI_CONFIG_CLIENTE]';
+  const a=s.indexOf(ini);
+  const b=a>=0?s.indexOf(fim,a):-1;
+  if(a<0||b<0)return {base:s.trim(),gerenciado:''};
+  const end=b+fim.length;
+  const gerenciado=s.slice(a,end);
+  const base=(s.slice(0,a)+String.fromCharCode(10)+s.slice(end)).trim();
+  return {base,gerenciado};
 }
 async function obterConfiguracaoIa(req,res){
   try{
@@ -29,7 +36,7 @@ async function salvarConfiguracaoIa(req,res){
     const {data:atual,error:ea}=await supabase.from('lojas').select('prompt_mestre').eq('id',loja.id).eq('dono_id',req.usuario.id).maybeSingle();
     if(ea)throw ea;
     const gerenciado=separarPromptCliente(atual?.prompt_mestre).gerenciado;
-    const final=[prompt,gerenciado].filter(Boolean).join('\n\n');
+    const final=[prompt,gerenciado].filter(Boolean).join(String.fromCharCode(10,10));
     const {error}=await supabase.from('lojas').update({prompt_mestre:final}).eq('id',loja.id).eq('dono_id',req.usuario.id);
     if(error)throw error;
     return res.json({ok:true,prompt});
