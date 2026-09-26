@@ -10,6 +10,7 @@ const required=[
   'SAINTSAI_CLIENT_UI_V2',
   'SAINTSAI_ONBOARDING_V1',
   'SAINTSAI_HOME_BUSINESS_V2_FINAL',
+  'SAINTSAI_ONBOARDING_REFERENCE_V2',
   'id="onboarding-real"',
   'id="notify-config"',
   'id="business-home"',
@@ -21,7 +22,9 @@ const required=[
   'function trocar(',
   'async function carregar(',
   'async function carregarOnboarding(',
-  'function carregarHomeNegocio()'
+  'function carregarHomeNegocio()',
+  'Pronto para atender?',
+  'Continuar configuração'
 ];
 for(const marker of required){
   if(!html.includes(marker)) throw new Error('Portal cliente incompleto: '+marker);
