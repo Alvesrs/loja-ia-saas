@@ -80,6 +80,10 @@ while((cm=cre.exec(configHtml))){
 }
 if(ci===0) throw new Error('Tela de configuração sem JavaScript inline');
 
+const hub=fs.readFileSync('src/controllers/clienteHub.controller.js','utf8');
+if(!hub.includes('usuarioEhAdmin(usuario)')) throw new Error('Cliente Hub ainda não permite Admin em cliente gerenciado');
+if(!hub.includes("saintsai_managed === true")) throw new Error('Cliente Hub sem trava de cliente gerenciado SaintsAI');
+
 const app=fs.readFileSync('src/app.js','utf8');
 const mount="app.use('/api/lojas/:lojaId/cliente-hub', clienteHubRoutes);";
 const mi=app.indexOf(mount);
@@ -100,3 +104,5 @@ console.log('Portal cliente validado: Home + onboarding + configuração em abas
 // SAINTSAI_ONBOARDING_REFERENCE_DEPLOY_HEAD
 
 // SAINTSAI_CONFIG_TABS_FINAL_HEAD
+
+// SAINTSAI_CLIENT_HUB_ADMIN_ACCESS_FINAL
