@@ -7,7 +7,7 @@ function read(p){return fs.readFileSync(p,'utf8');}
 // 1) Cobrança pública: mesmo plano básico, mas R$120/mês quando comprado pelo link.
 let asaas=read('src/services/asaas.service.js');
 if(!asaas.includes('async function criarPixCompraPublica')){
-  const anchor='async function processarEventoAsaas(';
+  const anchor='function processarEventoAsaas(';
   if(!asaas.includes(anchor)) throw new Error('Ponto Asaas não encontrado');
   const fn=`
 async function criarPixCompraPublica({ lojaId, duracaoMeses }) {
