@@ -193,3 +193,74 @@ write('src/app.js',app);
 cp.execFileSync(process.execPath,['--check','src/controllers/clienteHub.controller.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','src/app.js'],{stdio:'inherit'});
 console.log('Configuração do cliente separada em abas/telas próprias.');
+
+
+/* SAINTSAI_CLIENT_NAVIGATION_V2: every configuration entry uses its own page. */
+let central=read('public/cliente-central.html');
+central=central.replace('</style>', `
+.app > .section[hidden]{display:none!important}
+body[data-client-view="agenda"] .client-hero,
+body[data-client-view="agenda"] .app > .cards{display:none!important}
+</style>`);
+const oldSwitch=/function trocar\(sec\)\{[^\n]*\}/;
+if(!oldSwitch.test(central))throw new Error('Navegação original do cliente não encontrada');
+central=central.replace(oldSwitch, `function trocar(sec){
+  if(['servicos','pagamentos','ia','operacao'].includes(sec)){
+    location.href='cliente-configuracao.html?etapa='+encodeURIComponent(sec);return;
+  }
+  location.href='cliente-central.html'+(sec==='agenda'?'?aba=agenda':'');
+}`);
+central=central.replace('</body>', `<script>
+(function(){
+  const view=new URLSearchParams(location.search).get('aba')==='agenda'?'agenda':'inicio';
+  document.body.dataset.clientView=view;
+  document.querySelectorAll('.app > .section').forEach(el=>{
+    el.hidden=el.id!==view;
+    el.classList.toggle('active',el.id===view);
+  });
+  document.querySelectorAll('[data-sec]').forEach(el=>{
+    const id=el.dataset.sec;
+    el.classList.toggle('on',id===view);
+    if(el.classList.contains('module'))el.classList.toggle('active',id===view);
+    // The appointment shortcut remains an operational screen, separate from setup.
+    el.dataset.clientHref=id==='inicio'?'cliente-central.html':
+      el.classList.contains('primary')&&id==='agenda'?'cliente-central.html?aba=agenda':
+      'cliente-configuracao.html?etapa='+encodeURIComponent(id);
+  });
+  document.querySelectorAll('a[href="cliente-estoque.html?secao=agente"],button[onclick*="cliente-estoque.html?secao=agente"]').forEach(el=>{
+    el.dataset.clientHref='cliente-configuracao.html?etapa=ia';
+  });
+  document.addEventListener('click',event=>{
+    const link=event.target.closest('[data-client-href]');if(!link)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    location.href=link.dataset.clientHref;
+  },true);
+})();
+</script></body>`);
+write('public/cliente-central.html',central);
+
+let config=read('public/cliente-configuracao.html');
+config=config.replace("nome:'Itens'", "nome:'Itens/Serviços'");
+config=config.replace('<nav class="tabs" id="tabs">','<nav class="tabs" id="tabs" aria-label="Etapas de configuração">');
+config=config.replace("$('voltar').onclick=()=>location.href='cliente-central.html';\ncarregar();", "$('voltar').onclick=()=>location.href='cliente-central.html';\nrenderTabs();\ncarregar();");
+config=config.replace('<h2>Agenda de atendimento</h2>', '<h2>Agenda de atendimento</h2><a class="muted" href="cliente-central.html?aba=agenda">Ver agendamentos e reservar horário →</a>');
+write('public/cliente-configuracao.html',config);
+
+// The APK uses /painel, while the website uses /cliente. Both must avoid stale HTML.
+let clientApp=read('src/app.js');
+const cacheAnchor="app.use('/painel',";
+if(!clientApp.includes('SAINTSAI_CLIENT_PAGES_NO_CACHE_V2')){
+  const pos=clientApp.indexOf(cacheAnchor);
+  if(pos<0)throw new Error('Montagem /painel não encontrada');
+  const cacheRoutes=`
+// SAINTSAI_CLIENT_PAGES_NO_CACHE_V2
+app.get(['/painel/cliente-central.html','/painel/cliente-configuracao.html'],(req,res)=>{
+  res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma','no-cache');res.set('Expires','0');
+  const file=req.path.endsWith('cliente-configuracao.html')?'cliente-configuracao.html':'cliente-central.html';
+  return res.sendFile(require('node:path').join(process.cwd(),'public',file));
+});
+`;
+  clientApp=clientApp.slice(0,pos)+cacheRoutes+clientApp.slice(pos);
+}
+write('src/app.js',clientApp);
