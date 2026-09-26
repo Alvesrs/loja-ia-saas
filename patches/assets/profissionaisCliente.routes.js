@@ -1,0 +1,10 @@
+const express=require('express');
+const {exigirLogin}=require('../middleware/auth');
+const c=require('../controllers/profissionaisCliente.controller');
+const r=express.Router({mergeParams:true});
+r.use(exigirLogin);
+r.get('/',c.listar);
+r.post('/',c.criar);
+r.put('/:profissionalId',c.atualizar);
+r.delete('/:profissionalId',c.desativar);
+module.exports=r;
