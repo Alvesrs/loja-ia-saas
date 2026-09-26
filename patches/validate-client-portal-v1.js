@@ -53,6 +53,33 @@ for(const m of html.matchAll(/\$\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
 for(const m of html.matchAll(/getElementById\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
 const faltando=[...refs].filter(id=>!ids.has(id));
 if(faltando.length) throw new Error('Elementos ausentes usados pelo JavaScript: '+faltando.join(', '));
+
+const configFile='public/cliente-configuracao.html';
+if(!fs.existsSync(configFile)) throw new Error('Tela separada de configuração não foi criada');
+const configHtml=fs.readFileSync(configFile,'utf8');
+for(const marker of [
+  'Configuração SaintsAI',
+  "etapaAtual()",
+  "renderIa()",
+  "renderServicos()",
+  "renderPagamentos()",
+  "renderAgenda()",
+  "renderOperacao()",
+  "cliente-configuracao.html?etapa="
+]){
+  if(!configHtml.includes(marker)) throw new Error('Configuração separada incompleta: '+marker);
+}
+if(!html.includes("cliente-configuracao.html?etapa=")) throw new Error('Onboarding ainda não navega para tela separada');
+const cre=/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;
+let cm,ci=0;
+while((cm=cre.exec(configHtml))){
+  const code=cm[1].trim();if(!code)continue;
+  const tmp=path.join(os.tmpdir(),'saintsai-config-inline-'+(++ci)+'.js');
+  fs.writeFileSync(tmp,code);
+  try{cp.execFileSync(process.execPath,['--check',tmp],{stdio:'inherit'});}finally{try{fs.unlinkSync(tmp)}catch(_){}}
+}
+if(ci===0) throw new Error('Tela de configuração sem JavaScript inline');
+
 const app=fs.readFileSync('src/app.js','utf8');
 const mount="app.use('/api/lojas/:lojaId/cliente-hub', clienteHubRoutes);";
 const mi=app.indexOf(mount);
@@ -66,7 +93,7 @@ const genericPositions=[
 if(genericPositions.length&&mi>Math.min(...genericPositions)) throw new Error('Rota cliente-hub está depois de uma rota genérica /api/lojas');
 if(!app.includes("no-store, no-cache, must-revalidate")) throw new Error('Central cliente ainda permite cache antigo');
 
-console.log('Portal cliente validado: UI nova, onboarding, Home operacional, rota priorizada e '+i+' script(s) inline sem erro de sintaxe.');
+console.log('Portal cliente validado: Home + onboarding + configuração em abas separadas, sem erro de sintaxe.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
