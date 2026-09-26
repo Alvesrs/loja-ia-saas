@@ -182,9 +182,9 @@ module.exports={tentarResponder,slots};
 let wa=read('src/services/whatsappAtendente.service.js');
 if(!wa.includes("agendaWhatsapp")){
   wa=wa.replace("const iaService = require('./ia.service');","const iaService = require('./ia.service');\nconst agendaWhatsapp = require('./agendaWhatsapp.service');");
-  const old="resposta = await iaService.responderPergunta(lojaId, texto);";
-  if(!wa.includes(old))throw new Error('Hook da IA WhatsApp não encontrado');
-  wa=wa.replace(old,"resposta = await agendaWhatsapp.tentarResponder(mensagem);\n    if (!resposta) resposta = await iaService.responderPergunta(lojaId, texto);");
+  const anchor="  const idExterno = mensagem.idExterno ?? null;";
+  if(!wa.includes(anchor))throw new Error('Hook inicial do atendente WhatsApp não encontrado');
+  wa=wa.replace(anchor,anchor+"\n\n  const respostaAgenda = await agendaWhatsapp.tentarResponder(mensagem);\n  if (respostaAgenda) {\n    return Object.freeze({ lojaId, contato, idExterno, pergunta: texto, resposta: respostaAgenda });\n  }");
 }
 write('src/services/whatsappAtendente.service.js',wa);
 
