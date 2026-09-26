@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08070d">
+<title>WhatsApp · SaintsAI Cliente</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="js/theme.js"></script>
+<script src="js/guard.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#08070d;color:#fff;font-family:Manrope,system-ui,sans-serif}
+body{background:radial-gradient(circle at 50% -10%,rgba(126,53,235,.2),transparent 34%),#08070d}
+.shell{max-width:760px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:18px}.back{border:1px solid rgba(255,255,255,.08);background:#15111d;color:#fff;border-radius:14px;padding:11px 13px;font:inherit;font-weight:850}
+.brand{font-size:18px;font-weight:950}.sub{font-size:11px;color:#8f879d;margin-top:3px}
+.hero,.card{border:1px solid rgba(255,255,255,.075);background:linear-gradient(180deg,#14101d,#0d0b12);border-radius:23px;padding:18px;margin-bottom:12px}
+.hero{border-color:rgba(159,91,255,.25);background:radial-gradient(circle at 95% 0%,rgba(148,72,255,.21),transparent 30%),linear-gradient(145deg,#241638,#100c18)}
+.kicker{font-size:10px;font-weight:950;letter-spacing:.15em;color:#aa6bff}.hero h1{font-size:24px;margin:7px 0}.muted{font-size:13px;color:#9e96aa;line-height:1.5}
+.statusline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;padding:13px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.065)}
+.dot{width:9px;height:9px;border-radius:50%;background:#777;display:inline-block;margin-right:7px}.dot.ok{background:#52d69b;box-shadow:0 0 12px rgba(82,214,155,.4)}
+.badge{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;background:rgba(126,63,231,.14);color:#c9a7ff}
+.card h2{font-size:18px;margin:0 0 5px}.field{display:flex;flex-direction:column;gap:7px;margin-top:14px}.field label{font-size:12px;font-weight:850;color:#c2bacb}
+input{width:100%;min-height:49px;background:#09080d;border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:14px;padding:0 13px;font:inherit}
+.btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.btn{border:0;min-height:47px;border-radius:14px;padding:0 15px;background:linear-gradient(135deg,#7937ed,#ad55ff);color:#fff;font:inherit;font-weight:900}.btn.secondary{border:1px solid rgba(255,255,255,.09);background:#17131f}.btn:disabled{opacity:.45}
+.code{font-size:25px;font-weight:1000;letter-spacing:.16em;text-align:center;margin-top:14px;padding:15px;border-radius:16px;background:#09080d;border:1px solid rgba(160,92,255,.18);min-height:58px}
+.help{font-size:11px;color:#89818f;line-height:1.5;margin-top:11px}.msg{font-size:12px;color:#c6a8ef;min-height:20px;margin-top:10px}
+.testbox{display:none}.testbox.show{display:block}.number{font-size:13px;color:#bdb4c8;margin-top:5px}
+@media(max-width:540px){.shell{padding-left:12px;padding-right:12px}.hero,.card{padding:16px}.hero h1{font-size:22px}.btns .btn{width:100%}}
+</style>
+</head>
+<body><div class="shell">
+<header class="top"><button class="back" id="back">← Configuração</button><div><div class="brand">SaintsAI · WhatsApp</div><div class="sub" id="company">Carregando empresa…</div></div></header>
+
+<section class="hero">
+<div class="kicker">CONEXÃO DO ATENDIMENTO</div>
+<h1>WhatsApp da sua empresa</h1>
+<div class="muted">Conecte o número que o SaintsAI vai atender. Esta tela é exclusiva do cliente e não abre o painel administrativo.</div>
+<div class="statusline"><div><span class="dot" id="dot"></span><strong id="status">Verificando conexão…</strong><div class="number" id="number"></div></div><span class="badge" id="provider">—</span></div>
+</section>
+
+<section class="card testbox" id="testbox">
+<h2>Testar atendimento</h2>
+<div class="muted">Abra uma conversa com o número conectado e envie uma mensagem de teste.</div>
+<div class="btns"><button class="btn" id="test">Abrir WhatsApp para teste</button></div>
+<div class="help">Se este celular estiver usando o mesmo número conectado à loja, faça o teste a partir de outro WhatsApp.</div>
+</section>
+
+<section class="card">
+<h2>Conectar ou trocar número</h2>
+<div class="muted">Digite o número com DDI e DDD. O SaintsAI gera um código para vincular em “Aparelhos conectados”.</div>
+<div class="field"><label for="phone">Número do WhatsApp</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="5544999999999"></div>
+<div class="btns"><button class="btn" id="pair">Gerar código de conexão</button><button class="btn secondary" id="refresh">Atualizar status</button></div>
+<div class="code" id="code"></div>
+<div class="help">No WhatsApp: Configurações → Aparelhos conectados → Conectar um aparelho → Conectar com número de telefone.</div>
+<div class="msg" id="msg"></div>
+</section>
+
+<section class="card">
+<h2>Conexão oficial pela Meta</h2>
+<div class="muted">A integração oficial continua separada do painel administrativo. Não vamos redirecionar o cliente para a tela antiga enquanto esse fluxo estiver sendo finalizado.</div>
+</section>
+</div>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/loja.js"></script>
+<script>
+const $=id=>document.getElementById(id);let loja=null;let numeroConectado='';
+function digits(v){return String(v||'').replace(/\D/g,'')}
+function setStatus(x){
+ const ok=!!x.conectado;$('dot').classList.toggle('ok',ok);$('status').textContent=ok?'WhatsApp conectado':'WhatsApp não conectado';
+ $('provider').textContent=x.provedor?String(x.provedor).toUpperCase():'—';numeroConectado=digits(x.numero_whatsapp||'');
+ $('number').textContent=numeroConectado?('Número: +'+numeroConectado):'';$('testbox').classList.toggle('show',ok&&!!numeroConectado);
+}
+async function carregarStatus(){
+ try{const x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/whatsapp/status');setStatus(x);return x;}
+ catch(e){$('status').textContent='Não foi possível verificar';$('msg').textContent=e.message||'Falha ao consultar conexão.';return null;}
+}
+async function init(){
+ try{loja=await obterLojaAtual();if(!loja)throw new Error('Nenhuma empresa encontrada.');$('company').textContent=loja.nome||'Sua empresa';await carregarStatus();}
+ catch(e){if(e instanceof SessaoExpiradaError)return fazerLogout();$('msg').textContent=e.message||'Não foi possível carregar.';}
+}
+$('back').onclick=()=>location.href='cliente-configuracao.html?etapa=operacao';
+$('refresh').onclick=()=>carregarStatus();
+$('pair').onclick=async()=>{
+ const b=$('pair'),m=$('msg'),code=$('code'),phone=digits($('phone').value);
+ if(phone.length<10){m.textContent='Digite um número válido com DDI e DDD.';return;}
+ try{b.disabled=true;m.textContent='Preparando conexão…';code.textContent='';const x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/whatsapp/pair',{method:'POST',body:JSON.stringify({phone_number:phone})});code.textContent=x.code||'';m.textContent='Código gerado. Digite-o no WhatsApp e depois toque em Atualizar status.';}
+ catch(e){m.textContent=e.message||'Não foi possível gerar o código.';}finally{b.disabled=false;}
+};
+$('test').onclick=()=>{
+ if(!numeroConectado)return;$('msg').textContent='';const texto=encodeURIComponent('Olá! Este é um teste do atendimento SaintsAI.');window.open('https://wa.me/'+numeroConectado+'?text='+texto,'_blank','noopener,noreferrer');
+};
+init();
+</script>
+</body></html>
