@@ -3,7 +3,7 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="SaintsAI Estoque"
+        android:label="SaintsAI Cliente"
         android:theme="@style/AppTheme"
         android:icon="@drawable/ic_launcher_saintsai_stock"
         android:roundIcon="@drawable/ic_launcher_saintsai_stock">
