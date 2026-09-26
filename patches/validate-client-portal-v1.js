@@ -205,7 +205,35 @@ if(!pagbankPix.includes("connect.obterAccessTokenLoja")) throw new Error('Pix Pa
 if(!configHtml.includes('PagBank e formas de pagamento')) throw new Error('Tela do cliente sem PagBank v2');
 if(!configHtml.includes("'/pagamentos/pagbank/lojas/'+loja.id+'/status'")) throw new Error('Tela do cliente não consulta status real do PagBank');
 
-console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado + PagBank Connect v2.');
+
+for(const p of [
+  'src/services/profissionais.service.js',
+  'src/controllers/profissionaisCliente.controller.js',
+  'src/routes/profissionaisCliente.routes.js',
+  'public/js/cliente-profissionais-v1.js',
+  'public/css/cliente-profissionais-v1.css'
+]){
+  if(!fs.existsSync(p)) throw new Error('Profissionais v1 incompleto: '+p);
+}
+const profSvc=fs.readFileSync('src/services/profissionais.service.js','utf8');
+const profUi=fs.readFileSync('public/js/cliente-profissionais-v1.js','utf8');
+const bookingProf=fs.readFileSync('src/services/bookingPublic.service.js','utf8');
+const agendaProf=fs.readFileSync('src/services/agendaWhatsapp.service.js','utf8');
+for(const m of ['elegiveisParaServico','slotsDia','escolherDisponivel']){
+  if(!profSvc.includes(m)) throw new Error('Serviço de profissionais incompleto: '+m);
+}
+for(const m of ['Adicionar profissional','Serviços que realiza','Usar os horários gerais da empresa','data-pro-edit']){
+  if(!profUi.includes(m)) throw new Error('UI de profissionais incompleta: '+m);
+}
+if(!bookingProf.includes('profissional_id:escolhido.id||null')) throw new Error('Agendamento público não atribui profissional');
+if(!bookingProf.includes('profissionais:b.profissionais.map')) throw new Error('Agendamento público não expõe profissionais elegíveis');
+if(!agendaProf.includes("const profissionaisSvc=require('./profissionais.service');")) throw new Error('WhatsApp textual não usa agenda por profissional');
+if(!agendaProf.includes('profissional_id:escolhido.id||null')) throw new Error('WhatsApp textual não atribui profissional');
+if(!configHtml.includes('cliente-profissionais-v1.js')) throw new Error('Configuração do cliente não carrega equipe real');
+cp.execFileSync(process.execPath,['--check','src/services/profissionais.service.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','public/js/cliente-profissionais-v1.js'],{stdio:'inherit'});
+
+console.log('Portal cliente validado: Dashboard + WhatsApp + PagBank + profissionais reais.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -222,3 +250,5 @@ console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado + PagBank 
 // SAINTSAI_CLIENT_WHATSAPP_ISOLATION_VALIDATION
 
 // SAINTSAI_PAGBANK_CONNECT_V2_VALIDATION
+
+// SAINTSAI_PROFISSIONAIS_V1_VALIDATION
