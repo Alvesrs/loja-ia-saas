@@ -1,4 +1,4 @@
-const fs=require('node:fs');
+const fs=require('node:fs');\nconst cp=require('node:child_process');
 function read(p){return fs.readFileSync(p,'utf8')}
 function write(p,s){fs.writeFileSync(p,s)}
 
@@ -10,7 +10,7 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
   );
   svc=svc.replace(
     "function brData(s){if(!dataValida(s))return s;const [a,m,d]=s.split('-');return d+'/'+m+'/'+a;}",
-    "function brData(s){if(!dataValida(s))return s;const [a,m,d]=s.split('-');return d+'/'+m+'/'+a;}\\nfunction somarUmMesData(s){const [y,m,d]=String(s).split('-').map(Number);let ny=y,nm=m+1;if(nm>12){nm=1;ny+=1;}const ultimo=new Date(Date.UTC(ny,nm,0)).getUTCDate();return ny+'-'+String(nm).padStart(2,'0')+'-'+String(Math.min(d,ultimo)).padStart(2,'0');}\\nfunction limiteDataAgenda(){return somarUmMesData(hojeSP());}\\nfunction dataDentroHorizonte(s){return dataValida(s)&&s>=hojeSP()&&s<=limiteDataAgenda();}"
+    "function brData(s){if(!dataValida(s))return s;const [a,m,d]=s.split('-');return d+'/'+m+'/'+a;}\nfunction somarUmMesData(s){const [y,m,d]=String(s).split('-').map(Number);let ny=y,nm=m+1;if(nm>12){nm=1;ny+=1;}const ultimo=new Date(Date.UTC(ny,nm,0)).getUTCDate();return ny+'-'+String(nm).padStart(2,'0')+'-'+String(Math.min(d,ultimo)).padStart(2,'0');}\nfunction limiteDataAgenda(){return somarUmMesData(hojeSP());}\nfunction dataDentroHorizonte(s){return dataValida(s)&&s>=hojeSP()&&s<=limiteDataAgenda();}"
   );
   const before="async function tentarResponder(mensagem){";
   const helper=[
@@ -27,7 +27,7 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
     "  if(error)throw error;return data;",
     "}",
     ""
-  ].join("\\n");
+  ].join("\n");
   if(!svc.includes(before))throw new Error('Anchor tentarResponder não encontrado');
   svc=svc.replace(before,helper+before);
 
@@ -62,11 +62,11 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
     "    if(!cancelado)return 'Esse agendamento não está mais disponível.';",
     "    return cancelado.pagamento_status==='pago'?'Agendamento cancelado. O pagamento já consta como pago, então eventual estorno seguirá a política da empresa.':'Agendamento cancelado com sucesso.';",
     "  }"
-  ].join("\\n");
-  svc=svc.replace(needle,repl+"\\n"+needle);
+  ].join("\n");
+  svc=svc.replace(needle,repl+"\n"+needle);
   const x="  const x=await extrair(texto,servicos,estado);";
   if(!svc.includes(x))throw new Error('Extração não encontrada');
-  svc=svc.replace(x,x+"\\n  if(dataValida(x.data)&&!dataDentroHorizonte(x.data)){estado.data=null;estado.hora=null;await salvarEstado(lojaId,contato,estado);return 'Posso marcar de hoje até '+brData(limiteDataAgenda())+'. Escolha uma data dentro desse período.';}");
+  svc=svc.replace(x,x+"\n  if(dataValida(x.data)&&!dataDentroHorizonte(x.data)){estado.data=null;estado.hora=null;await salvarEstado(lojaId,contato,estado);return 'Posso marcar de hoje até '+brData(limiteDataAgenda())+'. Escolha uma data dentro desse período.';}");
   svc=svc.replace("  if(dataValida(x.data))estado.data=x.data;","  if(dataValida(x.data)&&dataDentroHorizonte(x.data))estado.data=x.data;");
 }
 write('src/services/agendaWhatsapp.service.js',svc);
@@ -74,11 +74,11 @@ write('src/services/agendaWhatsapp.service.js',svc);
 let c=read('src/controllers/clienteHub.controller.js');
 if(!c.includes('function dataHojeSP')){
   c=c.replace("function numero(v){const n=Number(v);return Number.isFinite(n)?n:null;}",
-    "function numero(v){const n=Number(v);return Number.isFinite(n)?n:null;}\\nfunction dataHojeSP(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}\\nfunction somarUmMesData(s){const [y,m,d]=String(s).split('-').map(Number);let ny=y,nm=m+1;if(nm>12){nm=1;ny+=1;}const ultimo=new Date(Date.UTC(ny,nm,0)).getUTCDate();return ny+'-'+String(nm).padStart(2,'0')+'-'+String(Math.min(d,ultimo)).padStart(2,'0');}\\nfunction inicioDentroHorizonte(inicio){const t=inicio.getTime();const max=new Date(somarUmMesData(dataHojeSP())+'T23:59:59-03:00').getTime();return t>=Date.now()&&t<=max;}"
+    "function numero(v){const n=Number(v);return Number.isFinite(n)?n:null;}\nfunction dataHojeSP(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}\nfunction somarUmMesData(s){const [y,m,d]=String(s).split('-').map(Number);let ny=y,nm=m+1;if(nm>12){nm=1;ny+=1;}const ultimo=new Date(Date.UTC(ny,nm,0)).getUTCDate();return ny+'-'+String(nm).padStart(2,'0')+'-'+String(Math.min(d,ultimo)).padStart(2,'0');}\nfunction inicioDentroHorizonte(inicio){const t=inicio.getTime();const max=new Date(somarUmMesData(dataHojeSP())+'T23:59:59-03:00').getTime();return t>=Date.now()&&t<=max;}"
   );
 }
-c=c.replace("    const horarios=req.body?.horarios;\\n    const intervalo=Number(req.body?.intervalo_grade_min||30);",
-"    const horarios=req.body?.horarios;\\n    const intervalo=Number(req.body?.intervalo_grade_min||30);\\n    const lembrete24=req.body?.lembrete_24h!==false;\\n    const lembrete2=req.body?.lembrete_2h!==false;");
+c=c.replace("    const horarios=req.body?.horarios;\n    const intervalo=Number(req.body?.intervalo_grade_min||30);",
+"    const horarios=req.body?.horarios;\n    const intervalo=Number(req.body?.intervalo_grade_min||30);\n    const lembrete24=req.body?.lembrete_24h!==false;\n    const lembrete2=req.body?.lembrete_2h!==false;");
 c=c.replace("const {data,error}=await supabase.from('saintsai_agenda_config').upsert({loja_id:loja.id,timezone:'America/Sao_Paulo',intervalo_grade_min:intervalo,horarios:limpo,atualizado_em:new Date().toISOString()}",
 "const {data,error}=await supabase.from('saintsai_agenda_config').upsert({loja_id:loja.id,timezone:'America/Sao_Paulo',intervalo_grade_min:intervalo,horarios:limpo,lembrete_24h:lembrete24,lembrete_2h:lembrete2,atualizado_em:new Date().toISOString()}");
 c=c.replace("const inicio=new Date(req.body?.inicio);if(Number.isNaN(inicio.getTime()))return res.status(400).json({erro:'Horário inválido.'});",
@@ -87,4 +87,4 @@ c=c.replace("const inicio=new Date(req.body.inicio);if(Number.isNaN(inicio.getTi
 "const inicio=new Date(req.body.inicio);if(Number.isNaN(inicio.getTime())||!inicioDentroHorizonte(inicio))return res.status(400).json({erro:'Escolha um novo horário entre hoje e até 1 mês à frente.'});");
 write('src/controllers/clienteHub.controller.js',c);
 
-console.log('Agenda horizonte e confirmação de lembrete aplicados.');
+cp.execFileSync(process.execPath,['--check','src/services/agendaWhatsapp.service.js'],{stdio:'inherit'});\ncp.execFileSync(process.execPath,['--check','src/controllers/clienteHub.controller.js'],{stdio:'inherit'});\nconsole.log('Agenda horizonte e confirmação de lembrete aplicados.');
