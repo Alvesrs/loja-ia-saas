@@ -160,7 +160,7 @@ cp.execFileSync(process.execPath,['--check','public/js/cliente-config-polish-v3.
 cp.execFileSync(process.execPath,['--check','src/controllers/servicoImagem.controller.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','src/routes/servicoImagem.routes.js'],{stdio:'inherit'});
 if(!hub.includes("titulo:'Cadastre seu trabalho'")) throw new Error('Onboarding sem cadastro do trabalho');
-if(!hub.includes("titulo:'Configure sua equipe'")) throw new Error('Onboarding sem equipe');
+if(!hub.includes("titulo:'Cadastre sua equipe'")&&!hub.includes("titulo:'Configure sua equipe'")) throw new Error('Onboarding sem equipe');
 if(!hub.includes("titulo:'Conecte o PagBank'")) throw new Error('Onboarding sem PagBank');
 if(!hub.includes('clientes_hoje')) throw new Error('Dashboard sem clientes de hoje');
 if(!hub.includes('vendas_hoje')) throw new Error('Dashboard sem vendas de hoje');
