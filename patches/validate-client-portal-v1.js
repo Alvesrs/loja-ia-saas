@@ -64,3 +64,5 @@ if(genericPositions.length&&mi>Math.min(...genericPositions)) throw new Error('R
 if(!app.includes("no-store, no-cache, must-revalidate")) throw new Error('Central cliente ainda permite cache antigo');
 
 console.log('Portal cliente validado: UI nova, onboarding, Home operacional, rota priorizada e '+i+' script(s) inline sem erro de sintaxe.');
+
+// SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
