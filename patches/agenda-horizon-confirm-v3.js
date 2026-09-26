@@ -64,7 +64,7 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
     "    return cancelado.pagamento_status==='pago'?'Agendamento cancelado. O pagamento já consta como pago, então eventual estorno seguirá a política da empresa.':'Agendamento cancelado com sucesso.';",
     "  }"
   ].join("\n");
-  svc=svc.replace(needle,repl+"\n"+needle);
+  svc=svc.replace(needle,repl);
   const x="  const x=await extrair(texto,servicos,estado);";
   if(!svc.includes(x))throw new Error('Extração não encontrada');
   svc=svc.replace(x,x+"\n  if(dataValida(x.data)&&!dataDentroHorizonte(x.data)){estado.data=null;estado.hora=null;await salvarEstado(lojaId,contato,estado);return 'Posso marcar de hoje até '+brData(limiteDataAgenda())+'. Escolha uma data dentro desse período.';}");
