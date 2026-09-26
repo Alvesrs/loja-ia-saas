@@ -97,7 +97,43 @@ const genericPositions=[
 if(genericPositions.length&&mi>Math.min(...genericPositions)) throw new Error('Rota cliente-hub está depois de uma rota genérica /api/lojas');
 if(!app.includes("no-store, no-cache, must-revalidate")) throw new Error('Central cliente ainda permite cache antigo');
 
-console.log('Portal cliente validado: Home + onboarding + configuração em abas separadas, sem erro de sintaxe.');
+
+if(!configHtml.includes('id="ia-sync"')) throw new Error('Configuração IA sem sincronização dos dados da loja');
+if(!hub.includes("saintsai_sync_prompt_operacional")) throw new Error('Prompt Mestre sem sincronização operacional');
+
+for(const p of [
+  'src/services/bookingPublic.service.js',
+  'src/controllers/bookingPublic.controller.js',
+  'src/routes/bookingPublic.routes.js',
+  'public/agendar.html'
+]){
+  if(!fs.existsSync(p)) throw new Error('Agendamento público incompleto: '+p);
+}
+const bookingSvc=fs.readFileSync('src/services/bookingPublic.service.js','utf8');
+const agendaSvc=fs.readFileSync('src/services/agendaWhatsapp.service.js','utf8');
+const pagbankSvc=fs.readFileSync('src/services/pagBankPix.service.js','utf8');
+if(!bookingSvc.includes('preco_alterado')) throw new Error('Agendamento público sem revisão de preço');
+if(!bookingSvc.includes('agendamento_duplicado')) throw new Error('Agendamento público sem trava de duplicidade');
+if(!bookingSvc.includes("status:pix?'pendente':'confirmado'")) throw new Error('Pix não mantém agendamento pendente até pagamento');
+if(!agendaSvc.includes('bookingPublic.criarLink')) throw new Error('WhatsApp ainda não envia link clicável de agendamento');
+if(!pagbankSvc.includes('enviarConfirmacaoPagamento')) throw new Error('PagBank não confirma agendamento no WhatsApp após pagamento');
+if(!app.includes("app.use('/api/public/agenda', bookingPublicRoutes);")) throw new Error('API pública de agendamento não montada');
+if(!app.includes("app.get('/agendar/:token'")) throw new Error('Página pública de agendamento não montada');
+
+const publicHtml=fs.readFileSync('public/agendar.html','utf8');
+for(const marker of ['O que você deseja?','Escolha o dia','Escolha o horário','Revise e confirme','Pix para confirmar']){
+  if(!publicHtml.includes(marker)) throw new Error('Página de agendamento incompleta: '+marker);
+}
+const pre=/<script>([\s\S]*?)<\/script>/gi;let pm,pi=0;
+while((pm=pre.exec(publicHtml))){
+  const code=pm[1].trim();if(!code)continue;
+  const tmp=path.join(os.tmpdir(),'saintsai-public-booking-'+(++pi)+'.js');
+  fs.writeFileSync(tmp,code);
+  try{cp.execFileSync(process.execPath,['--check',tmp],{stdio:'inherit'});}finally{try{fs.unlinkSync(tmp)}catch(_){}}
+}
+if(pi===0) throw new Error('Página pública sem JavaScript');
+
+console.log('Portal cliente validado: Home, abas, Prompt dinâmico, agendamento clicável e confirmação PagBank.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -106,3 +142,5 @@ console.log('Portal cliente validado: Home + onboarding + configuração em abas
 // SAINTSAI_CONFIG_TABS_FINAL_HEAD
 
 // SAINTSAI_CLIENT_HUB_ADMIN_ACCESS_FINAL
+
+// SAINTSAI_FINAL_BOOKING_VALIDATION
