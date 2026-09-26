@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08070d">
+<title>Agendar · SaintsAI</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,rgba(137,65,255,.18),transparent 34%),#08070d;color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:720px;margin:auto;padding:18px 14px calc(40px + env(safe-area-inset-bottom))}.brand{font-weight:950;font-size:18px;margin-bottom:16px}.hero,.card{background:linear-gradient(180deg,#15111f,#0e0c14);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:18px;margin-bottom:12px}.hero{border-color:rgba(161,91,255,.24)}.kicker{font-size:10px;letter-spacing:.15em;color:#a66bff;font-weight:950}.hero h1{font-size:25px;margin:7px 0 6px}.muted{color:#9f97aa;font-size:13px;line-height:1.5}.grid{display:grid;gap:9px;margin-top:13px}.choice{width:100%;text-align:left;border:1px solid rgba(255,255,255,.08);background:#0a090e;color:#fff;border-radius:16px;padding:14px;font:inherit}.choice strong{display:block;font-size:15px}.choice small{display:block;color:#9c94a6;margin-top:5px}.choice.on{border-color:#9c5cff;box-shadow:0 0 0 2px rgba(142,75,255,.12) inset}.days,.times,.pay{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.chip{border:1px solid rgba(255,255,255,.09);background:#0a090e;color:#c7bed2;border-radius:999px;padding:10px 12px;font:inherit;font-size:12px}.chip.on{background:#7c35ff;color:#fff;border-color:#7c35ff}.field{display:flex;flex-direction:column;gap:7px;margin-top:12px}.field label{font-size:12px;font-weight:850;color:#c8c0d2}.field input{width:100%;border:1px solid rgba(255,255,255,.1);background:#09080d;color:#fff;border-radius:14px;padding:13px;font:inherit}.review{margin-top:14px;padding:14px;border-radius:16px;background:rgba(126,58,237,.09);border:1px solid rgba(153,91,255,.16);line-height:1.6}.btn{width:100%;border:0;border-radius:16px;padding:15px;background:linear-gradient(135deg,#7c35ff,#b25cff);color:#fff;font:inherit;font-weight:950;margin-top:14px}.btn:disabled{opacity:.45}.status{margin-top:10px;min-height:20px;color:#c6a6ef;font-size:13px}.hidden{display:none!important}.pixbox{text-align:center}.pixbox img{max-width:260px;width:100%;background:#fff;padding:10px;border-radius:18px}.pixcode{word-break:break-all;text-align:left;background:#08070d;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;font-size:11px;margin-top:12px}.ok{color:#6fe0a7;font-weight:900}.warn{color:#ffd18a}.step-title{font-size:18px;font-weight:950;margin:0 0 4px}
+</style>
+</head>
+<body><div class="wrap">
+<div class="brand">SaintsAI</div>
+<div class="hero"><div class="kicker">AGENDAMENTO ONLINE</div><h1 id="loja">Carregando…</h1><div class="muted">Escolha serviço, dia e horário. O valor é revisado antes da confirmação.</div></div>
+<div id="erro" class="card hidden"></div>
+
+<section id="s1" class="card"><div class="step-title">1. O que você deseja?</div><div class="muted">Toque em uma opção.</div><div id="servicos" class="grid"></div></section>
+<section id="s2" class="card hidden"><div class="step-title">2. Escolha o dia</div><div id="dias" class="days"></div></section>
+<section id="s3" class="card hidden"><div class="step-title">3. Escolha o horário</div><div id="horarios" class="times"></div></section>
+<section id="s4" class="card hidden"><div class="step-title">4. Revise e confirme</div><div class="field"><label>Seu nome</label><input id="nome" maxlength="100" autocomplete="name" placeholder="Nome para o agendamento"></div><div class="muted" style="margin-top:13px">Forma de pagamento</div><div id="pagamentos" class="pay"></div><div id="review" class="review"></div><button id="confirmar" class="btn">Confirmar agendamento</button><div id="status" class="status"></div></section>
+<section id="pix" class="card pixbox hidden"><div class="step-title">Pix para confirmar</div><div class="muted">O horário fica reservado por alguns minutos e só é confirmado quando o PagBank informar o pagamento.</div><img id="qr" class="hidden" alt="QR Code Pix"><div id="pixcode" class="pixcode"></div><button id="copiar" class="btn">Copiar código Pix</button><div id="pixstatus" class="status">Aguardando pagamento…</div></section>
+<section id="done" class="card hidden"><div class="step-title ok">Agendamento confirmado ✓</div><div id="donetxt" class="muted"></div></section>
+</div>
+<script>
+const token=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
+const $=id=>document.getElementById(id);
+let dados=null,servico=null,dia=null,hora=null,pagamento=null,agendamentoId=null,poll=null;
+function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dataBR(v){const [a,m,d]=String(v).split('-');return d+'/'+m+'/'+a}
+async function api(path='',opts={}){
+ const r=await fetch('/api/public/agenda/'+encodeURIComponent(token)+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+ const body=await r.json().catch(()=>({erro:'Falha inesperada.'}));
+ if(!r.ok){const e=new Error(body.erro||'Não foi possível continuar.');e.codigo=body.codigo;e.preco_atual=body.preco_atual;throw e}return body;
+}
+function erro(msg){$('erro').textContent=msg;$('erro').classList.remove('hidden')}
+function esconderApos(n){for(let i=n;i<=4;i++)$('s'+i)?.classList.add('hidden')}
+function renderReview(){
+ if(!servico||!dia||!hora)return;
+ $('review').innerHTML='<strong>'+servico.nome+'</strong><br>'+dataBR(dia)+' às '+hora+'<br>Valor atual: <strong>'+brl(servico.preco)+'</strong>'+(pagamento?'<br>Pagamento: '+(dados.pagamentos.opcoes.find(x=>x.id===pagamento)?.nome||pagamento):'');
+}
+async function load(){
+ try{
+  dados=await api();$('loja').textContent=dados.loja.nome;$('nome').value=dados.cliente_nome||'';
+  $('servicos').innerHTML=dados.servicos.map(s=>'<button class="choice" data-s="'+s.id+'"><strong>'+s.nome+' · '+brl(s.preco)+'</strong><small>'+(s.descricao||('Duração: '+s.duracao_min+' min'))+'</small></button>').join('')||'<div class="muted">Nenhuma opção disponível.</div>';
+  document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>escolherServico(b.dataset.s));
+  $('pagamentos').innerHTML=dados.pagamentos.opcoes.map(p=>'<button class="chip" data-p="'+p.id+'">'+p.nome+'</button>').join('');
+  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{pagamento=b.dataset.p;document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x.dataset.p===pagamento));renderReview();});
+  if(dados.pagamentos.bloqueado)$('pagamentos').innerHTML='<div class="warn">O pagamento antecipado é obrigatório, mas o Pix online ainda não está conectado.</div>';
+ }catch(e){erro(e.message);['s1','s2','s3','s4'].forEach(id=>$(id).classList.add('hidden'))}
+}
+async function escolherServico(id){
+ servico=dados.servicos.find(s=>s.id===id);dia=null;hora=null;esconderApos(2);document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x.dataset.s===id));
+ $('s2').classList.remove('hidden');$('dias').innerHTML='<span class="muted">Buscando horários…</span>';
+ try{
+  const x=await api('/disponibilidade?servico_id='+encodeURIComponent(id));
+  if(!x.dias.length){$('dias').innerHTML='<span class="muted">Nenhum horário livre nos próximos dias.</span>';return}
+  $('dias').innerHTML=x.dias.map(d=>'<button class="chip" data-d="'+d.data+'">'+dataBR(d.data)+'</button>').join('');
+  $('dias').dataset.disp=JSON.stringify(x.dias);document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>escolherDia(b.dataset.d));
+ }catch(e){$('dias').innerHTML='<span class="muted">'+e.message+'</span>'}
+}
+function escolherDia(v){
+ dia=v;hora=null;$('s3').classList.remove('hidden');$('s4').classList.add('hidden');document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===v));
+ const dias=JSON.parse($('dias').dataset.disp||'[]'),d=dias.find(x=>x.data===v);
+ $('horarios').innerHTML=(d?.slots||[]).map(h=>'<button class="chip" data-h="'+h+'">'+h+'</button>').join('');
+ document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>escolherHora(b.dataset.h));
+}
+function escolherHora(v){
+ hora=v;document.querySelectorAll('[data-h]').forEach(x=>x.classList.toggle('on',x.dataset.h===v));$('s4').classList.remove('hidden');
+ if(!pagamento&&dados.pagamentos.opcoes.length===1)pagamento=dados.pagamentos.opcoes[0].id;
+ if(pagamento)document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x.dataset.p===pagamento));renderReview();
+}
+$('confirmar').onclick=async()=>{
+ const nome=$('nome').value.trim(),st=$('status');
+ if(!servico||!dia||!hora)return st.textContent='Escolha serviço, dia e horário.';
+ if(!nome)return st.textContent='Informe seu nome.';
+ if(!pagamento)return st.textContent='Escolha a forma de pagamento.';
+ try{
+  $('confirmar').disabled=true;st.textContent='Revisando disponibilidade e preço…';
+  const x=await api('/confirmar',{method:'POST',body:JSON.stringify({servico_id:servico.id,data:dia,hora,nome,pagamento_metodo:pagamento,preco_revisado:servico.preco})});
+  agendamentoId=x.agendamento_id;
+  if(x.status==='aguardando_pagamento'){
+    $('s4').classList.add('hidden');$('pix').classList.remove('hidden');$('pixcode').textContent=x.pix?.qrText||'';
+    if(x.pix?.qrUrl){$('qr').src=x.pix.qrUrl;$('qr').classList.remove('hidden')}
+    iniciarPoll();
+  }else{
+    concluir('Seu horário para '+x.servico.nome+' em '+dataBR(x.data)+' às '+x.hora+' está confirmado.');
+  }
+ }catch(e){
+  if(e.codigo==='preco_alterado'&&Number.isFinite(Number(e.preco_atual))){servico.preco=Number(e.preco_atual);renderReview();st.textContent=e.message+' Confira o novo valor e toque em confirmar novamente.';}
+  else st.textContent=e.message;
+ }finally{$('confirmar').disabled=false}
+};
+$('copiar').onclick=async()=>{try{await navigator.clipboard.writeText($('pixcode').textContent);$('pixstatus').textContent='Código Pix copiado.';}catch(_){$('pixstatus').textContent='Selecione e copie o código acima.';}};
+function concluir(msg){if(poll)clearInterval(poll);$('pix').classList.add('hidden');['s1','s2','s3','s4'].forEach(id=>$(id).classList.add('hidden'));$('done').classList.remove('hidden');$('donetxt').textContent=msg}
+function iniciarPoll(){
+ let tentativas=0;poll=setInterval(async()=>{if(++tentativas>36){clearInterval(poll);return}
+  try{const x=await api('/status?agendamento_id='+encodeURIComponent(agendamentoId));if(x.pagamento_status==='pago'&&x.status==='confirmado')concluir('Pagamento recebido. Seu agendamento está confirmado.');else if(x.status==='cancelado'){clearInterval(poll);$('pixstatus').textContent='A reserva foi cancelada ou expirou.';}}
+  catch(_){}
+ },5000);
+}
+load();
+</script>
+</body></html>
