@@ -9,10 +9,19 @@ const html=fs.readFileSync(file,'utf8');
 const required=[
   'SAINTSAI_CLIENT_UI_V2',
   'SAINTSAI_ONBOARDING_V1',
+  'SAINTSAI_HOME_BUSINESS_V2_FINAL',
   'id="onboarding-real"',
+  'id="notify-config"',
+  'id="business-home"',
+  'id="biz-hoje"',
+  'id="biz-mes"',
+  'id="biz-fechamento"',
+  'id="clientes-dia"',
+  'id="sv-desc"',
   'function trocar(',
   'async function carregar(',
-  'async function carregarOnboarding('
+  'async function carregarOnboarding(',
+  'function carregarHomeNegocio()'
 ];
 for(const marker of required){
   if(!html.includes(marker)) throw new Error('Portal cliente incompleto: '+marker);
@@ -41,4 +50,17 @@ for(const m of html.matchAll(/\$\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
 for(const m of html.matchAll(/getElementById\(['"]([^"']+)['"]\)/g)) refs.add(m[1]);
 const faltando=[...refs].filter(id=>!ids.has(id));
 if(faltando.length) throw new Error('Elementos ausentes usados pelo JavaScript: '+faltando.join(', '));
-console.log('Portal cliente validado: UI, onboarding e '+i+' script(s) inline sem erro de sintaxe.');
+const app=fs.readFileSync('src/app.js','utf8');
+const mount="app.use('/api/lojas/:lojaId/cliente-hub', clienteHubRoutes);";
+const mi=app.indexOf(mount);
+if(mi<0) throw new Error('Rota cliente-hub não está montada no app');
+const genericPositions=[
+  app.indexOf("app.use('/api/lojas/:lojaId"),
+  app.indexOf('app.use("/api/lojas/:lojaId'),
+  app.indexOf("app.use('/api/lojas'"),
+  app.indexOf('app.use("/api/lojas"')
+].filter(i=>i>=0&&i!==mi);
+if(genericPositions.length&&mi>Math.min(...genericPositions)) throw new Error('Rota cliente-hub está depois de uma rota genérica /api/lojas');
+if(!app.includes("no-store, no-cache, must-revalidate")) throw new Error('Central cliente ainda permite cache antigo');
+
+console.log('Portal cliente validado: UI nova, onboarding, Home operacional, rota priorizada e '+i+' script(s) inline sem erro de sintaxe.');
