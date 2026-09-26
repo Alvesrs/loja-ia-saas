@@ -191,7 +191,21 @@ while((wm=wre.exec(clienteWhatsappHtml))){
 }
 if(wi===0) throw new Error('Tela WhatsApp cliente sem JavaScript');
 
-console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado do painel antigo.');
+
+const pagbankConnect=fs.readFileSync('src/services/pagBankConnect.service.js','utf8');
+const pagbankController=fs.readFileSync('src/controllers/pagBankConnect.controller.js','utf8');
+const pagbankRoutes=fs.readFileSync('src/routes/pagBankConnect.routes.js','utf8');
+const pagbankPix=fs.readFileSync('src/services/pagBankPix.service.js','utf8');
+for(const m of ['payments.read payments.create accounts.read','/oauth2/token','/oauth2/refresh','refresh_token','obterAccessTokenLoja','statusLoja']){
+  if(!pagbankConnect.includes(m)) throw new Error('PagBank Connect v2 incompleto: '+m);
+}
+if(!pagbankController.includes('status(req,res)')) throw new Error('PagBank sem endpoint de status');
+if(!pagbankRoutes.includes("'/lojas/:lojaId/status'")) throw new Error('Rota de status PagBank ausente');
+if(!pagbankPix.includes("connect.obterAccessTokenLoja")) throw new Error('Pix PagBank sem renovação automática de token');
+if(!configHtml.includes('PagBank e formas de pagamento')) throw new Error('Tela do cliente sem PagBank v2');
+if(!configHtml.includes("'/pagamentos/pagbank/lojas/'+loja.id+'/status'")) throw new Error('Tela do cliente não consulta status real do PagBank');
+
+console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado + PagBank Connect v2.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -206,3 +220,5 @@ console.log('Portal cliente validado: Dashboard v3 + WhatsApp isolado do painel 
 // SAINTSAI_DASHBOARD_POLISH_V3_VALIDATION
 
 // SAINTSAI_CLIENT_WHATSAPP_ISOLATION_VALIDATION
+
+// SAINTSAI_PAGBANK_CONNECT_V2_VALIDATION
