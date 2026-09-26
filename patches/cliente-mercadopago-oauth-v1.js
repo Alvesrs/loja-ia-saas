@@ -188,10 +188,13 @@ if(!h.includes("p-mp-connect').onclick")){
     "$('p-mp-connect').onclick=async()=>{try{$('p-mp-connect').disabled=true;$('p-status').textContent='Abrindo autorização do Mercado Pago…';const x=await apiFetch('/pagamentos/mercadopago/lojas/'+loja.id+'/iniciar',{method:'POST',body:'{}'});if(!x.url)throw new Error('URL de autorização não recebida.');location.href=x.url;}catch(e){$('p-status').textContent=e.message||'Não foi possível iniciar a conexão.';$('p-mp-connect').disabled=false;}};\n$('p-connect').onclick=async()=>{"
   );
 }
-h=h.replace(
-  "carregar();",
-  "const mpRetorno=new URLSearchParams(location.search).get('mp');if(mpRetorno==='conectado'){setTimeout(()=>{$('p-status').textContent='Mercado Pago conectado com sucesso.';trocar('pagamentos');},250);}else if(mpRetorno==='erro'){setTimeout(()=>{$('p-status').textContent='A conexão com Mercado Pago não foi concluída.';trocar('pagamentos');},250);}carregar();"
-);
+{
+  const alvo="carregar();";
+  const pos=h.lastIndexOf(alvo);
+  if(pos<0)throw new Error('Chamada final carregar() não encontrada no portal cliente');
+  const retorno="const mpRetorno=new URLSearchParams(location.search).get('mp');if(mpRetorno==='conectado'){setTimeout(()=>{$('p-status').textContent='Mercado Pago conectado com sucesso.';trocar('pagamentos');},250);}else if(mpRetorno==='erro'){setTimeout(()=>{$('p-status').textContent='A conexão com Mercado Pago não foi concluída.';trocar('pagamentos');},250);}carregar();";
+  h=h.slice(0,pos)+retorno+h.slice(pos+alvo.length);
+}
 write('public/cliente-central.html',h);
 
 console.log('Mercado Pago OAuth + PKCE aplicado ao SaintsAI Cliente.');
