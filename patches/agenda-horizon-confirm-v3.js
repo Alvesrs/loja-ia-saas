@@ -1,4 +1,5 @@
-const fs=require('node:fs');\nconst cp=require('node:child_process');
+const fs=require('node:fs');
+const cp=require('node:child_process');
 function read(p){return fs.readFileSync(p,'utf8')}
 function write(p,s){fs.writeFileSync(p,s)}
 
@@ -87,4 +88,6 @@ c=c.replace("const inicio=new Date(req.body.inicio);if(Number.isNaN(inicio.getTi
 "const inicio=new Date(req.body.inicio);if(Number.isNaN(inicio.getTime())||!inicioDentroHorizonte(inicio))return res.status(400).json({erro:'Escolha um novo horário entre hoje e até 1 mês à frente.'});");
 write('src/controllers/clienteHub.controller.js',c);
 
-cp.execFileSync(process.execPath,['--check','src/services/agendaWhatsapp.service.js'],{stdio:'inherit'});\ncp.execFileSync(process.execPath,['--check','src/controllers/clienteHub.controller.js'],{stdio:'inherit'});\nconsole.log('Agenda horizonte e confirmação de lembrete aplicados.');
+cp.execFileSync(process.execPath,['--check','src/services/agendaWhatsapp.service.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/controllers/clienteHub.controller.js'],{stdio:'inherit'});
+console.log('Agenda horizonte e confirmação de lembrete aplicados.');
