@@ -31,10 +31,9 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
   if(!svc.includes(before))throw new Error('Anchor tentarResponder não encontrado');
   svc=svc.replace(before,helper+before);
 
-  const needle="  let estado=await estadoAtual(lojaId,contato);\\n  const ativo=Boolean(estado&&estado.ativo);\\n  const querCancelar=GATILHO_CANCELAR.test(texto);";
+  const needle="  const ativo=Boolean(estado&&estado.ativo);";
   if(!svc.includes(needle))throw new Error('Fluxo ativo não encontrado');
   const repl=[
-    "  let estado=await estadoAtual(lojaId,contato);",
     "  const ativo=Boolean(estado&&estado.ativo);",
     "  const lembreteConfirmar=!ativo&&GATILHO_CONFIRMAR_LEMBRETE.test(normalizar(texto));",
     "  const lembreteCancelar=!ativo&&GATILHO_CANCELAR.test(texto);",
@@ -49,7 +48,7 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
     "    }",
     "    if(pendentes.length>1){",
     "      await salvarEstado(lojaId,contato,{ativo:true,modo:'lembrete_selecao',acao:lembreteConfirmar?'confirmar':'cancelar',opcoes:pendentes.map(a=>a.id)});",
-    "      return 'Encontrei mais de um horário próximo. Qual você quer '+(lembreteConfirmar?'confirmar':'cancelar')+'?\\\\n'+pendentes.map(resumoAg).join('\\\\n')+'\\\\nResponda somente com o número.';",
+    "      return 'Encontrei mais de um horário próximo. Qual você quer '+(lembreteConfirmar?'confirmar':'cancelar')+'?\\n'+pendentes.map(resumoAg).join('\\n')+'\\nResponda somente com o número.';",
     "    }",
     "  }",
     "  if(ativo&&estado.modo==='lembrete_selecao'){",
@@ -62,11 +61,9 @@ if(!svc.includes('GATILHO_CONFIRMAR_LEMBRETE')){
     "    const cancelado=await cancelarAgendamento(lojaId,ag.id);await limparEstado(lojaId,contato);",
     "    if(!cancelado)return 'Esse agendamento não está mais disponível.';",
     "    return cancelado.pagamento_status==='pago'?'Agendamento cancelado. O pagamento já consta como pago, então eventual estorno seguirá a política da empresa.':'Agendamento cancelado com sucesso.';",
-    "  }",
-    "  const querCancelar=GATILHO_CANCELAR.test(texto);"
+    "  }"
   ].join("\\n");
-  svc=svc.replace(needle,repl);
-
+  svc=svc.replace(needle,repl+"\\n"+needle);
   const x="  const x=await extrair(texto,servicos,estado);";
   if(!svc.includes(x))throw new Error('Extração não encontrada');
   svc=svc.replace(x,x+"\\n  if(dataValida(x.data)&&!dataDentroHorizonte(x.data)){estado.data=null;estado.hora=null;await salvarEstado(lojaId,contato,estado);return 'Posso marcar de hoje até '+brData(limiteDataAgenda())+'. Escolha uma data dentro desse período.';}");
