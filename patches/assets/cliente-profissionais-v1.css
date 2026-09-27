@@ -5,3 +5,5 @@
 .pro-card{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .pro-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:560px){.pro-services{grid-template-columns:1fr}.pro-card{align-items:flex-start;flex-direction:column}.pro-actions{width:100%}.pro-actions button{flex:1}}
+
+.pro-pausa-dias{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.pro-pausa-dias .check{border:1px solid rgba(255,255,255,.07);background:#0d0a12;border-radius:999px;padding:8px 10px;font-size:11px}
