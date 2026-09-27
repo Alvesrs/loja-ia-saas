@@ -25,7 +25,7 @@ const stepsRe=/const etapas=\[[\s\S]*?\n    \];/;
 if(!stepsRe.test(fn))throw new Error('Bloco etapas não encontrado');
 fn=fn.replace(stepsRe,`const etapas=[
       {id:'ia',titulo:'Configure a IA',descricao:'Defina o Prompt Mestre e como a IA deve atender.',concluida:prompt.length>0,destino:'ia'},
-      {id:'servicos',titulo:'Cadastre itens e serviços',descricao:'Adicione pelo menos um serviço com preço, duração e detalhes.',concluida:Boolean(servicos&&servicos.length),destino:'servicos'},
+      {id:'servicos',titulo:'Cadastre seu trabalho',descricao:'Adicione pelo menos um serviço com preço, duração e detalhes.',concluida:Boolean(servicos&&servicos.length),destino:'servicos'},
       {id:'agenda',titulo:'Configure a agenda',descricao:'Escolha os dias, horários e intervalos de atendimento.',concluida:agendaOk,destino:'agenda'},
       {id:'pagamentos',titulo:'Configure pagamentos',descricao:'Defina como seus clientes podem pagar pelos atendimentos.',concluida:pagOk,destino:'pagamentos'},
       {id:'plano',titulo:'Escolha seu plano SaintsAI',descricao:'Escolha e ative o plano da sua assinatura SaintsAI.',concluida:planoOk,destino:'plano'},
