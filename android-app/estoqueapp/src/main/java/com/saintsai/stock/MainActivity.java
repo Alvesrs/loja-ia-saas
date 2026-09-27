@@ -41,21 +41,38 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(8, 7, 13));
         getWindow().setNavigationBarColor(Color.rgb(8, 7, 13));
 
+        // Own the safe area once on Android 11+, including enforced edge-to-edge.
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+        }
+
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(8, 7, 13));
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             if (android.os.Build.VERSION.SDK_INT >= 30) {
-                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
-                v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                int safeTypes = WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout();
+                int handledTypes = safeTypes | WindowInsets.Type.ime();
+                android.graphics.Insets safe = insets.getInsets(handledTypes);
+                v.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+
+                // The WebView is already inside these bounds. Forward zero values
+                // so CSS env(safe-area-inset-*) and the visual viewport don't add
+                // the bars/keyboard again. Keep dispatching updates when IME hides.
+                return new WindowInsets.Builder(insets)
+                        .setInsets(handledTypes, android.graphics.Insets.NONE)
+                        .setInsetsIgnoringVisibility(safeTypes, android.graphics.Insets.NONE)
+                        .setDisplayCutout(null)
+                        .build();
             } else {
-                v.setPadding(
-                        insets.getSystemWindowInsetLeft(),
-                        insets.getSystemWindowInsetTop(),
-                        insets.getSystemWindowInsetRight(),
-                        insets.getSystemWindowInsetBottom()
-                );
+                // Older Android versions fit the activity and resize for IME.
+                // Do not reserve the same system bars again inside that frame.
+                v.setPadding(0, 0, 0, 0);
+                WindowInsets remaining = insets.consumeSystemWindowInsets().consumeStableInsets();
+                if (android.os.Build.VERSION.SDK_INT >= 28) {
+                    remaining = remaining.consumeDisplayCutout();
+                }
+                return remaining;
             }
-            return insets;
         });
 
         webView = new WebView(this);
@@ -188,6 +205,7 @@ public class MainActivity extends Activity {
         );
 
         setContentView(root);
+        root.requestApplyInsets();
         webView.loadUrl(APP_URL);
     }
 

@@ -67,10 +67,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Android emulator visual test
+      - name: Android 16 layout and keyboard regression
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 36
           arch: x86_64
           profile: pixel_6
           disable-animations: true
@@ -83,27 +83,43 @@ jobs:
             sleep 15
             adb exec-out screencap -p > android-app/admin-screen.png
 
-            adb shell am force-stop com.saintsai.stock
-            adb shell monkey -p com.saintsai.stock -c android.intent.category.LAUNCHER 1
-            sleep 15
+            adb logcat -c
+            adb shell am start -W -n com.saintsai.stock/.MainActivity
+            sleep 10
             adb shell pidof com.saintsai.stock
-            adb logcat -d > /tmp/saintsai-logcat.txt
-            if grep -F "FATAL EXCEPTION" /tmp/saintsai-logcat.txt | grep -F "com.saintsai.stock"; then echo "SaintsAI Cliente sofreu crash"; exit 1; else echo "SaintsAI Cliente sem crash"; fi
+            adb logcat -d -b crash > android-app/client-crash.txt
+            if grep -F "Process: com.saintsai.stock" android-app/client-crash.txt; then exit 1; fi
             adb exec-out screencap -p > android-app/estoque-screen.png
+            adb shell settings put secure show_ime_with_hard_keyboard 1
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest
+            mkdir -p android-app/layout-threebutton
+            adb pull /sdcard/Android/data/com.saintsai.stock/files/. android-app/layout-threebutton/
+            cp -r android-app/estoqueapp/build/outputs/androidTest-results/connected android-app/layout-threebutton/results
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest --rerun-tasks
+            mkdir -p android-app/layout-gestures
+            adb pull /sdcard/Android/data/com.saintsai.stock/files/. android-app/layout-gestures/
+
 
       - name: Upload emulator screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: SaintsAI-Emulator-Screens
           path: |
             android-app/admin-screen.png
             android-app/estoque-screen.png
+            android-app/layout-threebutton/
+            android-app/layout-gestures/
+            android-app/estoqueapp/build/reports/androidTests/
+            android-app/client-crash.txt
           if-no-files-found: error
 
       - name: Rename APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.0.apk
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -115,6 +131,6 @@ jobs:
       - name: Upload SaintsAI Estoque
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.0
-          path: android-app/SaintsAI-Cliente-v1.2.0.apk
+          name: SaintsAI-Cliente-APK-v1.2.1
+          path: android-app/SaintsAI-Cliente-v1.2.1.apk
           if-no-files-found: error

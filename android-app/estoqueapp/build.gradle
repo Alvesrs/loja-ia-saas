@@ -10,7 +10,13 @@ android {
         applicationId "com.saintsai.stock"
         minSdk 24
         targetSdk 35
-        versionCode 15
-        versionName "1.2.0"
+        versionCode 16
+        versionName "1.2.1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
