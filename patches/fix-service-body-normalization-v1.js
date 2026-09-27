@@ -15,10 +15,14 @@ if(!fn.includes('SAINTSAI_SERVICE_BODY_NORMALIZE_V1')){
     anchor,
     '    // SAINTSAI_SERVICE_BODY_NORMALIZE_V1',
     '    let body=req.body;',
-    "    for(let i=0;i<2&&typeof body==='string';i++){",
-    '      try{body=JSON.parse(body);}catch(_){break;}',
+    '    for(let i=0;i<4;i++){',
+    "      if(typeof body==='string'){try{body=JSON.parse(body);continue;}catch(_){break;}}",
+    "      if(body&&typeof body==='object'&&!Array.isArray(body)&&typeof body.body==='string'){try{body=JSON.parse(body.body);continue;}catch(_){}}",
+    "      if(body&&typeof body==='object'&&!Array.isArray(body)){const ks=Object.keys(body);if(ks.length===1&&ks[0].trim().startsWith('{')){try{body=JSON.parse(ks[0]);continue;}catch(_){}}}",
+    '      break;',
     '    }',
-    "    if(!body||typeof body!=='object'||Array.isArray(body))body={};"
+    "    if(!body||typeof body!=='object'||Array.isArray(body))body={};",
+    "    console.log('[cliente-hub] criar serviço payload', {tipo:typeof req.body,chaves:Object.keys(body).slice(0,20)});"
   ].join('\n');
   fn=fn.replace(anchor,insert);
   fn=fn.replace(/req\.body/g,'body');
