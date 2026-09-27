@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
+        android:name=".SalesApp"
         android:allowBackup="false"
         android:label="Gerenciador de Vendas"
         android:theme="@style/AppTheme"
