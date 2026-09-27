@@ -145,7 +145,8 @@ jobs:
       - name: Rename APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk\n          if [ -n "$SALES_KEYSTORE_B64" ]; then
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk
+          if [ -n "$SALES_KEYSTORE_B64" ]; then
             cp salesnotify/build/outputs/apk/release/salesnotify-release.apk Gerenciador-de-Vendas-v1.0.0.apk
           else
             cp salesnotify/build/outputs/apk/debug/salesnotify-debug.apk Gerenciador-de-Vendas-v1.0.0.apk
