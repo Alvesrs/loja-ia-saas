@@ -87,10 +87,8 @@ jobs:
             adb shell monkey -p com.saintsai.stock -c android.intent.category.LAUNCHER 1
             sleep 15
             adb shell pidof com.saintsai.stock
-            if adb logcat -d | grep -F "FATAL EXCEPTION" | grep -F "com.saintsai.stock"; then
-              echo "SaintsAI Cliente sofreu crash"
-              exit 1
-            fi
+            adb logcat -d > /tmp/saintsai-logcat.txt
+            if grep -F "FATAL EXCEPTION" /tmp/saintsai-logcat.txt | grep -F "com.saintsai.stock"; then echo "SaintsAI Cliente sofreu crash"; exit 1; else echo "SaintsAI Cliente sem crash"; fi
             adb exec-out screencap -p > android-app/estoque-screen.png
 
       - name: Upload emulator screenshots
