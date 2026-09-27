@@ -59,7 +59,7 @@ jobs:
           grep -F "SaintsAI · WhatsApp" /tmp/whatsapp.html
 
       - name: Build APKs
-        run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
+        run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug :salesnotify:assembleDebug
 
       - name: Enable KVM
         run: |
@@ -119,7 +119,7 @@ jobs:
       - name: Rename APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk\n          cp salesnotify/build/outputs/apk/debug/salesnotify-debug.apk Gerenciador-de-Vendas-v1.0.0.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -133,4 +133,12 @@ jobs:
         with:
           name: SaintsAI-Cliente-APK-v1.2.1
           path: android-app/SaintsAI-Cliente-v1.2.1.apk
+          if-no-files-found: error
+
+
+      - name: Upload Gerenciador de Vendas
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gerenciador-de-Vendas-APK-v1.0.0
+          path: android-app/Gerenciador-de-Vendas-v1.0.0.apk
           if-no-files-found: error
