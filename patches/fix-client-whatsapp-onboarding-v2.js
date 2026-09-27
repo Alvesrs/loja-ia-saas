@@ -149,6 +149,28 @@ async function iniciarPareamento(lojaId,phoneNumber){
   return Object.freeze({session:sessao,code:codigo.data.code,status:'PAIRING',connected:false,verified:false,numero_solicitado:fone});
 }
 
+async function garantirWebhooksAtivos(){
+  const e=env();
+  const {data,error}=await supabase.from('whatsapp_configuracoes')
+    .select('identificador_externo')
+    .eq('provedor','waha')
+    .eq('ativo',true)
+    .not('identificador_externo','is',null);
+  if(error)throw error;
+  for(const cfg of (data||[])){
+    const sessao=String(cfg.identificador_externo||'').trim();
+    if(!sessao)continue;
+    const atualizado=await chamar('/api/sessions/'+encodeURIComponent(sessao),{
+      method:'PUT',
+      body:JSON.stringify({
+        name:sessao,
+        config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]}
+      })
+    });
+    if(!atualizado.ok&&atualizado.status!==404)console.error('[waha] falha_atualizar_webhook',sessao,atualizado.status);
+  }
+}
+
 async function status(lojaId){
   const sessao=sessionName(lojaId);
   const r=await chamar('/api/sessions/'+encodeURIComponent(sessao),{method:'GET'});
@@ -169,10 +191,7 @@ async function desconectar(lojaId){
 }
 `;
   s=s.slice(0,a)+tail+s.slice(b);
-  s=s.replace(
-    "module.exports={iniciarPareamento,status,ErroWaha,sessionName};",
-    "module.exports={iniciarPareamento,status,desconectar,ErroWaha,sessionName};"
-  );
+  s=s.replace(/module\.exports=\{[^}]*\};/,"module.exports={iniciarPareamento,status,desconectar,garantirWebhooksAtivos,ErroWaha,sessionName};");
   write(p,s);
 }
 
