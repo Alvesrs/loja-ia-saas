@@ -233,7 +233,47 @@ if(!configHtml.includes('cliente-profissionais-v1.js')) throw new Error('Configu
 cp.execFileSync(process.execPath,['--check','src/services/profissionais.service.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','public/js/cliente-profissionais-v1.js'],{stdio:'inherit'});
 
-console.log('Portal cliente validado: Dashboard + WhatsApp + PagBank + profissionais reais.');
+
+for(const p of [
+  'src/controllers/clientePlano.controller.js',
+  'src/routes/clientePlano.routes.js',
+  'public/cliente-plano.html'
+]){
+  if(!fs.existsSync(p)) throw new Error('Planos do cliente incompletos: '+p);
+}
+const planoController=fs.readFileSync('src/controllers/clientePlano.controller.js','utf8');
+const planoRoutes=fs.readFileSync('src/routes/clientePlano.routes.js','utf8');
+const planoHtml=fs.readFileSync('public/cliente-plano.html','utf8');
+const asaasPlano=fs.readFileSync('src/services/asaas.service.js','utf8');
+for(const m of ['obterSituacaoPlano','criarPixPlano','cobrancas_assinaturas','valor_centavos','duracao_meses']){
+  if(!planoController.includes(m)) throw new Error('API Plano cliente incompleta: '+m);
+}
+for(const m of ["r.get('/',c.resumo)","r.post('/pix',c.gerarPix)"]){
+  if(!planoRoutes.includes(m)) throw new Error('Rotas Plano cliente incompletas: '+m);
+}
+for(const m of ['Plano e cobrança','Planos SaintsAI','respostas usadas no mês','Histórico de cobrança','Gerar Pix para pagar','Já paguei · atualizar plano']){
+  if(!planoHtml.includes(m)) throw new Error('Tela Plano cliente incompleta: '+m);
+}
+if(!app.includes("app.use('/api/lojas/:lojaId/cliente-plano',clientePlanoRoutes);")) throw new Error('API de Plano cliente não montada');
+if(!app.includes("'/cliente/cliente-plano.html'")) throw new Error('Página de Plano cliente sem rota web');
+if(!app.includes("'/painel/cliente-plano.html'")) throw new Error('Página de Plano cliente sem rota APK');
+if(!hub.includes("id:'plano',titulo:'Escolha seu plano SaintsAI'")) throw new Error('Onboarding sem etapa de plano SaintsAI');
+if(!html.includes('id="client-plan-link"')) throw new Error('Dashboard sem atalho para Plano e cobrança');
+if(!html.includes("destino==='plano'?'cliente-plano.html'")) throw new Error('Etapa Plano não navega para tela própria');
+if(!asaasPlano.includes('valor_centavos: valorCentavos')||!asaasPlano.includes('duracao_meses: meses')) throw new Error('Cobrança não registra valor/duração no histórico');
+
+const plre=/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;let plm,pli=0;
+while((plm=plre.exec(planoHtml))){
+  const code=plm[1].trim();if(!code)continue;
+  const tmp=path.join(os.tmpdir(),'saintsai-client-plan-validate-'+(++pli)+'.js');
+  fs.writeFileSync(tmp,code);
+  try{cp.execFileSync(process.execPath,['--check',tmp],{stdio:'inherit'});}finally{try{fs.unlinkSync(tmp)}catch(_){}}
+}
+if(pli===0) throw new Error('Tela Plano cliente sem JavaScript');
+cp.execFileSync(process.execPath,['--check','src/controllers/clientePlano.controller.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/routes/clientePlano.routes.js'],{stdio:'inherit'});
+
+console.log('Portal cliente validado: Dashboard + equipe + WhatsApp + Plano e cobrança + PagBank.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -252,3 +292,5 @@ console.log('Portal cliente validado: Dashboard + WhatsApp + PagBank + profissio
 // SAINTSAI_PAGBANK_CONNECT_V2_VALIDATION
 
 // SAINTSAI_PROFISSIONAIS_V1_VALIDATION
+
+// SAINTSAI_CLIENT_PLANOS_V1_VALIDATION
