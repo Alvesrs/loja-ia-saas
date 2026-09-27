@@ -118,7 +118,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-Validation-v1.2.3
+          name: SaintsAI-Cliente-Validation-v1.2.4
           path: |
             android-app/estoque-screen.png
             android-app/layout-threebutton/
@@ -130,7 +130,7 @@ jobs:
       - name: Package APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.3.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.4.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -142,21 +142,21 @@ jobs:
       - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.3
-          path: android-app/SaintsAI-Cliente-v1.2.3.apk
+          name: SaintsAI-Cliente-APK-v1.2.4
+          path: android-app/SaintsAI-Cliente-v1.2.4.apk
           if-no-files-found: error
 
       - name: Publish latest SaintsAI Cliente
         run: |
           mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.3.apk ../downloads/SaintsAI-Cliente.apk
+          cp SaintsAI-Cliente-v1.2.4.apk ../downloads/SaintsAI-Cliente.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":18,"versionName":"1.2.3","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          {"versionCode":19,"versionName":"1.2.4","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/SaintsAI-Cliente.apk downloads/saintsai-cliente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.3 [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.4 [skip ci]"
           git push
