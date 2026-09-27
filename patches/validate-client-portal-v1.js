@@ -273,7 +273,38 @@ if(pli===0) throw new Error('Tela Plano cliente sem JavaScript');
 cp.execFileSync(process.execPath,['--check','src/controllers/clientePlano.controller.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','src/routes/clientePlano.routes.js'],{stdio:'inherit'});
 
-console.log('Portal cliente validado: Dashboard + equipe + WhatsApp + Plano e cobrança + PagBank.');
+
+for(const p of [
+  'src/services/agendaProfissional.service.js',
+  'src/controllers/agendaProfissional.controller.js',
+  'src/routes/agendaProfissional.routes.js',
+  'public/cliente-agenda.html'
+]){
+  if(!fs.existsSync(p)) throw new Error('Agenda profissional incompleta: '+p);
+}
+const agendaProSvc=fs.readFileSync('src/services/agendaProfissional.service.js','utf8');
+const agendaProHtml=fs.readFileSync('public/cliente-agenda.html','utf8');
+const profissionaisFinal=fs.readFileSync('src/services/profissionais.service.js','utf8');
+const profissionalUiFinal=fs.readFileSync('public/js/cliente-profissionais-v1.js','utf8');
+for(const m of ['criarBloqueio','removerBloqueio','alterarAgendamento','nao_compareceu']){
+  if(!agendaProSvc.includes(m)) throw new Error('Agenda profissional backend incompleto: '+m);
+}
+for(const m of ['Bloqueios, folgas, férias e feriados','Reagendar','No-show','Pausas recorrentes']){
+  if(!agendaProHtml.includes(m)) throw new Error('Agenda profissional UI incompleta: '+m);
+}
+for(const m of ['limparPausas','bloqueiosPeriodo','emPausaRecorrente','saintsai_agenda_bloqueios']){
+  if(!profissionaisFinal.includes(m)) throw new Error('Disponibilidade profissional incompleta: '+m);
+}
+if(!profissionalUiFinal.includes('Pausa / almoço recorrente')) throw new Error('Equipe sem pausa/almoço recorrente');
+if(!app.includes("app.use('/api/lojas/:lojaId/agenda-profissional', agendaProfissionalRoutes);")) throw new Error('API agenda profissional não montada');
+if(!app.includes("'/cliente/cliente-agenda.html'")||!app.includes("'/painel/cliente-agenda.html'")) throw new Error('Rotas web/APK da agenda profissional ausentes');
+if(configHtml.includes('cliente-central.html?aba=agenda')) throw new Error('Configuração ainda aponta para agenda antiga');
+if(!configHtml.includes('cliente-agenda.html')) throw new Error('Configuração não aponta para agenda profissional');
+cp.execFileSync(process.execPath,['--check','src/services/agendaProfissional.service.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/controllers/agendaProfissional.controller.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/services/profissionais.service.js'],{stdio:'inherit'});
+
+console.log('Portal cliente validado: Dashboard + equipe + Agenda profissional + WhatsApp + Planos + PagBank.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -294,3 +325,5 @@ console.log('Portal cliente validado: Dashboard + equipe + WhatsApp + Plano e co
 // SAINTSAI_PROFISSIONAIS_V1_VALIDATION
 
 // SAINTSAI_CLIENT_PLANOS_V1_VALIDATION
+
+// SAINTSAI_AGENDA_PRO_V1_VALIDATION
