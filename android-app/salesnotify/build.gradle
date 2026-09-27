@@ -6,6 +6,10 @@ android {
     namespace 'com.saintsai.sales'
     compileSdk 35
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.saintsai.sales"
         minSdk 24
