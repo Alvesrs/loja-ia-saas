@@ -6,7 +6,96 @@
 .loginGate{position:fixed;inset:0;background:linear-gradient(135deg,#0b1020,#151d34);z-index:200;display:grid;place-items:center;padding:20px}.loginGate.hidden{display:none}
 .loginCard{width:min(430px,100%);background:#fff;border-radius:22px;padding:28px;box-shadow:0 30px 90px #0008}.loginCard h1{margin:8px 0 6px;font-size:28px}.loginCard p{color:#7b8497;margin:0 0 20px}.loginCard label{display:block;font-size:12px;font-weight:800;color:#60697b;margin-top:12px}.loginCard input{width:100%;margin-top:6px;border:1px solid #dfe3e9;border-radius:11px;padding:12px}.loginCard button{width:100%;margin-top:18px}.loginError{color:#b42318;font-size:12px;min-height:18px;margin-top:10px}.logout{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 12px;font-weight:700;color:#596273}
 .hidden{display:none!important}
-</style></head><body><div class="loginGate" id="loginGate"><form class="loginCard" id="loginForm"><div class="eyebrow">GERENCIADOR DE VENDAS</div><h1>Entrar</h1><p>Acesse a conta da sua empresa.</p><label>E-mail<input id="loginEmail" type="email" autocomplete="username" required></label><label>Senha<input id="loginSenha" type="password" autocomplete="current-password" required></label><div class="loginError" id="loginError"></div><button class="primary" type="submit">Entrar no Gerenciador</button></form></div><div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">GV</div><div><b>Gerenciador</b><span>Vendas & desempenho</span></div></div><nav class="nav"><button class="on" data-p="dashboard">▦ Dashboard</button><button data-p="vendas">◫ Vendas</button><button data-p="clientes">◎ Clientes</button><button data-p="produtos">◇ Produtos</button><button data-p="relatorios">↗ Relatórios</button></nav><div class="bottom">SaintsAI · Gerenciador de Vendas<br>Projeto separado do Agente IA</div></aside><main class="main"><header class="top"><button class="menu" id="menu">☰</button><div><div class="eyebrow">VISÃO GERAL</div><h1 id="title">Dashboard</h1></div><div class="actions"><select><option>Este mês</option><option>Últimos 30 dias</option><option>Este ano</option></select><button class="primary open">＋ Registrar venda</button><button class="logout hidden" id="appUpdateBtn" type="button">↻ Atualizar app</button><button class="logout" id="logoutBtn">Sair</button></div></header>
+
+/* SAINTSAI_DARK_SALES_V2 */
+:root{
+  --bg:#07060d;--panel:#0f0d17;--line:#2a2038;--ink:#f7f4ff;--muted:#a79bb8;
+  --nav:#08060f;--pri:#7c3aed;--pri2:#b060ff;--green:#2fd29a
+}
+html,body{background:radial-gradient(circle at top right,#241035 0,#0b0812 35%,#07060d 72%);color:var(--ink)}
+body{min-height:100vh}
+.shell{background:transparent}
+.side{
+  background:linear-gradient(180deg,#09060f 0%,#11091b 55%,#08060d 100%);
+  border-right:1px solid #2d1b42;
+  box-shadow:18px 0 60px #0008
+}
+.brand{border-bottom-color:#ffffff12}
+.logo{
+  background:linear-gradient(135deg,#5b21b6,#a855f7);
+  box-shadow:0 0 28px #9333ea55;
+  font-family:Georgia,serif;font-size:24px
+}
+.brand span,.bottom{color:#9d8caf}
+.nav button{color:#a99ab9}
+.nav button.on,.nav button:hover{
+  color:#fff;background:linear-gradient(135deg,#7c3aed33,#a855f722);
+  border:1px solid #7c3aed55
+}
+.top{
+  background:linear-gradient(180deg,#120b1bfa,#0c0912f3);
+  border-bottom:1px solid #2b2037;
+  backdrop-filter:blur(14px)
+}
+.eyebrow{color:#a86cf7}
+.top h1{font-family:Georgia,serif;color:#fff;letter-spacing:.01em}
+.page{background:transparent}
+.card,.panel{
+  background:linear-gradient(180deg,#12101a,#0d0b13);
+  border:1px solid #2c2239;
+  box-shadow:0 18px 44px #0005
+}
+.card .row,.card small,.line small,.placeholder,.loginCard p{color:#9f95aa}
+.card strong,.panel h2,.line b,.line em,.placeholder b{color:#fff}
+.pill{background:#113226;color:#59dfae}
+.actions select,.input,.form input,.form select{
+  background:#0d0b13;color:#fff;border-color:#342642
+}
+.actions select option,.form select option{background:#0d0b13;color:#fff}
+.primary{
+  background:linear-gradient(135deg,#6d28d9,#a855f7);
+  box-shadow:0 10px 25px #7c3aed45
+}
+.secondary,.logout,.menu{
+  background:#111019;color:#eee7f8;border-color:#32253f
+}
+.table th{background:#100d16;color:#a391b3}
+.table td{color:#eee8f5;border-bottom-color:#241c2e}
+.status{background:#123426;color:#55dba8}
+.old{background:#30283a}
+.donut div{background:#0f0d17;color:#fff}
+.modal{background:#05030bd9}
+.modalBox,.loginCard{
+  background:linear-gradient(180deg,#15101f,#0d0a12);
+  border:1px solid #342149;color:#fff
+}
+.modalHead button{background:#241832;color:#fff}
+.loginGate{background:radial-gradient(circle at top,#24103a,#0b0712 48%,#050309)}
+.loginCard{box-shadow:0 30px 90px #000b}
+.loginCard input{background:#0b0910;color:#fff;border-color:#342642}
+.loginError{color:#ff8d8d}
+.bubble{background:#24163a;color:#cda7ff}
+.chart{border-bottom-color:#2a2133}
+.line{border-bottom-color:#231a2d}
+.sources div{color:#e7deef}
+#dashboard .panel,.card{position:relative;overflow:hidden}
+#dashboard .panel:before,.card:before{
+  content:"";position:absolute;inset:0 0 auto;height:1px;
+  background:linear-gradient(90deg,transparent,#9f5cff88,transparent)
+}
+@media(max-width:760px){
+  body{padding-bottom:env(safe-area-inset-bottom)}
+  .side{background:linear-gradient(180deg,#0b0712,#100819)}
+  .top{padding-top:max(14px,env(safe-area-inset-top));gap:6px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .actions select{grid-column:1/2}
+  .actions .primary{grid-column:2/3}
+  .actions .logout,.actions #appUpdateBtn{min-height:44px}
+  .page{padding:14px 14px calc(28px + env(safe-area-inset-bottom))}
+  .card,.panel{border-radius:20px}
+}
+
+</style></head><body><div class="loginGate" id="loginGate"><form class="loginCard" id="loginForm"><div class="eyebrow">GERENCIADOR DE VENDAS</div><h1>Entrar</h1><p>Acesse a conta da sua empresa.</p><label>E-mail<input id="loginEmail" type="email" autocomplete="username" required></label><label>Senha<input id="loginSenha" type="password" autocomplete="current-password" required></label><div class="loginError" id="loginError"></div><button class="primary" type="submit">Entrar no Gerenciador</button></form></div><div class="shell"><aside class="side" id="side"><div class="brand"><div class="logo">S</div><div><b>SaintsAI</b><span>Gerenciador de Vendas</span></div></div><nav class="nav"><button class="on" data-p="dashboard">▦ Dashboard</button><button data-p="vendas">◫ Vendas</button><button data-p="clientes">◎ Clientes</button><button data-p="produtos">◇ Produtos</button><button data-p="relatorios">↗ Relatórios</button></nav><div class="bottom">SaintsAI · Gerenciador de Vendas<br>Projeto separado do Agente IA</div></aside><main class="main"><header class="top"><button class="menu" id="menu">☰</button><div><div class="eyebrow">VISÃO GERAL</div><h1 id="title">Dashboard</h1></div><div class="actions"><select><option>Este mês</option><option>Últimos 30 dias</option><option>Este ano</option></select><button class="primary open">＋ Registrar venda</button><button class="logout hidden" id="appUpdateBtn" type="button">↻ Atualizar app</button><button class="logout" id="logoutBtn">Sair</button></div></header>
 <section class="page on" id="dashboard"><div class="kpis"><div class="card"><div class="row"><span>Faturamento</span><span class="pill">+12,8%</span></div><strong id="kpiFat">R$ 0,00</strong><small>vs. período anterior</small></div><div class="card"><div class="row"><span>Vendas</span><span class="pill">+8,4%</span></div><strong id="kpiVendas">0</strong><small>vendas registradas</small></div><div class="card"><div class="row"><span>Ticket médio</span><span class="pill">+4,1%</span></div><strong id="kpiTicket">R$ 0,00</strong><small>média por venda</small></div><div class="card"><div class="row"><span>Clientes</span><span class="pill">+16,2%</span></div><strong id="kpiClientes">0</strong><small>31 novos no período</small></div></div><div class="grid"><div class="panel"><div class="eyebrow">DESEMPENHO</div><h2>Evolução de faturamento</h2><div class="chart" id="chart"></div></div><div class="panel"><div class="eyebrow">CANAIS</div><h2>Origem das vendas</h2><div class="donutWrap"><div class="donut"><div><b>327</b><small>vendas</small></div></div><div class="sources"><div><span>WhatsApp</span><b>44%</b></div><div><span>Instagram</span><b>27%</b></div><div><span>Loja física</span><b>18%</b></div><div><span>Outros</span><b>11%</b></div></div></div></div></div><div class="lists"><div class="panel"><div class="eyebrow">CATEGORIAS</div><h2>Top categorias</h2><div class="line"><span class="bubble">1</span><span><b>Eletrônicos</b><small>112 vendas</small></span><em>R$ 31.840</em></div><div class="line"><span class="bubble">2</span><span><b>Acessórios</b><small>86 vendas</small></span><em>R$ 18.120</em></div><div class="line"><span class="bubble">3</span><span><b>Moda</b><small>74 vendas</small></span><em>R$ 16.740</em></div></div><div class="panel"><div class="eyebrow">VENDAS</div><h2>Últimas vendas</h2><div class="line"><span class="bubble">W</span><span><b>Mariana Costa</b><small>WhatsApp · 12 min</small></span><em>R$ 289,90</em></div><div class="line"><span class="bubble">I</span><span><b>João Pedro</b><small>Instagram · 34 min</small></span><em>R$ 149,00</em></div><div class="line"><span class="bubble">L</span><span><b>Ana Clara</b><small>Loja física · 1h</small></span><em>R$ 399,90</em></div></div></div></section>
 <section class="page" id="vendas"><div class="toolbar"><input class="input" placeholder="Buscar cliente, produto ou vendedor"><select class="input" id="channelFilter"><option value="">Todos os canais</option><option>WhatsApp</option><option>Instagram</option><option>Loja física</option></select><select class="input" id="clientTypeFilter"><option value="">Todos os clientes</option><option value="novo">Clientes Novos</option><option value="recorrente">Clientes Recorrentes</option></select><button class="primary open">＋ Registrar venda</button></div><div class="panel table"><table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Origem</th><th>Categoria</th><th>Vendedor</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody id="salesBody"></tbody></table></div></section>
 <section class="page" id="clientes"><div class="panel placeholder"><div><b>Clientes</b>Cadastro, histórico de compras, ticket médio e recorrência.</div></div></section><section class="page" id="produtos"><div class="panel placeholder"><div><b>Produtos & Categorias</b>Catálogo e organização das vendas por categoria.</div></div></section><section class="page" id="relatorios">
