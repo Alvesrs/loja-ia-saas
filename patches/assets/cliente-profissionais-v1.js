@@ -49,6 +49,7 @@
       '<div class="field"><label>Serviços que realiza</label>'+servicosChecks(p?.servico_ids||[])+'<div class="muted">Se nenhum serviço for marcado, o profissional será considerado disponível para todos.</div></div>'+
       '<label class="check" style="margin-top:14px"><input id="pro-geral" type="checkbox" '+(!p?.horarios?'checked':'')+'> Usar os horários gerais da empresa</label>'+
       '<div id="pro-horarios" '+(!p?.horarios?'class="hidden"':'')+'>'+horariosEditor(p?.horarios||null)+'</div>'+
+      '<div class="field"><label>Pausa / almoço recorrente</label><div class="row"><input id="pro-pausa-ini" type="time" value="'+safe(p?.pausas?.[0]?.inicio||'12:00')+'"><input id="pro-pausa-fim" type="time" value="'+safe(p?.pausas?.[0]?.fim||'13:00')+'"></div><div class="pro-pausa-dias">'+[1,2,3,4,5,6,0].map(function(d){var nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];var checked=(p?.pausas?.[0]?.dias||[1,2,3,4,5]).includes(d);return '<label class="check"><input type="checkbox" data-pausa-dia="'+d+'" '+(checked?'checked':'')+'> '+nomes[d]+'</label>'}).join('')+'</div><div class="muted">Desmarque todos os dias para não usar pausa recorrente.</div></div>'+
       '<div class="btns"><button class="btn" id="pro-save">'+(edit?'Salvar alterações':'Adicionar profissional')+'</button></div>'+
       '<div class="status" id="pro-status"></div>'+
       '<div id="pro-list-wrap"></div>';
@@ -60,7 +61,9 @@
       const st=$('pro-status'),btn=$('pro-save');
       try{
         btn.disabled=true;st.textContent='Salvando…';
-        const body={nome:$('pro-nome').value.trim(),servico_ids:selecionados(),horarios:lerHorarios()};
+        const pausaDias=Array.from(document.querySelectorAll('[data-pausa-dia]:checked')).map(x=>Number(x.dataset.pausaDia));
+        const pausas=pausaDias.length?[{dias:pausaDias,inicio:$('pro-pausa-ini').value,fim:$('pro-pausa-fim').value,motivo:'Pausa / almoço'}]:null;
+        const body={nome:$('pro-nome').value.trim(),servico_ids:selecionados(),horarios:lerHorarios(),pausas};
         if(edit){
           await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais/'+p.id,{method:'PUT',body:JSON.stringify(body)});
         }else{
