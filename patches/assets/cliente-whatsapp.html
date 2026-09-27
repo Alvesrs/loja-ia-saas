@@ -46,7 +46,12 @@ input{width:100%;min-height:49px;background:#09080d;border:1px solid rgba(255,25
 <div class="help">Se este celular estiver usando o mesmo número conectado à loja, faça o teste a partir de outro WhatsApp.</div>
 </section>
 
-<section class="card">
+<section class="card" id="pairbox">
+<div id="already" style="display:none">
+  <h2>WhatsApp já conectado</h2>
+  <div class="muted">Este número já está conectado ao SaintsAI. Não é necessário gerar outro código.</div>
+</div>
+<div id="paircontent">
 <h2>Conectar ou trocar número</h2>
 <div class="muted">Digite o número com DDI e DDD. O SaintsAI gera um código para vincular em “Aparelhos conectados”.</div>
 <div class="field"><label for="phone">Número do WhatsApp</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="5544999999999"></div>
@@ -54,6 +59,7 @@ input{width:100%;min-height:49px;background:#09080d;border:1px solid rgba(255,25
 <div class="code" id="code"></div>
 <div class="help">No WhatsApp: Configurações → Aparelhos conectados → Conectar um aparelho → Conectar com número de telefone.</div>
 <div class="msg" id="msg"></div>
+</div>
 </section>
 
 <section class="card">
@@ -72,6 +78,9 @@ function setStatus(x){
  const ok=!!x.conectado;$('dot').classList.toggle('ok',ok);$('status').textContent=ok?'WhatsApp conectado':'WhatsApp não conectado';
  $('provider').textContent=x.provedor?String(x.provedor).toUpperCase():'—';numeroConectado=digits(x.numero_whatsapp||'');
  $('number').textContent=numeroConectado?('Número: +'+numeroConectado):'';$('testbox').classList.toggle('show',ok&&!!numeroConectado);
+ $('already').style.display=ok?'block':'none';
+ $('paircontent').style.display=ok?'none':'block';
+ if(ok){$('code').textContent='';$('msg').textContent='';}
 }
 async function carregarStatus(){
  try{const x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/whatsapp/status');setStatus(x);return x;}
@@ -84,10 +93,17 @@ async function init(){
 $('back').onclick=()=>location.href='cliente-configuracao.html?etapa=operacao';
 $('refresh').onclick=()=>carregarStatus();
 $('pair').onclick=async()=>{
- const b=$('pair'),m=$('msg'),code=$('code'),phone=digits($('phone').value);
+ const b=$('pair'),m=$('msg'),code=$('code');
+ const st=await carregarStatus();
+ if(st&&st.conectado){m.textContent='';return;}
+ const phone=digits($('phone').value);
  if(phone.length<10){m.textContent='Digite um número válido com DDI e DDD.';return;}
- try{b.disabled=true;m.textContent='Preparando conexão…';code.textContent='';const x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/whatsapp/pair',{method:'POST',body:JSON.stringify({phone_number:phone})});code.textContent=x.code||'';m.textContent='Código gerado. Digite-o no WhatsApp e depois toque em Atualizar status.';}
- catch(e){m.textContent=e.message||'Não foi possível gerar o código.';}finally{b.disabled=false;}
+ try{
+  b.disabled=true;m.textContent='Preparando conexão…';code.textContent='';
+  const x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/whatsapp/pair',{method:'POST',body:JSON.stringify({phone_number:phone})});
+  if(x&&x.already_connected){setStatus({conectado:true,provedor:x.provedor||'waha',numero_whatsapp:x.numero_whatsapp||phone});return;}
+  code.textContent=x.code||'';m.textContent='Código gerado. Digite-o no WhatsApp e depois toque em Atualizar status.';
+ }catch(e){m.textContent=e.message||'Não foi possível gerar o código.';}finally{b.disabled=false;}
 };
 $('test').onclick=()=>{
  if(!numeroConectado)return;$('msg').textContent='';const texto=encodeURIComponent('Olá! Este é um teste do atendimento SaintsAI.');window.open('https://wa.me/'+numeroConectado+'?text='+texto,'_blank','noopener,noreferrer');
