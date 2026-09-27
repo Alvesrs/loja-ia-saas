@@ -85,7 +85,7 @@ async function resumo(req,res){
       supabase.from('saintsai_agendamentos')
         .select('id,valor,status,pagamento_status,inicio')
         .eq('loja_id',lojaId).in('pagamento_status',['pendente','aguardando','presencial'])
-        .not('status','in','(cancelado,nao_compareceu)'),
+        .neq('status','cancelado').neq('status','nao_compareceu'),
       supabase.from('saintsai_agendamentos')
         .select('id,status,inicio')
         .eq('loja_id',lojaId).gte('inicio',b.dayStart).lt('inicio',b.dayEnd)
