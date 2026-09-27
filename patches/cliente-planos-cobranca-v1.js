@@ -56,10 +56,8 @@ write('src/app.js',app);
 /* Novas cobranças guardam valor e duração para o histórico */
 let asaas=read('src/services/asaas.service.js');
 const old="external_reference: externalReference,\n    atualizado_em: new Date().toISOString(),";
-if(!asaas.includes('valor_centavos: valorCentavos')){
-  if(!asaas.includes(old))throw new Error('Insert de cobrança Asaas não encontrado');
-  asaas=asaas.split(old).join("external_reference: externalReference,\n    valor_centavos: valorCentavos,\n    duracao_meses: meses,\n    atualizado_em: new Date().toISOString(),");
-}
+if(!asaas.includes(old))throw new Error('Insert de cobrança Asaas não encontrado');
+asaas=asaas.split(old).join("external_reference: externalReference,\n    valor_centavos: valorCentavos,\n    duracao_meses: meses,\n    atualizado_em: new Date().toISOString(),");
 write('src/services/asaas.service.js',asaas);
 
 /* Plano pago entra no progresso do onboarding */
