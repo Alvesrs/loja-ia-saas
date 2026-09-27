@@ -8,8 +8,7 @@ function duracao(servico){return Number(servico?.duracao_min||0)+Number(servico?
 function limparHorarios(raw){
   if(raw===null||raw===undefined||raw==='')return null;
   if(typeof raw!=='object'||Array.isArray(raw))throw new Error('horarios_invalidos');
-  const out={};
-  let tem=false;
+  const out={};let tem=false;
   for(let d=0;d<7;d++){
     const x=raw[String(d)]||{};
     if(x.aberto===true){
@@ -21,18 +20,40 @@ function limparHorarios(raw){
   return tem?out:null;
 }
 
+function limparPausas(raw){
+  if(raw===null||raw===undefined||raw==='')return null;
+  if(!Array.isArray(raw))throw new Error('pausas_invalidas');
+  if(raw.length>12)throw new Error('pausas_invalidas');
+  const out=[];
+  for(const item of raw){
+    if(!item||typeof item!=='object')throw new Error('pausas_invalidas');
+    const dias=[...new Set((item.dias||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<=6))].sort();
+    const inicio=String(item.inicio||''),fim=String(item.fim||'');
+    const motivo=String(item.motivo||'Pausa').trim().slice(0,80)||'Pausa';
+    if(!dias.length||!horaValida(inicio)||!horaValida(fim)||inicio>=fim)throw new Error('pausas_invalidas');
+    out.push({dias,inicio,fim,motivo});
+  }
+  return out.length?out:null;
+}
+
 async function listar(lojaId,{somenteAtivos=false}={}){
-  let q=supabase.from('saintsai_profissionais').select('id,loja_id,nome,ativo,horarios,criado_em,atualizado_em').eq('loja_id',lojaId).order('nome');
+  let q=supabase.from('saintsai_profissionais')
+    .select('id,loja_id,nome,ativo,horarios,pausas,criado_em,atualizado_em')
+    .eq('loja_id',lojaId).order('nome');
   if(somenteAtivos)q=q.eq('ativo',true);
   const {data:pros,error}=await q;if(error)throw error;
   const ids=(pros||[]).map(x=>x.id);
   let links=[];
   if(ids.length){
-    const r=await supabase.from('saintsai_profissional_servicos').select('profissional_id,servico_id').eq('loja_id',lojaId).in('profissional_id',ids);
+    const r=await supabase.from('saintsai_profissional_servicos')
+      .select('profissional_id,servico_id').eq('loja_id',lojaId).in('profissional_id',ids);
     if(r.error)throw r.error;links=r.data||[];
   }
   const map=new Map();
-  for(const l of links){if(!map.has(l.profissional_id))map.set(l.profissional_id,[]);map.get(l.profissional_id).push(l.servico_id);}
+  for(const l of links){
+    if(!map.has(l.profissional_id))map.set(l.profissional_id,[]);
+    map.get(l.profissional_id).push(l.servico_id);
+  }
   return (pros||[]).map(p=>({...p,servico_ids:map.get(p.id)||[],usa_horario_geral:!p.horarios}));
 }
 
@@ -43,38 +64,56 @@ async function salvarServicos(lojaId,profissionalId,servicoIds){
     if(error)throw error;
     if((sv||[]).length!==ids.length)throw new Error('servico_invalido');
   }
-  const {error:del}=await supabase.from('saintsai_profissional_servicos').delete().eq('loja_id',lojaId).eq('profissional_id',profissionalId);
+  const {error:del}=await supabase.from('saintsai_profissional_servicos')
+    .delete().eq('loja_id',lojaId).eq('profissional_id',profissionalId);
   if(del)throw del;
   if(ids.length){
-    const {error}=await supabase.from('saintsai_profissional_servicos').insert(ids.map(servico_id=>({loja_id:lojaId,profissional_id:profissionalId,servico_id})));
+    const {error}=await supabase.from('saintsai_profissional_servicos')
+      .insert(ids.map(servico_id=>({loja_id:lojaId,profissional_id:profissionalId,servico_id})));
     if(error)throw error;
   }
 }
 
-async function criar(lojaId,{nome,servico_ids,horarios}){
+async function criar(lojaId,{nome,servico_ids,horarios,pausas}){
   const n=String(nome||'').trim();
   if(n.length<2||n.length>100)throw new Error('nome_invalido');
-  const hs=limparHorarios(horarios);
-  const {data,error}=await supabase.from('saintsai_profissionais').insert({loja_id:lojaId,nome:n,horarios:hs,ativo:true}).select('*').single();
+  const hs=limparHorarios(horarios),ps=limparPausas(pausas);
+  const {data,error}=await supabase.from('saintsai_profissionais')
+    .insert({loja_id:lojaId,nome:n,horarios:hs,pausas:ps,ativo:true})
+    .select('*').single();
   if(error)throw error;
-  try{await salvarServicos(lojaId,data.id,servico_ids||[]);}catch(e){await supabase.from('saintsai_profissionais').delete().eq('id',data.id).eq('loja_id',lojaId);throw e;}
+  try{await salvarServicos(lojaId,data.id,servico_ids||[]);}
+  catch(e){
+    await supabase.from('saintsai_profissionais').delete().eq('id',data.id).eq('loja_id',lojaId);
+    throw e;
+  }
   return (await listar(lojaId)).find(x=>x.id===data.id);
 }
 
-async function atualizar(lojaId,id,{nome,servico_ids,horarios,ativo}){
+async function atualizar(lojaId,id,{nome,servico_ids,horarios,pausas,ativo}){
   const dados={atualizado_em:new Date().toISOString()};
-  if(nome!==undefined){const n=String(nome||'').trim();if(n.length<2||n.length>100)throw new Error('nome_invalido');dados.nome=n;}
+  if(nome!==undefined){
+    const n=String(nome||'').trim();
+    if(n.length<2||n.length>100)throw new Error('nome_invalido');
+    dados.nome=n;
+  }
   if(horarios!==undefined)dados.horarios=limparHorarios(horarios);
+  if(pausas!==undefined)dados.pausas=limparPausas(pausas);
   if(ativo!==undefined)dados.ativo=Boolean(ativo);
-  const {data,error}=await supabase.from('saintsai_profissionais').update(dados).eq('id',id).eq('loja_id',lojaId).select('id').maybeSingle();
-  if(error)throw error;if(!data)throw new Error('profissional_nao_encontrado');
+  const {data,error}=await supabase.from('saintsai_profissionais')
+    .update(dados).eq('id',id).eq('loja_id',lojaId).select('id').maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('profissional_nao_encontrado');
   if(servico_ids!==undefined)await salvarServicos(lojaId,id,servico_ids);
   return (await listar(lojaId)).find(x=>x.id===id);
 }
 
 async function desativar(lojaId,id){
-  const {data,error}=await supabase.from('saintsai_profissionais').update({ativo:false,atualizado_em:new Date().toISOString()}).eq('id',id).eq('loja_id',lojaId).select('id').maybeSingle();
-  if(error)throw error;if(!data)throw new Error('profissional_nao_encontrado');
+  const {data,error}=await supabase.from('saintsai_profissionais')
+    .update({ativo:false,atualizado_em:new Date().toISOString()})
+    .eq('id',id).eq('loja_id',lojaId).select('id').maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('profissional_nao_encontrado');
   return true;
 }
 
@@ -96,6 +135,16 @@ function cabeNoHorario(pro,cfg,data,hora,servico){
   return h!==null&&dur>0&&h>=ini&&h+dur<=fim;
 }
 
+function emPausaRecorrente(pro,data,a,b){
+  if(!pro?.pausas||!Array.isArray(pro.pausas))return false;
+  const dia=new Date(String(data)+'T12:00:00Z').getUTCDay();
+  return pro.pausas.some(p=>{
+    if(!Array.isArray(p.dias)||!p.dias.map(Number).includes(dia)||!horaValida(p.inicio)||!horaValida(p.fim))return false;
+    const pi=new Date(isoLocal(data,p.inicio)),pf=new Date(isoLocal(data,p.fim));
+    return pi<b&&pf>a;
+  });
+}
+
 function conflita(ocupados,profissionalId,a,b){
   return (ocupados||[]).some(x=>{
     const mesmo=profissionalId?String(x.profissional_id||'')===String(profissionalId):!x.profissional_id;
@@ -103,26 +152,51 @@ function conflita(ocupados,profissionalId,a,b){
   });
 }
 
+function bloqueado(bloqueios,profissionalId,a,b){
+  return (bloqueios||[]).some(x=>{
+    const alvo=!x.profissional_id||(profissionalId&&String(x.profissional_id)===String(profissionalId));
+    return alvo&&new Date(x.inicio)<b&&new Date(x.fim)>a&&x.ativo!==false;
+  });
+}
+
 async function ocupadosPeriodo(lojaId,inicio,fim,ignorarId=null){
-  let q=supabase.from('saintsai_agendamentos').select('id,profissional_id,inicio,fim,status').eq('loja_id',lojaId).neq('status','cancelado').gte('inicio',inicio).lt('inicio',fim);
-  const {data,error}=await q;if(error)throw error;
+  const {data,error}=await supabase.from('saintsai_agendamentos')
+    .select('id,profissional_id,inicio,fim,status')
+    .eq('loja_id',lojaId).neq('status','cancelado')
+    .lt('inicio',fim).gt('fim',inicio);
+  if(error)throw error;
   return (data||[]).filter(x=>!ignorarId||x.id!==ignorarId);
 }
 
-async function slotsDia(lojaId,servico,data,cfg,{profissionalId=null,ignorarId=null,ocupados=null}={}){
+async function bloqueiosPeriodo(lojaId,inicio,fim){
+  const {data,error}=await supabase.from('saintsai_agenda_bloqueios')
+    .select('id,profissional_id,tipo,titulo,inicio,fim,ativo')
+    .eq('loja_id',lojaId).eq('ativo',true)
+    .lt('inicio',fim).gt('fim',inicio);
+  if(error)throw error;
+  return data||[];
+}
+
+async function slotsDia(lojaId,servico,data,cfg,{profissionalId=null,ignorarId=null,ocupados=null,bloqueios=null}={}){
   let pros=await elegiveisParaServico(lojaId,servico.id);
   if(profissionalId)pros=pros.filter(p=>p.id===profissionalId);
   const legacy=pros.length===0;
-  const recursos=legacy?[{id:null,nome:null,horarios:null}]:pros;
+  const recursos=legacy?[{id:null,nome:null,horarios:null,pausas:null}]:pros;
   const passo=Math.max(5,Number(cfg?.intervalo_grade_min||30));
   const diaIni=new Date(isoLocal(data,'00:00')),diaFim=new Date(diaIni.getTime()+86400000);
   const occ=ocupados||await ocupadosPeriodo(lojaId,diaIni.toISOString(),diaFim.toISOString(),ignorarId);
+  const blq=bloqueios||await bloqueiosPeriodo(lojaId,diaIni.toISOString(),diaFim.toISOString());
   const out=[];
   for(let m=0;m<24*60;m+=passo){
     const hora=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
     const a=new Date(isoLocal(data,hora)),b=new Date(a.getTime()+duracao(servico)*60000);
     if(a.getTime()<Date.now())continue;
-    const livres=recursos.filter(p=>cabeNoHorario(p,cfg,data,hora,servico)&&!conflita(occ,p.id,a,b));
+    const livres=recursos.filter(p=>
+      cabeNoHorario(p,cfg,data,hora,servico) &&
+      !emPausaRecorrente(p,data,a,b) &&
+      !bloqueado(blq,p.id,a,b) &&
+      !conflita(occ,p.id,a,b)
+    );
     if(livres.length)out.push({hora,profissionais:livres.map(p=>p.id).filter(Boolean)});
   }
   return out;
@@ -131,13 +205,26 @@ async function slotsDia(lojaId,servico,data,cfg,{profissionalId=null,ignorarId=n
 async function escolherDisponivel(lojaId,servico,data,hora,cfg,{profissionalId=null,ignorarId=null}={}){
   let pros=await elegiveisParaServico(lojaId,servico.id);
   if(profissionalId){
-    const p=pros.find(x=>x.id===profissionalId);if(!p)return null;pros=[p];
+    const p=pros.find(x=>x.id===profissionalId);
+    if(!p)return null;
+    pros=[p];
   }
   const legacy=pros.length===0;
-  const recursos=legacy?[{id:null,nome:null,horarios:null}]:pros;
+  const recursos=legacy?[{id:null,nome:null,horarios:null,pausas:null}]:pros;
   const a=new Date(isoLocal(data,hora)),b=new Date(a.getTime()+duracao(servico)*60000);
-  const occ=await ocupadosPeriodo(lojaId,new Date(a.getTime()-86400000).toISOString(),new Date(b.getTime()+86400000).toISOString(),ignorarId);
-  return recursos.find(p=>cabeNoHorario(p,cfg,data,hora,servico)&&!conflita(occ,p.id,a,b))||null;
+  const [occ,blq]=await Promise.all([
+    ocupadosPeriodo(lojaId,new Date(a.getTime()-86400000).toISOString(),new Date(b.getTime()+86400000).toISOString(),ignorarId),
+    bloqueiosPeriodo(lojaId,new Date(a.getTime()-86400000).toISOString(),new Date(b.getTime()+86400000).toISOString())
+  ]);
+  return recursos.find(p=>
+    cabeNoHorario(p,cfg,data,hora,servico) &&
+    !emPausaRecorrente(p,data,a,b) &&
+    !bloqueado(blq,p.id,a,b) &&
+    !conflita(occ,p.id,a,b)
+  )||null;
 }
 
-module.exports={limparHorarios,listar,criar,atualizar,desativar,elegiveisParaServico,slotsDia,escolherDisponivel};
+module.exports={
+  limparHorarios,limparPausas,listar,criar,atualizar,desativar,
+  elegiveisParaServico,slotsDia,escolherDisponivel,bloqueiosPeriodo
+};
