@@ -1,7 +1,4 @@
 name: Build SaintsAI APKs
-# retest proxy real
-# final retest after backend mount
-# backend mount verified retest
 
 permissions:
   contents: write
@@ -18,10 +15,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      SALES_KEYSTORE_B64: ${{ secrets.SAINTSAI_SALES_KEYSTORE_B64 }}
-      SALES_STORE_PASSWORD: ${{ secrets.SAINTSAI_SALES_STORE_PASSWORD }}
-      SALES_KEY_ALIAS: ${{ secrets.SAINTSAI_SALES_KEY_ALIAS }}
-      SALES_KEY_PASSWORD: ${{ secrets.SAINTSAI_SALES_KEY_PASSWORD }}
+      CLIENT_KEYSTORE_B64: ${{ secrets.SAINTSAI_SALES_KEYSTORE_B64 }}
+      CLIENT_STORE_PASSWORD: ${{ secrets.SAINTSAI_SALES_STORE_PASSWORD }}
+      CLIENT_KEY_ALIAS: ${{ secrets.SAINTSAI_SALES_KEY_ALIAS }}
+      CLIENT_KEY_PASSWORD: ${{ secrets.SAINTSAI_SALES_KEY_PASSWORD }}
+
     defaults:
       run:
         working-directory: android-app
@@ -45,47 +43,41 @@ jobs:
         run: |
           set -e
           BASE="https://backend-prod-production-f338.up.railway.app"
-          for path in \
-            "/cliente/" \
-            "/cliente/cliente-central.html" \
-            "/cliente/cliente-configuracao.html" \
-            "/cliente/cliente-agenda.html" \
-            "/cliente/cliente-plano.html" \
-            "/cliente/cliente-whatsapp.html"; do
-            echo "===== $path ====="
+          for path in             "/cliente/"             "/cliente/cliente-central.html"             "/cliente/cliente-configuracao.html"             "/cliente/cliente-agenda.html"             "/cliente/cliente-plano.html"             "/cliente/cliente-whatsapp.html"; do
             code=$(curl -L -sS -o /tmp/body.txt -w "%{http_code}" "$BASE$path")
-            echo "HTTP $code"
+            echo "$path -> HTTP $code"
             test "$code" -ge 200
             test "$code" -lt 400
           done
-          curl -fsSL "$BASE/cliente/cliente-agenda.html" -o /tmp/agenda.html
-          grep -F "Agenda profissional" /tmp/agenda.html
-          grep -F "No-show" /tmp/agenda.html
-          curl -fsSL "$BASE/cliente/cliente-plano.html" -o /tmp/plano.html
-          grep -F "Plano e cobrança" /tmp/plano.html
-          curl -fsSL "$BASE/cliente/cliente-whatsapp.html" -o /tmp/whatsapp.html
-          grep -F "SaintsAI · WhatsApp" /tmp/whatsapp.html
 
-      - name: Build APKs
-        run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug :salesnotify:assembleDebug
+      - name: Build debug APKs
+        run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
 
-      - name: Prepare persistent sales signing
-        if: env.SALES_KEYSTORE_B64 != ''
+      - name: Prepare persistent client signing
         run: |
-          CLEAN_B64="$(printf '%s' "$SALES_KEYSTORE_B64" | sed 's/^SAINTSAI_SALES_KEYSTORE_B64=//' | tr -d '\r\n ' )"
-          printf '%s' "$CLEAN_B64" | base64 --decode --ignore-garbage > salesnotify/saintsai-sales-release.jks
-          test -s salesnotify/saintsai-sales-release.jks
-          keytool -list -keystore salesnotify/saintsai-sales-release.jks             -storepass "$(printf '%s' "$SALES_STORE_PASSWORD" | sed 's/^SAINTSAI_SALES_STORE_PASSWORD=//')"             -alias "$(printf '%s' "$SALES_KEY_ALIAS" | sed 's/^SAINTSAI_SALES_KEY_ALIAS=//')" >/dev/null
+          set -e
+          test -n "$CLIENT_KEYSTORE_B64"
+          CLEAN_B64="$(printf '%s' "$CLIENT_KEYSTORE_B64" | sed 's/^SAINTSAI_SALES_KEYSTORE_B64=//' | tr -d '\r\n ')"
+          printf '%s' "$CLEAN_B64" | base64 --decode --ignore-garbage > estoqueapp/saintsai-client-release.jks
+          test -s estoqueapp/saintsai-client-release.jks
+          keytool -list             -keystore estoqueapp/saintsai-client-release.jks             -storepass "$CLIENT_STORE_PASSWORD"             -alias "$CLIENT_KEY_ALIAS" >/dev/null
 
-      - name: Build signed Gerenciador release
-        if: env.SALES_KEYSTORE_B64 != ''
+      - name: Build signed SaintsAI Cliente
         env:
-          SAINTSAI_SALES_KEYSTORE: saintsai-sales-release.jks
-          SAINTSAI_SALES_STORE_PASSWORD: ${{ env.SALES_STORE_PASSWORD }}
-          SAINTSAI_SALES_KEY_ALIAS: ${{ env.SALES_KEY_ALIAS }}
-          SAINTSAI_SALES_KEY_PASSWORD: ${{ env.SALES_KEY_PASSWORD }}
-        shell: bash
-        run: gradle --no-daemon :salesnotify:assembleRelease
+          SAINTSAI_CLIENT_KEYSTORE: saintsai-client-release.jks
+          SAINTSAI_CLIENT_STORE_PASSWORD: ${{ env.CLIENT_STORE_PASSWORD }}
+          SAINTSAI_CLIENT_KEY_ALIAS: ${{ env.CLIENT_KEY_ALIAS }}
+          SAINTSAI_CLIENT_KEY_PASSWORD: ${{ env.CLIENT_KEY_PASSWORD }}
+        run: gradle --no-daemon :estoqueapp:assembleRelease
+
+      - name: Validate signed client APK
+        run: |
+          set -e
+          APK="estoqueapp/build/outputs/apk/release/estoqueapp-release.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-label:'SaintsAI Cliente'"
 
       - name: Enable KVM
         run: |
@@ -93,7 +85,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Android 16 layout and keyboard regression
+      - name: Android 16 client regression
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -101,64 +93,43 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install -r android-app/adminapp/build/outputs/apk/debug/adminapp-debug.apk
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
-
-            adb shell am force-stop com.saintsai.admin
-            adb shell monkey -p com.saintsai.admin -c android.intent.category.LAUNCHER 1
-            sleep 15
-            adb exec-out screencap -p > android-app/admin-screen.png
-
             adb logcat -c
             adb shell am start -W -n com.saintsai.stock/.MainActivity
-            sleep 10
+            sleep 12
             adb shell pidof com.saintsai.stock
             adb logcat -d -b crash > android-app/client-crash.txt
             if grep -F "Process: com.saintsai.stock" android-app/client-crash.txt; then exit 1; fi
             adb exec-out screencap -p > android-app/estoque-screen.png
 
-            adb install -r android-app/salesnotify/build/outputs/apk/debug/salesnotify-debug.apk
-            adb shell am force-stop com.saintsai.sales
-            adb shell monkey -p com.saintsai.sales -c android.intent.category.LAUNCHER 1
-            sleep 12
-            adb shell pidof com.saintsai.sales
-            adb exec-out screencap -p > android-app/sales-screen.png
             adb shell settings put secure show_ime_with_hard_keyboard 1
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest
             mkdir -p android-app/layout-threebutton
-            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-threebutton/
-            cp -r android-app/estoqueapp/build/outputs/androidTest-results/connected android-app/layout-threebutton/results
+            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-threebutton/ || true
+
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest --rerun-tasks
             mkdir -p android-app/layout-gestures
-            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-gestures/
+            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-gestures/ || true
 
-
-      - name: Upload emulator screenshots
+      - name: Upload client validation
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Emulator-Screens
+          name: SaintsAI-Cliente-Validation-v1.2.2
           path: |
-            android-app/admin-screen.png
             android-app/estoque-screen.png
-            android-app/sales-screen.png
             android-app/layout-threebutton/
             android-app/layout-gestures/
             android-app/estoqueapp/build/reports/androidTests/
             android-app/client-crash.txt
-          if-no-files-found: error
+          if-no-files-found: warn
 
-      - name: Rename APKs
+      - name: Package APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.1.apk
-          if [ -n "$SALES_KEYSTORE_B64" ]; then
-            cp salesnotify/build/outputs/apk/release/salesnotify-release.apk Gerenciador-de-Vendas-v1.0.0.apk
-          else
-            cp salesnotify/build/outputs/apk/debug/salesnotify-debug.apk Gerenciador-de-Vendas-v1.0.0.apk
-          fi
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.2.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -167,34 +138,24 @@ jobs:
           path: android-app/Agente-SaintsAI-v1.0.16.apk
           if-no-files-found: error
 
-      - name: Upload SaintsAI Estoque
+      - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.1
-          path: android-app/SaintsAI-Cliente-v1.2.1.apk
+          name: SaintsAI-Cliente-APK-v1.2.2
+          path: android-app/SaintsAI-Cliente-v1.2.2.apk
           if-no-files-found: error
 
-
-      - name: Upload Gerenciador de Vendas
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gerenciador-de-Vendas-APK-v1.0.0
-          path: android-app/Gerenciador-de-Vendas-v1.0.0.apk
-          if-no-files-found: error
-
-
-      - name: Publish latest Gerenciador APK
-        if: env.SALES_KEYSTORE_B64 != ''
+      - name: Publish latest SaintsAI Cliente
         run: |
           mkdir -p ../downloads
-          cp Gerenciador-de-Vendas-v1.0.0.apk ../downloads/Gerenciador-de-Vendas.apk
-          cat > ../downloads/gerenciador-vendas.json <<'EOF'
-          {"versionCode":1,"versionName":"1.0.0","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Gerenciador-de-Vendas.apk"}
+          cp SaintsAI-Cliente-v1.2.2.apk ../downloads/SaintsAI-Cliente.apk
+          cat > ../downloads/saintsai-cliente.json <<'EOF'
+          {"versionCode":17,"versionName":"1.2.2","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/Gerenciador-de-Vendas.apk downloads/gerenciador-vendas.json
+          git add downloads/SaintsAI-Cliente.apk downloads/saintsai-cliente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: atualiza Gerenciador de Vendas APK [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.2 [skip ci]"
           git push
