@@ -33,34 +33,30 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Test Supabase proxy routes
+      - name: Test SaintsAI client portal
         run: |
           set -e
+          BASE="https://backend-prod-production-f338.up.railway.app"
           for path in \
-            "/painel/login.html?next=admin-mobile.html" \
-            "/painel/login.html?next=cliente-estoque.html"; do
+            "/cliente/" \
+            "/cliente/cliente-central.html" \
+            "/cliente/cliente-configuracao.html" \
+            "/cliente/cliente-agenda.html" \
+            "/cliente/cliente-plano.html" \
+            "/cliente/cliente-whatsapp.html"; do
             echo "===== $path ====="
-            code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy$path")
+            code=$(curl -L -sS -o /tmp/body.txt -w "%{http_code}" "$BASE$path")
             echo "HTTP $code"
-            head -c 300 /tmp/body.txt || true
-            echo
             test "$code" -ge 200
             test "$code" -lt 400
           done
-          curl -fsSL "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/admin-mobile.html" -o /tmp/admin-mobile.html
-          grep -F "REGISTRO TESTE" /tmp/admin-mobile.html
-          grep -F "ESTOQUE" /tmp/admin-mobile.html
-          grep -F "Selecionar cliente" /tmp/admin-mobile.html
-          grep -F "Criar teste e liberar WhatsApp" /tmp/admin-mobile.html
-          grep -F "clientesSubmenu" /tmp/admin-mobile.html
-          grep -F "estoqueSubmenu" /tmp/admin-mobile.html
-          grep -F "Abrir estoque sincronizado" /tmp/admin-mobile.html
-          grep -F "Preferências do Agente SaintsAI" /tmp/admin-mobile.html
-          grep -F "SAINTSAI_ADMIN_UI_VERSION=\"v6\"" /tmp/admin-mobile.html
-          grep -F "class=\"saintsHeader\"" /tmp/admin-mobile.html
-          grep -F "By Alves" /tmp/admin-mobile.html
-          grep -F "data-saints-theme=\"light\"" /tmp/admin-mobile.html
-          grep -F "#1677ff" /tmp/admin-mobile.html
+          curl -fsSL "$BASE/cliente/cliente-agenda.html" -o /tmp/agenda.html
+          grep -F "Agenda profissional" /tmp/agenda.html
+          grep -F "No-show" /tmp/agenda.html
+          curl -fsSL "$BASE/cliente/cliente-plano.html" -o /tmp/plano.html
+          grep -F "Plano e cobrança" /tmp/plano.html
+          curl -fsSL "$BASE/cliente/cliente-whatsapp.html" -o /tmp/whatsapp.html
+          grep -F "SaintsAI · WhatsApp" /tmp/whatsapp.html
 
       - name: Build APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
@@ -90,6 +86,11 @@ jobs:
             adb shell am force-stop com.saintsai.stock
             adb shell monkey -p com.saintsai.stock -c android.intent.category.LAUNCHER 1
             sleep 15
+            adb shell pidof com.saintsai.stock
+            if adb logcat -d | grep -F "FATAL EXCEPTION" | grep -F "com.saintsai.stock"; then
+              echo "SaintsAI Cliente sofreu crash"
+              exit 1
+            fi
             adb exec-out screencap -p > android-app/estoque-screen.png
 
       - name: Upload emulator screenshots
@@ -104,7 +105,7 @@ jobs:
       - name: Rename APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.16.apk
-          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Estoque-v1.0.12.apk
+          cp estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk SaintsAI-Cliente-v1.2.0.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -116,6 +117,6 @@ jobs:
       - name: Upload SaintsAI Estoque
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Estoque-APK-v1.0.12
-          path: android-app/SaintsAI-Estoque-v1.0.12.apk
+          name: SaintsAI-Cliente-APK-v1.2.0
+          path: android-app/SaintsAI-Cliente-v1.2.0.apk
           if-no-files-found: error
