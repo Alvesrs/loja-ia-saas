@@ -25,6 +25,8 @@ function resumoCobranca(c){
     plano:c.plano,
     provedor:c.provedor,
     status:c.status_provider,
+    valor_centavos:c.valor_centavos===null?null:Number(c.valor_centavos),
+    duracao_meses:c.duracao_meses===null?null:Number(c.duracao_meses),
     criado_em:c.criado_em,
     atualizado_em:c.atualizado_em
   };
@@ -39,7 +41,7 @@ async function resumo(req,res){
     const [situacao,hist]=await Promise.all([
       obterSituacaoPlano(lojaId),
       supabase.from('cobrancas_assinaturas')
-        .select('id,plano,provedor,status_provider,criado_em,atualizado_em')
+        .select('id,plano,provedor,status_provider,valor_centavos,duracao_meses,criado_em,atualizado_em')
         .eq('loja_id',lojaId)
         .order('criado_em',{ascending:false})
         .limit(30)
