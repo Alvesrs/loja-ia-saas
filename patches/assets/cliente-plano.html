@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08070d">
+<title>Plano e cobrança · SaintsAI</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="js/theme.js"></script>
+<script src="js/guard.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#08070d;color:#fff;font-family:Manrope,system-ui,sans-serif}
+body{background:radial-gradient(circle at 50% -12%,rgba(130,55,240,.2),transparent 34%),#08070d}
+.shell{max-width:860px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(46px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.top-left{display:flex;align-items:center;gap:11px}.back{border:1px solid rgba(255,255,255,.08);background:#15111d;color:#fff;border-radius:14px;padding:11px 13px;font:inherit;font-weight:850}.brand{font-size:18px;font-weight:950}.sub{font-size:11px;color:#8f879d;margin-top:3px}
+.card{background:linear-gradient(180deg,#15111f,#0d0b12);border:1px solid rgba(255,255,255,.075);border-radius:23px;padding:18px;margin-bottom:12px}.hero{border-color:rgba(159,91,255,.27);background:radial-gradient(circle at 95% 0%,rgba(148,72,255,.22),transparent 31%),linear-gradient(145deg,#241638,#100c18)}
+.kicker{font-size:10px;font-weight:950;letter-spacing:.15em;color:#aa6bff;text-transform:uppercase}.hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.hero h1{font-size:26px;margin:7px 0 5px;letter-spacing:-.04em}.badge{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900;background:rgba(126,63,231,.16);color:#cfb0ff}.badge.ok{background:rgba(69,212,149,.12);color:#74e6ae}.badge.bad{background:rgba(244,99,99,.12);color:#ff9d9d}.muted{font-size:12px;color:#968da2;line-height:1.5}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:17px}.metric{padding:14px;border-radius:16px;background:rgba(7,6,11,.44);border:1px solid rgba(255,255,255,.06)}.metric strong{display:block;font-size:19px;letter-spacing:-.03em}.metric span{display:block;font-size:10px;color:#82798c;margin-top:4px}.track{height:8px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;margin-top:14px}.track i{display:block;height:100%;background:linear-gradient(90deg,#7d38ed,#b35aff);border-radius:999px}.usage-note{font-size:11px;color:#92899e;margin-top:7px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px}.section-head h2{margin:0;font-size:18px}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.plan{border:1px solid rgba(255,255,255,.075);border-radius:19px;padding:16px;background:#0b0910;cursor:pointer;transition:.15s}.plan:hover,.plan.on{border-color:#9654ef;box-shadow:0 0 0 2px rgba(150,84,239,.12) inset}.plan.current{background:linear-gradient(180deg,rgba(121,54,238,.11),#0b0910)}.plan-name{font-weight:950;font-size:16px}.plan-price{font-size:24px;font-weight:1000;margin-top:11px;letter-spacing:-.04em}.plan-limit{font-size:11px;color:#a69caf;margin-top:6px}.plan-desc{font-size:11px;color:#756d80;line-height:1.45;margin-top:9px;min-height:32px}.current-tag{display:inline-block;margin-top:10px;font-size:9px;font-weight:900;color:#b98df7;background:rgba(147,79,238,.12);padding:5px 7px;border-radius:999px}
+.buy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:7px}.field label{font-size:11px;color:#b9b0c3;font-weight:850}select{width:100%;min-height:48px;border:1px solid rgba(255,255,255,.1);background:#09080d;color:#fff;border-radius:14px;padding:0 12px;font:inherit}.summary{margin-top:12px;padding:14px;border-radius:16px;border:1px solid rgba(151,86,241,.16);background:rgba(126,60,225,.07);font-size:13px;line-height:1.6}.btn{width:100%;border:0;border-radius:15px;min-height:49px;padding:0 15px;background:linear-gradient(135deg,#7b37ee,#ae56ff);color:#fff;font:inherit;font-weight:950;margin-top:13px}.btn.secondary{background:#18131f;border:1px solid rgba(255,255,255,.09)}.btn:disabled{opacity:.45}
+.pix{display:none;text-align:center}.pix.show{display:block}.pix img{max-width:245px;width:100%;background:white;padding:10px;border-radius:18px;margin-top:8px}.pix textarea{width:100%;min-height:104px;resize:none;margin-top:12px;border:1px solid rgba(255,255,255,.09);background:#09080d;color:#ddd;border-radius:14px;padding:12px;font:inherit;font-size:11px}.status{font-size:12px;color:#c8a8ef;min-height:18px;margin-top:9px}
+.history{display:grid}.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.055)}.row:last-child{border:0}.row strong{font-size:13px}.row small{display:block;color:#7f768a;margin-top:4px}.row-status{font-size:10px;font-weight:900;color:#b79acb;text-align:right}.empty{padding:18px 5px;color:#786f82;font-size:12px;text-align:center}.warning{margin-top:13px;padding:12px;border-radius:14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15);color:#e5bc74;font-size:11px;line-height:1.45}
+@media(max-width:680px){.plans{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.metric:last-child{grid-column:1/-1}.buy-grid{grid-template-columns:1fr}.hero-row{flex-direction:column}.plan-desc{min-height:auto}}
+</style>
+</head>
+<body><main class="shell">
+<header class="top"><div class="top-left"><button class="back" id="back">← Dashboard</button><div><div class="brand">SaintsAI · Plano</div><div class="sub" id="company">Carregando empresa…</div></div></div></header>
+
+<section class="card hero">
+<div class="hero-row"><div><div class="kicker">PLANO ATUAL</div><h1 id="current-name">Carregando…</h1><div class="muted" id="current-info">Consultando sua assinatura.</div></div><span class="badge" id="current-status">—</span></div>
+<div class="metrics">
+ <div class="metric"><strong id="used">—</strong><span>respostas usadas no mês</span></div>
+ <div class="metric"><strong id="limit">—</strong><span>limite mensal</span></div>
+ <div class="metric"><strong id="validity">—</strong><span>validade / renovação</span></div>
+</div>
+<div class="track" id="track-wrap"><i id="track" style="width:0%"></i></div>
+<div class="usage-note" id="usage-note"></div>
+<div class="warning" id="blocking" style="display:none"></div>
+</section>
+
+<section class="card">
+<div class="section-head"><div><h2>Planos SaintsAI</h2><div class="muted">Escolha o plano que combina com seu volume de atendimento.</div></div></div>
+<div class="plans" id="plans"><div class="empty">Carregando planos…</div></div>
+</section>
+
+<section class="card" id="buy-card">
+<div class="section-head"><div><h2>Pagamento</h2><div class="muted">O pagamento desta tela é da assinatura SaintsAI. Não é o PagBank da sua loja.</div></div></div>
+<div class="buy-grid">
+ <div class="field"><label>Plano escolhido</label><select id="selected-plan"></select></div>
+ <div class="field"><label>Duração</label><select id="duration"><option value="1">1 mês</option><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option></select></div>
+</div>
+<div class="summary" id="summary">Selecione um plano.</div>
+<button class="btn" id="pay">Gerar Pix para pagar</button>
+<div class="status" id="pay-status"></div>
+</section>
+
+<section class="card pix" id="pix">
+<div class="kicker">PIX SAINTSAI</div><h2 id="pix-title">Pagamento</h2>
+<div class="muted">Assim que o pagamento for confirmado, seu plano é atualizado automaticamente.</div>
+<img id="qr" alt="QR Code Pix">
+<textarea id="copy" readonly></textarea>
+<button class="btn" id="copy-btn">Copiar Pix copia e cola</button>
+<button class="btn secondary" id="refresh">Já paguei · atualizar plano</button>
+<div class="status" id="pix-status">Aguardando pagamento…</div>
+</section>
+
+<section class="card">
+<div class="section-head"><div><h2>Histórico de cobrança</h2><div class="muted">Últimas cobranças geradas para esta empresa.</div></div></div>
+<div class="history" id="history"><div class="empty">Carregando histórico…</div></div>
+</section>
+</main>
+<script src="js/config.js"></script><script src="js/auth.js"></script><script src="js/api.js"></script><script src="js/loja.js"></script>
+<script>
+const $=id=>document.getElementById(id);let loja=null,dados=null,selected=null,poll=null;
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function money(c){return Number(c||0)?(Number(c)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}
+function num(v){return Number(v||0).toLocaleString('pt-BR')}
+function date(v){if(!v)return 'Sem vencimento';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}
+function limitText(v){return v===null?'Ilimitado':num(v)}
+function statusText(v){const m={ativo:'Ativo',inativo:'Inativo',limite_atingido:'Limite atingido',cancelado:'Cancelado'};return m[v]||String(v||'—').replaceAll('_',' ')}
+function histStatus(v){const s=String(v||'').toUpperCase();if(s.includes('RECEIVED')||s.includes('CONFIRMED')||s.includes('PAID'))return 'Pago';if(s.includes('OVERDUE'))return 'Vencido';if(s.includes('REFUND'))return 'Estornado';if(s.includes('CANCEL'))return 'Cancelado';if(s.includes('AGUARD')||s.includes('PENDING')||s.includes('ACTIVE'))return 'Aguardando';return s||'—'}
+function currentPlan(){return dados?.situacao?.plano||null}
+function planByCode(c){return (dados?.planos||[]).find(p=>p.codigo===c)||null}
+function choose(c){selected=planByCode(c);if(!selected)return;$('selected-plan').value=selected.codigo;document.querySelectorAll('[data-plan]').forEach(x=>x.classList.toggle('on',x.dataset.plan===selected.codigo));updateSummary();$('buy-card').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function updateSummary(){if(!selected)return $('summary').textContent='Selecione um plano.';const months=Number($('duration').value||1);const total=Number(selected.precoMensalCentavos||0)*months;$('summary').innerHTML='<strong>'+esc(selected.nome)+'</strong> · '+months+' '+(months===1?'mês':'meses')+'<br>'+money(selected.precoMensalCentavos)+'/mês · Total: <strong>'+money(total)+'</strong>'}
+function render(){
+ const s=dados.situacao||{},p=s.plano||{},a=s.assinatura||{};const active=!!s.ativo;
+ $('current-name').textContent=p.nome||a.plano||'Sem plano';$('current-status').textContent=statusText(s.statusEfetivo||a.status);$('current-status').className='badge '+(active?'ok':'bad');
+ $('current-info').textContent=active?'Sua assinatura está ativa.':'Sua assinatura precisa de atenção.';
+ $('used').textContent=num(s.usadoNoMes||0);$('limit').textContent=limitText(p.limiteMensagensMes);$('validity').textContent=date(a.valido_ate);
+ const lim=p.limiteMensagensMes,used=Number(s.usadoNoMes||0);if(lim===null){$('track-wrap').style.display='none';$('usage-note').textContent='Seu plano não possui limite mensal de respostas.'}else{const pct=Math.min(100,Math.round((used/Math.max(1,Number(lim)))*100));$('track-wrap').style.display='block';$('track').style.width=pct+'%';$('usage-note').textContent='Restam '+num(s.restanteNoMes||0)+' respostas nesta franquia mensal.'}
+ if(s.motivoBloqueio){$('blocking').style.display='block';$('blocking').textContent=s.motivoBloqueio==='limite_mensal_atingido'?'Seu limite mensal foi atingido. Renove ou troque para um plano maior para continuar o atendimento.':'Sua assinatura está inativa ou expirada. Regularize o plano para continuar o atendimento.'}else $('blocking').style.display='none';
+
+ const sell=(dados.planos||[]).filter(x=>x.vendavel&&Number(x.precoMensalCentavos)>0);
+ $('plans').innerHTML=sell.length?sell.map(x=>'<article class="plan '+(p.codigo===x.codigo?'current':'')+'" data-plan="'+esc(x.codigo)+'"><div class="plan-name">'+esc(x.nome)+'</div><div class="plan-price">'+money(x.precoMensalCentavos)+'</div><div class="plan-limit">'+(x.limiteMensagensMes===null?'Respostas ilimitadas*':num(x.limiteMensagensMes)+' respostas/mês')+'</div><div class="plan-desc">'+esc(x.descricao||'Plano SaintsAI para atendimento inteligente.')+'</div>'+(p.codigo===x.codigo?'<span class="current-tag">PLANO ATUAL</span>':'')+'</article>').join(''):'<div class="empty">Nenhum plano disponível agora.</div>';
+ document.querySelectorAll('[data-plan]').forEach(x=>x.onclick=()=>choose(x.dataset.plan));
+ $('selected-plan').innerHTML=sell.map(x=>'<option value="'+esc(x.codigo)+'">'+esc(x.nome)+' · '+money(x.precoMensalCentavos)+'/mês</option>').join('');
+ if(!selected||!sell.some(x=>x.codigo===selected.codigo))selected=sell.find(x=>x.codigo===p.codigo)||sell[0]||null;
+ if(selected)$('selected-plan').value=selected.codigo;updateSummary();
+ $('pay').disabled=!dados.cobranca?.configurada||!selected;if(!dados.cobranca?.configurada){$('pay-status').textContent='A cobrança automática do SaintsAI está indisponível no momento.'}else if(dados.cobranca?.ambiente==='sandbox'){$('pay-status').textContent='Ambiente de testes do pagamento.'}else{$('pay-status').textContent=''}
+ $('history').innerHTML=(dados.historico||[]).length?dados.historico.map(x=>'<div class="row"><div><strong>'+esc(planByCode(x.plano)?.nome||x.plano)+'</strong><small>'+esc(x.provedor||'')+' · '+date(x.criado_em)+'</small></div><div class="row-status">'+esc(histStatus(x.status))+'</div></div>').join(''):'<div class="empty">Nenhuma cobrança gerada ainda.</div>';
+}
+async function load(silent=false){try{loja=loja||await obterLojaAtual();if(!loja)throw new Error('Nenhuma empresa encontrada.');$('company').textContent=loja.nome||'Sua empresa';const prev=dados?.situacao?.assinatura?.atualizado_em;dados=await apiFetch('/lojas/'+loja.id+'/cliente-plano');render();if(silent&&prev&&dados.situacao?.assinatura?.atualizado_em!==prev&&dados.situacao?.ativo){$('pix-status').textContent='Pagamento confirmado. Seu plano foi atualizado ✓';if(poll){clearInterval(poll);poll=null}}}catch(e){if(e instanceof SessaoExpiradaError)return fazerLogout();if(!silent)$('pay-status').textContent=e.message||'Não foi possível carregar o plano.'}}
+$('back').onclick=()=>location.href='cliente-central.html';
+$('selected-plan').onchange=()=>{selected=planByCode($('selected-plan').value);document.querySelectorAll('[data-plan]').forEach(x=>x.classList.toggle('on',x.dataset.plan===selected?.codigo));updateSummary()};
+$('duration').onchange=updateSummary;
+$('pay').onclick=async()=>{if(!selected)return;const b=$('pay');try{b.disabled=true;$('pay-status').textContent='Gerando Pix…';const months=Number($('duration').value||1);const x=await apiFetch('/lojas/'+loja.id+'/cliente-plano/pix',{method:'POST',body:JSON.stringify({plano:selected.codigo,duracao_meses:months})});if(!x.pix_copia_cola)throw new Error('Código Pix não recebido.');$('pix').classList.add('show');$('pix-title').textContent=selected.nome+' · '+money(x.valor_centavos);$('copy').value=x.pix_copia_cola||'';if(x.qr_code_base64){$('qr').src=x.qr_code_base64.startsWith('data:')?x.qr_code_base64:'data:image/png;base64,'+x.qr_code_base64;$('qr').style.display='inline-block'}else $('qr').style.display='none';$('pay-status').textContent='Pix gerado.';$('pix-status').textContent='Aguardando confirmação do pagamento…';$('pix').scrollIntoView({behavior:'smooth'});if(poll)clearInterval(poll);poll=setInterval(()=>load(true),5000)}catch(e){$('pay-status').textContent=e.message||'Não foi possível gerar o Pix.'}finally{b.disabled=false}};
+$('copy-btn').onclick=async()=>{try{await navigator.clipboard.writeText($('copy').value);$('pix-status').textContent='Pix copia e cola copiado ✓'}catch(_){$('copy').select();$('pix-status').textContent='Selecione e copie o código acima.'}};
+$('refresh').onclick=()=>load(true);
+load();
+</script>
+</body></html>
