@@ -41,22 +41,6 @@ const cancelNew=[
 ].join('\n');
 if(!agenda.includes(cancelOld))throw new Error('Função cancelarAgendamento não encontrada');
 agenda=agenda.replace(cancelOld,cancelNew);
-const lrA=agenda.indexOf('async function lembretesPendentesContato(lojaId,contato){');
-const lrB=agenda.indexOf('\nasync function confirmarAgendamentoCliente',lrA);
-if(lrA>=0&&lrB>lrA){
-  const fn=[
-    "async function lembretesPendentesContato(lojaId,contato){",
-    "  const agora=new Date(), limite=new Date(agora.getTime()+30*60*60*1000);",
-    "  const {data:ags,error}=await supabase.from('saintsai_agendamentos').select('id,servico_id,cliente_nome,inicio,fim,status,confirmado_cliente_em,saintsai_servicos(nome)').eq('loja_id',lojaId).eq('cliente_whatsapp',contato).eq('status','confirmado').gte('inicio',agora.toISOString()).lte('inicio',limite.toISOString()).order('inicio',{ascending:true}).limit(8);",
-    "  if(error)throw error;if(!(ags||[]).length)return [];",
-    "  const ids=ags.map(a=>a.id);",
-    "  const {data:lems,error:el}=await supabase.from('saintsai_agenda_lembretes').select('agendamento_id').in('agendamento_id',ids).in('tipo',['24h','2h']).eq('status','enviado');",
-    "  if(el)throw el;const ok=new Set((lems||[]).map(x=>x.agendamento_id));return ags.filter(a=>ok.has(a.id));",
-    "}",
-    ""
-  ].join('\n');
-  agenda=agenda.slice(0,lrA)+fn+agenda.slice(lrB);
-}
 agenda=agenda.replace("if(error){if(error.code==='23P01')return {conflito:true};throw error;}","if(error){if(['23P01','23505'].includes(error.code))return {conflito:true};throw error;}");
 write('src/services/agendaWhatsapp.service.js',agenda);
 
@@ -70,7 +54,6 @@ const booking=read('src/services/bookingPublic.service.js');
 for(const m of ["error.code==='23505'","aceita_dinheiro===true","aceita_pix_presencial===true","aceita_cartao_presencial===true"]){if(!booking.includes(m))throw new Error('Hardening do booking ausente: '+m);}
 if(!pix.includes("!['cancelado','nao_compareceu'].includes"))throw new Error('PagBank ainda pode ressuscitar cancelamento');
 if(!pix.includes("data.status==='confirmado'"))throw new Error('PagBank pode enviar confirmação indevida');
-if(!agenda.includes(".in('tipo',['24h','2h'])"))throw new Error('Confirmação de lembrete 2h ausente');
 if(!agenda.includes("['23P01','23505'].includes(error.code)"))throw new Error('WhatsApp sem proteção de duplicidade');
 
 const html=read('public/agendar.html');
