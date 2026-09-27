@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.webkit.WebViewClient;\nimport android.webkit.JavascriptInterface;\nimport com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends Activity {
     public static final String CHANNEL_SALES = "saintsai_sales";
@@ -20,13 +20,13 @@ public class MainActivity extends Activity {
         createSalesChannel();
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7001);
 
-        WebView web = new WebView(this);
+        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> getSharedPreferences(\"saintsai_push\", MODE_PRIVATE).edit().putString(\"fcm_token\", token).apply());\n\n        WebView web = new WebView(this);
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
-        web.setWebChromeClient(new WebChromeClient());
+        web.addJavascriptInterface(new PushBridge(), \"AndroidPush\");\n        web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient());
         web.loadUrl(URL);
     }
