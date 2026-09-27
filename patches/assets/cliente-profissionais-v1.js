@@ -87,9 +87,9 @@
         btn.disabled=true;st.textContent='Salvando profissional…';
         const body={nome:nome,servico_ids:servicoIds,horarios:horarios,pausas:pausas};
         if(edit){
-          await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais/'+p.id,{method:'PUT',body:JSON.stringify(body)});
+          await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais/'+p.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         }else{
-          await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais',{method:'POST',body:JSON.stringify(body)});
+          await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         }
         st.textContent=edit?'Alterações salvas.':'Profissional adicionado.';
         await carregarProfissionais();
