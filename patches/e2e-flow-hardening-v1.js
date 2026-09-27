@@ -41,7 +41,22 @@ const cancelNew=[
 ].join('\n');
 if(!agenda.includes(cancelOld))throw new Error('Função cancelarAgendamento não encontrada');
 agenda=agenda.replace(cancelOld,cancelNew);
-agenda=agenda.split(".eq('tipo','24h')").join(".in('tipo',['24h','2h'])");
+const lrA=agenda.indexOf('async function lembretesPendentesContato(lojaId,contato){');
+const lrB=agenda.indexOf('\nasync function confirmarAgendamentoCliente',lrA);
+if(lrA>=0&&lrB>lrA){
+  const fn=[
+    "async function lembretesPendentesContato(lojaId,contato){",
+    "  const agora=new Date(), limite=new Date(agora.getTime()+30*60*60*1000);",
+    "  const {data:ags,error}=await supabase.from('saintsai_agendamentos').select('id,servico_id,cliente_nome,inicio,fim,status,confirmado_cliente_em,saintsai_servicos(nome)').eq('loja_id',lojaId).eq('cliente_whatsapp',contato).eq('status','confirmado').gte('inicio',agora.toISOString()).lte('inicio',limite.toISOString()).order('inicio',{ascending:true}).limit(8);",
+    "  if(error)throw error;if(!(ags||[]).length)return [];",
+    "  const ids=ags.map(a=>a.id);",
+    "  const {data:lems,error:el}=await supabase.from('saintsai_agenda_lembretes').select('agendamento_id').in('agendamento_id',ids).in('tipo',['24h','2h']).eq('status','enviado');",
+    "  if(el)throw el;const ok=new Set((lems||[]).map(x=>x.agendamento_id));return ags.filter(a=>ok.has(a.id));",
+    "}",
+    ""
+  ].join('\n');
+  agenda=agenda.slice(0,lrA)+fn+agenda.slice(lrB);
+}
 agenda=agenda.replace("if(error){if(error.code==='23P01')return {conflito:true};throw error;}","if(error){if(['23P01','23505'].includes(error.code))return {conflito:true};throw error;}");
 write('src/services/agendaWhatsapp.service.js',agenda);
 
