@@ -33,7 +33,7 @@
       '<p class="muted">Pode ser corte de cabelo, unha, consulta, instalação, produto ou qualquer outro serviço. A foto ajuda o cliente a reconhecer a opção.</p>'+
       '<div class="field"><label>Foto do trabalho</label><input id="sv-img" type="file" accept="image/jpeg,image/png,image/webp"><div id="sv-preview" class="service-preview"><span>Prévia da foto</span></div></div>'+
       '<div class="field"><label>Nome</label><input id="sv-nome" placeholder="Ex.: Corte degradê"></div>'+
-      '<div class="field"><label>Descrição para a IA / WhatsApp</label><input id="sv-desc" placeholder="Ex.: acabamento, opções e detalhes"></div>'+
+      '<div class="field"><label>Descrição para a IA / WhatsApp</label><input id="sv-desc" placeholder="Ex.: Corte degradê navalhado, acabamento na navalha e transição suave"></div><div class="muted" style="font-size:13px;margin-top:6px">Explique o serviço como você gostaria que a IA apresentasse ao cliente no WhatsApp.</div>'+
       '<div class="row"><div class="field"><label>Preço</label><input id="sv-preco" type="number" min="0" step=".01" placeholder="0,00"></div><div class="field"><label>Duração (min)</label><input id="sv-dur" type="number" min="5" value="30"></div></div>'+
       '<div class="field"><label>Intervalo depois (min)</label><input id="sv-int" type="number" min="0" value="0"></div>'+
       '<div class="btns"><button class="btn" id="sv-add">Adicionar trabalho</button></div>'+
@@ -53,21 +53,54 @@
     $('sv-add').onclick=async function(){
       var st=$('sv-status'),btn=$('sv-add');
       try{
+        /* Captura os valores antes de qualquer await/upload para evitar perder
+           referências do formulário caso a tela seja atualizada durante o envio. */
+        var nome=String($('sv-nome')&&$('sv-nome').value||'').trim();
+        var descricao=String($('sv-desc')&&$('sv-desc').value||'').trim();
+        var precoTexto=String($('sv-preco')&&$('sv-preco').value||'').trim().replace(',','.');
+        var preco=Number(precoTexto);
+        var duracao=Number($('sv-dur')&&$('sv-dur').value);
+        var intervalo=Number($('sv-int')&&$('sv-int').value||0);
+        var arquivo=$('sv-img')&&$('sv-img').files&&$('sv-img').files[0]||null;
+
+        if(!nome){
+          st.textContent='Informe o nome do serviço.';
+          $('sv-nome')&&$('sv-nome').focus();
+          return;
+        }
+        if(!Number.isFinite(preco)||preco<0){
+          st.textContent='Informe um preço válido. Ex.: 45,00.';
+          $('sv-preco')&&$('sv-preco').focus();
+          return;
+        }
+        if(!Number.isInteger(duracao)||duracao<5){
+          st.textContent='Informe uma duração de pelo menos 5 minutos.';
+          $('sv-dur')&&$('sv-dur').focus();
+          return;
+        }
+        if(!Number.isInteger(intervalo)||intervalo<0){
+          st.textContent='Informe um intervalo válido.';
+          $('sv-int')&&$('sv-int').focus();
+          return;
+        }
+
         btn.disabled=true;
-        st.textContent='Salvando…';
-        var foto=await enviarFotoServico($('sv-img').files&&$('sv-img').files[0]||null);
+        st.textContent=arquivo?'Enviando foto…':'Salvando…';
+        var foto=await enviarFotoServico(arquivo);
+        st.textContent='Salvando serviço…';
         await apiFetch('/lojas/'+loja.id+'/cliente-hub/servicos',{
           method:'POST',
           body:JSON.stringify({
-            nome:$('sv-nome').value,
-            descricao:$('sv-desc').value,
-            preco:$('sv-preco').value,
-            duracao_min:Number($('sv-dur').value),
-            intervalo_pos_min:Number($('sv-int').value),
+            nome:nome,
+            descricao:descricao,
+            preco:preco,
+            duracao_min:duracao,
+            intervalo_pos_min:intervalo,
             imagem_url:foto.imagem_url,
             imagem_path:foto.imagem_path
           })
         });
+        st.textContent='Serviço adicionado.';
         await refreshResumo();
         renderServicosPolish();
         await recarregarProgresso();
