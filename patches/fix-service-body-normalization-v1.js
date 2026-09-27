@@ -22,6 +22,7 @@ if(!fn.includes('SAINTSAI_SERVICE_BODY_NORMALIZE_V1')){
   ].join('\n');
   fn=fn.replace(anchor,insert);
   fn=fn.replace(/req\.body/g,'body');
+  fn=fn.replace('let body=body;','let body=req.body;');
   s=s.slice(0,a)+fn+s.slice(b);
 }
 
