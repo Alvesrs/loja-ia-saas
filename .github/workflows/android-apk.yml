@@ -72,7 +72,10 @@ jobs:
       - name: Prepare persistent sales signing
         if: env.SALES_KEYSTORE_B64 != ''
         run: |
-          echo "$SALES_KEYSTORE_B64" | base64 -d > salesnotify/saintsai-sales-release.jks
+          CLEAN_B64="$(printf '%s' "$SALES_KEYSTORE_B64" | sed 's/^SAINTSAI_SALES_KEYSTORE_B64=//' | tr -d '\r\n ' )"
+          printf '%s' "$CLEAN_B64" | base64 --decode --ignore-garbage > salesnotify/saintsai-sales-release.jks
+          test -s salesnotify/saintsai-sales-release.jks
+          keytool -list -keystore salesnotify/saintsai-sales-release.jks             -storepass "$(printf '%s' "$SALES_STORE_PASSWORD" | sed 's/^SAINTSAI_SALES_STORE_PASSWORD=//')"             -alias "$(printf '%s' "$SALES_KEY_ALIAS" | sed 's/^SAINTSAI_SALES_KEY_ALIAS=//')" >/dev/null
 
       - name: Build signed Gerenciador release
         if: env.SALES_KEYSTORE_B64 != ''
@@ -81,6 +84,7 @@ jobs:
           SAINTSAI_SALES_STORE_PASSWORD: ${{ env.SALES_STORE_PASSWORD }}
           SAINTSAI_SALES_KEY_ALIAS: ${{ env.SALES_KEY_ALIAS }}
           SAINTSAI_SALES_KEY_PASSWORD: ${{ env.SALES_KEY_PASSWORD }}
+        shell: bash
         run: gradle --no-daemon :salesnotify:assembleRelease
 
       - name: Enable KVM
