@@ -41,7 +41,7 @@ const cancelNew=[
 ].join('\n');
 if(!agenda.includes(cancelOld))throw new Error('Função cancelarAgendamento não encontrada');
 agenda=agenda.replace(cancelOld,cancelNew);
-agenda=agenda.replace(".in('agendamento_id',ids).eq('tipo','24h').eq('status','enviado')",".in('agendamento_id',ids).in('tipo',['24h','2h']).eq('status','enviado')");
+agenda=agenda.split(".eq('tipo','24h')").join(".in('tipo',['24h','2h'])");
 agenda=agenda.replace("if(error){if(error.code==='23P01')return {conflito:true};throw error;}","if(error){if(['23P01','23505'].includes(error.code))return {conflito:true};throw error;}");
 write('src/services/agendaWhatsapp.service.js',agenda);
 
