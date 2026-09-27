@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 rootProject.name = "SaintsAI"
 include(":adminapp")
 include(":estoqueapp")
+
+include(":salesnotify")
