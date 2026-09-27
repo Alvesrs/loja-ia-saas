@@ -45,7 +45,7 @@
     const edit=!!p;
     $('content').innerHTML=
       '<div class="pro-head"><div><h2>'+(edit?'Editar profissional':'Adicionar profissional')+'</h2><p class="muted">Defina quem atende, quais serviços realiza e os horários dessa pessoa.</p></div>'+(edit?'<button class="mini" id="pro-cancel-edit">Cancelar edição</button>':'')+'</div>'+
-      '<div class="field"><label>Nome do profissional</label><input id="pro-nome" maxlength="100" placeholder="Ex.: Ana" value="'+safe(p?.nome||'')+'"></div>'+
+      '<div class="field"><label>Nome do profissional</label><input id="pro-nome" maxlength="100" autocomplete="name" placeholder="Ex.: Ana, Carlos ou Rafael" value="'+safe(p?.nome||'')+'"><div class="muted" style="font-size:13px;margin-top:6px">Use o nome que o cliente verá ao escolher quem fará o atendimento.</div></div>'+
       '<div class="field"><label>Serviços que realiza</label>'+servicosChecks(p?.servico_ids||[])+'<div class="muted">Se nenhum serviço for marcado, o profissional será considerado disponível para todos.</div></div>'+
       '<label class="check" style="margin-top:14px"><input id="pro-geral" type="checkbox" '+(!p?.horarios?'checked':'')+'> Usar os horários gerais da empresa</label>'+
       '<div id="pro-horarios" '+(!p?.horarios?'class="hidden"':'')+'>'+horariosEditor(p?.horarios||null)+'</div>'+
@@ -60,21 +60,47 @@
     $('pro-save').onclick=async()=>{
       const st=$('pro-status'),btn=$('pro-save');
       try{
-        btn.disabled=true;st.textContent='Salvando…';
+        const nomeEl=$('pro-nome');
+        const nome=String(nomeEl&&nomeEl.value||'').trim();
+        const servicoIds=selecionados();
+        const horarios=lerHorarios();
         const pausaDias=Array.from(document.querySelectorAll('[data-pausa-dia]:checked')).map(x=>Number(x.dataset.pausaDia));
-        const pausas=pausaDias.length?[{dias:pausaDias,inicio:$('pro-pausa-ini').value,fim:$('pro-pausa-fim').value,motivo:'Pausa / almoço'}]:null;
-        const body={nome:$('pro-nome').value.trim(),servico_ids:selecionados(),horarios:lerHorarios(),pausas};
+        const pausaInicio=String($('pro-pausa-ini')&&$('pro-pausa-ini').value||'');
+        const pausaFim=String($('pro-pausa-fim')&&$('pro-pausa-fim').value||'');
+        const pausas=pausaDias.length?[{dias:pausaDias,inicio:pausaInicio,fim:pausaFim,motivo:'Pausa / almoço'}]:null;
+
+        if(nome.length<2){
+          st.textContent='Digite o nome do profissional (pelo menos 2 letras).';
+          if(nomeEl)nomeEl.focus();
+          return;
+        }
+        if(nome.length>100){
+          st.textContent='O nome do profissional deve ter no máximo 100 caracteres.';
+          if(nomeEl)nomeEl.focus();
+          return;
+        }
+        if(pausaDias.length&&(!pausaInicio||!pausaFim||pausaInicio>=pausaFim)){
+          st.textContent='Confira o horário da pausa/almoço.';
+          return;
+        }
+
+        btn.disabled=true;st.textContent='Salvando profissional…';
+        const body={nome:nome,servico_ids:servicoIds,horarios:horarios,pausas:pausas};
         if(edit){
           await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais/'+p.id,{method:'PUT',body:JSON.stringify(body)});
         }else{
           await apiFetch('/lojas/'+loja.id+'/cliente-hub/profissionais',{method:'POST',body:JSON.stringify(body)});
         }
+        st.textContent=edit?'Alterações salvas.':'Profissional adicionado.';
         await carregarProfissionais();
         await refreshResumo();
         await recarregarProgresso();
         renderEquipeProfissionais();
-      }catch(e){st.textContent=e.message||'Não foi possível salvar o profissional.'}
-      finally{btn.disabled=false}
+      }catch(e){
+        st.textContent=e.message||'Não foi possível salvar o profissional.';
+      }finally{
+        btn.disabled=false;
+      }
     };
     renderLista();
   }
