@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08070d">
+<title>Agenda profissional · SaintsAI</title>
+<link rel="stylesheet" href="css/styles.css"><script src="js/theme.js"></script><script src="js/guard.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,rgba(130,55,240,.18),transparent 34%),#08070d;color:#fff;font-family:Manrope,system-ui,sans-serif}.shell{max-width:900px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(44px + env(safe-area-inset-bottom))}
+.top{display:flex;gap:12px;align-items:center;margin-bottom:16px}.back{border:1px solid rgba(255,255,255,.08);background:#15111d;color:#fff;border-radius:14px;padding:11px 13px;font:inherit;font-weight:850}.brand{font-size:18px;font-weight:950}.sub,.muted{font-size:11px;color:#92899e;line-height:1.45}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}.metric,.card{border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,#15111f,#0d0b12);border-radius:20px;padding:16px}.metric strong{font-size:24px;display:block}.metric span{font-size:10px;color:#81788c}.card{margin-bottom:12px}.card h2{margin:0 0 5px;font-size:18px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chip,.btn{border:1px solid rgba(255,255,255,.08);background:#17131f;color:#fff;border-radius:12px;padding:10px 12px;font:inherit;font-size:11px;font-weight:850}.btn.primary{border:0;background:linear-gradient(135deg,#7b37ee,#ae56ff)}.btn.danger{color:#ffabab;background:rgba(244,99,99,.08)}.list{display:grid}.item{padding:13px 0;border-bottom:1px solid rgba(255,255,255,.055)}.item:last-child{border:0}.item-head{display:flex;justify-content:space-between;gap:10px}.item-title{font-size:13px;font-weight:900}.item-sub{font-size:11px;color:#8d8497;margin-top:4px;line-height:1.45}.tag{font-size:9px;font-weight:900;border-radius:999px;padding:5px 7px;background:rgba(125,56,237,.11);color:#c6a5f0;white-space:nowrap}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.actions .btn{padding:8px 10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:6px;margin-top:10px}.field label{font-size:11px;color:#bcb3c6;font-weight:850}input,select{width:100%;min-height:45px;background:#09080d;border:1px solid rgba(255,255,255,.09);color:#fff;border-radius:13px;padding:0 11px;font:inherit}.status{min-height:18px;font-size:11px;color:#c5a3ef;margin-top:8px}.empty{padding:18px 5px;text-align:center;color:#776e80;font-size:11px}.hidden{display:none!important}
+@media(max-width:650px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.item-head{flex-direction:column}.actions .btn{flex:1}.shell{padding-left:12px;padding-right:12px}}
+</style></head><body><main class="shell">
+<header class="top"><button class="back" id="back">← Dashboard</button><div><div class="brand">Agenda profissional</div><div class="sub" id="company">Carregando empresa…</div></div></header>
+<section class="cards"><div class="metric"><strong id="m-hoje">0</strong><span>atendimentos hoje</span></div><div class="metric"><strong id="m-prox">0</strong><span>próximos</span></div><div class="metric"><strong id="m-conf">0</strong><span>confirmados</span></div><div class="metric"><strong id="m-pend">0</strong><span>pendentes</span></div></section>
+
+<section class="card"><h2>Próximos atendimentos</h2><div class="muted">Reagende, cancele, conclua ou marque no-show sem apagar o histórico.</div><div id="appointments" class="list"><div class="empty">Carregando agenda…</div></div></section>
+
+<section class="card"><h2>Bloqueios, folgas, férias e feriados</h2><div class="muted">Períodos bloqueados desaparecem automaticamente dos horários oferecidos pela IA e pelo link do WhatsApp.</div>
+<div class="grid"><div class="field"><label>Tipo</label><select id="type"><option value="bloqueio">Bloqueio manual</option><option value="folga">Folga</option><option value="ferias">Férias</option><option value="feriado">Feriado</option></select></div><div class="field"><label>Profissional</label><select id="professional"><option value="">Todos / empresa fechada</option></select></div></div>
+<div class="grid"><div class="field"><label>Início</label><input id="start" type="datetime-local"></div><div class="field"><label>Fim</label><input id="end" type="datetime-local"></div></div>
+<div class="field"><label>Motivo / título</label><input id="title" maxlength="120" placeholder="Ex.: Almoço especial, feriado municipal, férias da Ana"></div>
+<button class="btn primary" id="block-save" style="margin-top:12px">Adicionar bloqueio</button><div class="status" id="block-status"></div>
+<div id="blocks" class="list"></div></section>
+
+<section class="card"><h2>Pausas recorrentes</h2><div class="muted">Almoço e outras pausas semanais são configurados dentro de <strong>Equipe</strong>, separadamente para cada profissional.</div><button class="btn" id="team">Abrir Equipe</button></section>
+</main>
+<script src="js/config.js"></script><script src="js/auth.js"></script><script src="js/api.js"></script><script src="js/loja.js"></script>
+<script>
+const $=id=>document.getElementById(id);let loja=null,dados=null;
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function when(v){return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}
+function localInput(v){const d=new Date(v),parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d);const o={};parts.forEach(p=>o[p.type]=p.value);return o.year+'-'+o.month+'-'+o.day+'T'+(o.hour==='24'?'00':o.hour)+':'+o.minute}
+function statusLabel(s){return ({pendente:'Pendente',confirmado:'Confirmado',em_atendimento:'Em atendimento',concluido:'Concluído',cancelado:'Cancelado',nao_compareceu:'No-show'})[s]||s}
+function proName(a){return a.saintsai_profissionais?.nome||'Qualquer profissional'}
+function render(){
+ const m=dados.metricas||{};$('m-hoje').textContent=m.hoje||0;$('m-prox').textContent=m.proximos||0;$('m-conf').textContent=m.confirmados||0;$('m-pend').textContent=m.pendentes||0;
+ $('professional').innerHTML='<option value="">Todos / empresa fechada</option>'+(dados.profissionais||[]).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.nome)+'</option>').join('');
+ const ag=(dados.agendamentos||[]).filter(a=>a.status!=='cancelado'&&new Date(a.inicio)>=new Date(Date.now()-6*3600000));
+ $('appointments').innerHTML=ag.length?ag.map(a=>'<div class="item" data-ag="'+a.id+'"><div class="item-head"><div><div class="item-title">'+esc(a.cliente_nome)+' · '+esc(a.saintsai_servicos?.nome||'Serviço')+'</div><div class="item-sub">'+when(a.inicio)+' · '+esc(proName(a))+' · pagamento: '+esc(a.pagamento_status)+'</div></div><span class="tag">'+esc(statusLabel(a.status))+'</span></div><div class="actions"><button class="btn ag-reschedule" data-id="'+a.id+'">Reagendar</button><button class="btn ag-done" data-id="'+a.id+'">Concluir</button><button class="btn ag-noshow" data-id="'+a.id+'">No-show</button><button class="btn danger ag-cancel" data-id="'+a.id+'">Cancelar</button></div></div>').join(''):'<div class="empty">Nenhum atendimento próximo.</div>';
+ $('blocks').innerHTML=(dados.bloqueios||[]).length?dados.bloqueios.map(b=>'<div class="item"><div class="item-head"><div><div class="item-title">'+esc(b.titulo||statusLabel(b.tipo))+'</div><div class="item-sub">'+when(b.inicio)+' até '+when(b.fim)+' · '+esc(b.saintsai_profissionais?.nome||'Todos os profissionais')+'</div></div><span class="tag">'+esc(b.tipo)+'</span></div><div class="actions"><button class="btn danger block-delete" data-id="'+b.id+'">Remover</button></div></div>').join(''):'<div class="empty">Nenhum bloqueio futuro.</div>';
+}
+async function load(){try{loja=loja||await obterLojaAtual();if(!loja)throw new Error('Nenhuma empresa encontrada.');$('company').textContent=loja.nome||'Sua empresa';dados=await apiFetch('/lojas/'+loja.id+'/agenda-profissional?dias=60');render()}catch(e){if(e instanceof SessaoExpiradaError)return fazerLogout();$('appointments').innerHTML='<div class="empty">'+esc(e.message||'Não foi possível carregar a agenda.')+'</div>'}}
+async function setStatus(id,status){try{await apiFetch('/lojas/'+loja.id+'/agenda-profissional/agendamentos/'+id,{method:'PUT',body:JSON.stringify({status})});await load()}catch(e){alert(e.message||'Não foi possível atualizar.')}}
+document.addEventListener('click',async e=>{
+ const r=e.target.closest('.ag-reschedule');if(r){const a=(dados.agendamentos||[]).find(x=>x.id===r.dataset.id);const novo=prompt('Novo dia e horário (AAAA-MM-DDTHH:MM):',localInput(a.inicio));if(!novo)return;try{await apiFetch('/lojas/'+loja.id+'/agenda-profissional/agendamentos/'+a.id,{method:'PUT',body:JSON.stringify({inicio_local:novo})});await load()}catch(err){alert(err.message||'Não foi possível reagendar.')}return}
+ const c=e.target.closest('.ag-cancel');if(c){if(confirm('Cancelar este agendamento? Pagamentos já recebidos não serão estornados automaticamente.'))await setStatus(c.dataset.id,'cancelado');return}
+ const d=e.target.closest('.ag-done');if(d){await setStatus(d.dataset.id,'concluido');return}
+ const n=e.target.closest('.ag-noshow');if(n){if(confirm('Marcar que o cliente não compareceu?'))await setStatus(n.dataset.id,'nao_compareceu');return}
+ const b=e.target.closest('.block-delete');if(b){if(confirm('Remover este bloqueio?')){try{await apiFetch('/lojas/'+loja.id+'/agenda-profissional/bloqueios/'+b.dataset.id,{method:'DELETE'});await load()}catch(err){alert(err.message||'Não foi possível remover.')}}}
+});
+$('block-save').onclick=async()=>{const st=$('block-status');try{st.textContent='Salvando…';await apiFetch('/lojas/'+loja.id+'/agenda-profissional/bloqueios',{method:'POST',body:JSON.stringify({tipo:$('type').value,profissional_id:$('professional').value||null,inicio_local:$('start').value,fim_local:$('end').value,titulo:$('title').value})});st.textContent='Bloqueio adicionado.';$('title').value='';await load()}catch(e){st.textContent=e.message||'Não foi possível criar o bloqueio.'}};
+$('team').onclick=()=>location.href='cliente-configuracao.html?etapa=equipe';$('back').onclick=()=>location.href='cliente-central.html';
+load();
+</script></body></html>
