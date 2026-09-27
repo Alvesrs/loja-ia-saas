@@ -304,7 +304,35 @@ cp.execFileSync(process.execPath,['--check','src/services/agendaProfissional.ser
 cp.execFileSync(process.execPath,['--check','src/controllers/agendaProfissional.controller.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','src/services/profissionais.service.js'],{stdio:'inherit'});
 
-console.log('Portal cliente validado: Dashboard + equipe + Agenda profissional + WhatsApp + Planos + PagBank.');
+
+for(const p of [
+  'src/controllers/clienteFinanceiro.controller.js',
+  'src/routes/clienteFinanceiro.routes.js',
+  'public/js/cliente-dashboard-financeiro-v1.js',
+  'public/css/cliente-dashboard-financeiro-v1.css'
+]){
+  if(!fs.existsSync(p)) throw new Error('Dashboard financeiro incompleto: '+p);
+}
+const finController=fs.readFileSync('src/controllers/clienteFinanceiro.controller.js','utf8');
+const finRoutes=fs.readFileSync('src/routes/clienteFinanceiro.routes.js','utf8');
+const finJs=fs.readFileSync('public/js/cliente-dashboard-financeiro-v1.js','utf8');
+const finCss=fs.readFileSync('public/css/cliente-dashboard-financeiro-v1.css','utf8');
+for(const m of ['pagamento_pago_em','cancelado_em','ticket_medio','vendido_quantidade','recebido_quantidade']){
+  if(!finController.includes(m)) throw new Error('Resumo financeiro incompleto: '+m);
+}
+for(const m of ['Vendido hoje','Recebido hoje','A receber','Cancelado hoje','Ticket médio no mês','Resumo do mês','Registros recentes']){
+  if(!finJs.includes(m)) throw new Error('Dashboard financeiro UI incompleto: '+m);
+}
+if(!finCss.includes('SAINTSAI_FINANCE_DASHBOARD_V1')) throw new Error('CSS financeiro sem marcador');
+if(!finRoutes.includes("r.get('/',c.resumo)")) throw new Error('Rota financeira ausente');
+if(!app.includes("app.use('/api/lojas/:lojaId/cliente-financeiro', clienteFinanceiroRoutes);")) throw new Error('API financeira não montada');
+if(!html.includes('cliente-dashboard-financeiro-v1.js')) throw new Error('Home não carrega Dashboard financeiro');
+if(!html.includes('cliente-dashboard-financeiro-v1.css')) throw new Error('Home não carrega CSS financeiro');
+cp.execFileSync(process.execPath,['--check','src/controllers/clienteFinanceiro.controller.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','src/routes/clienteFinanceiro.routes.js'],{stdio:'inherit'});
+cp.execFileSync(process.execPath,['--check','public/js/cliente-dashboard-financeiro-v1.js'],{stdio:'inherit'});
+
+console.log('Portal cliente validado: Dashboard financeiro + equipe + Agenda profissional + WhatsApp + Planos + PagBank.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -327,3 +355,5 @@ console.log('Portal cliente validado: Dashboard + equipe + Agenda profissional +
 // SAINTSAI_CLIENT_PLANOS_V1_VALIDATION
 
 // SAINTSAI_AGENDA_PRO_V1_VALIDATION
+
+// SAINTSAI_FINANCE_DASHBOARD_V1_VALIDATION
