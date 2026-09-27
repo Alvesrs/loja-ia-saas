@@ -1,0 +1,10 @@
+const express=require('express');
+const {exigirLogin}=require('../middleware/auth');
+const c=require('../controllers/agendaProfissional.controller');
+const r=express.Router({mergeParams:true});
+r.use(exigirLogin);
+r.get('/',c.resumo);
+r.post('/bloqueios',c.criarBloqueio);
+r.delete('/bloqueios/:bloqueioId',c.removerBloqueio);
+r.put('/agendamentos/:agendamentoId',c.alterarAgendamento);
+module.exports=r;
