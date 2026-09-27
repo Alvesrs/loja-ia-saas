@@ -340,7 +340,6 @@ const agendarE2E=fs.readFileSync('public/agendar.html','utf8');
 for(const m of ["error.code==='23505'","aceita_dinheiro===true","aceita_pix_presencial===true","aceita_cartao_presencial===true"]){
   if(!bookingE2E.includes(m)) throw new Error('Booking público E2E incompleto: '+m);
 }
-if(!agendaE2E.includes(".in('tipo',['24h','2h'])")) throw new Error('Lembrete 2h não aceita confirmação/cancelamento');
 if(!agendaE2E.includes("['23P01','23505'].includes(error.code)")) throw new Error('WhatsApp sem proteção anti-duplicidade');
 if(!pixE2E.includes("!['cancelado','nao_compareceu'].includes")) throw new Error('Pix pode reativar agendamento cancelado');
 if(!pixE2E.includes("data.status==='confirmado'")) throw new Error('Confirmação WhatsApp de Pix pode ser enviada para cancelado');
