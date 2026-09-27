@@ -28,6 +28,7 @@ fn=fn.replace(stepsRe,`const etapas=[
       {id:'servicos',titulo:'Cadastre seu trabalho',descricao:'Adicione pelo menos um serviço com preço, duração e detalhes.',concluida:Boolean(servicos&&servicos.length),destino:'servicos'},\n      {id:'equipe',titulo:'Configure sua equipe',descricao:'Cadastre pelo menos um profissional para atender os serviços.',concluida:Boolean(profissionaisOnboarding&&profissionaisOnboarding.length),destino:'equipe'},
       {id:'agenda',titulo:'Configure a agenda',descricao:'Escolha os dias, horários e intervalos de atendimento.',concluida:agendaOk,destino:'agenda'},
       {id:'pagamentos',titulo:'Configure pagamentos',descricao:'Defina como seus clientes podem pagar pelos atendimentos.',concluida:pagOk,destino:'pagamentos'},
+      {id:'pagbank',titulo:'Conecte o PagBank',descricao:'Conecte sua conta PagBank para receber pagamentos online.',concluida:Boolean(pag?.conectado),destino:'pagamentos'},
       {id:'plano',titulo:'Escolha seu plano SaintsAI',descricao:'Escolha e ative o plano da sua assinatura SaintsAI.',concluida:planoOk,destino:'plano'},
       {id:'operacao',titulo:'Conecte e teste o WhatsApp',descricao:'Ative o WhatsApp e faça um teste antes de divulgar.',concluida:Boolean(wa&&wa.length),destino:'operacao'}
     ];`);
@@ -46,5 +47,6 @@ cp.execFileSync(process.execPath,['--check',p],{stdio:'inherit'});
 const out=fs.readFileSync(p,'utf8').slice(a,b+2500);
 if(!out.includes("concluida:prompt.length>0"))throw new Error('Validação do Prompt não aplicada');
 if(!out.includes("titulo:'Configure sua equipe'"))throw new Error('Etapa equipe não aplicada');
+if(!out.includes("titulo:'Conecte o PagBank'"))throw new Error('Etapa PagBank não aplicada');
 if(out.indexOf("id:'plano'")>out.indexOf("id:'operacao'"))throw new Error('Plano ainda está depois do WhatsApp');
 console.log('[onboarding-coherence] PASS acesso unificado, prompt salvo e ordem coerente');
