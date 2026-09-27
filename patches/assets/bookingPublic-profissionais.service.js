@@ -46,9 +46,9 @@ function opcoesPagamento(cfg){
   const c=cfg||{};
   const online=Boolean(c.conectado&&c.provedor==='pagbank'&&c.aceita_pix_online);
   const op=[];
-  if(c.aceita_dinheiro!==false)op.push({id:'dinheiro',nome:'Dinheiro no atendimento'});
-  if(c.aceita_pix_presencial!==false)op.push({id:'pix_presencial',nome:'Pix no atendimento'});
-  if(c.aceita_cartao_presencial!==false)op.push({id:'cartao_presencial',nome:'Cartão no atendimento'});
+  if(c.aceita_dinheiro===true)op.push({id:'dinheiro',nome:'Dinheiro no atendimento'});
+  if(c.aceita_pix_presencial===true)op.push({id:'pix_presencial',nome:'Pix no atendimento'});
+  if(c.aceita_cartao_presencial===true)op.push({id:'cartao_presencial',nome:'Cartão no atendimento'});
   if(online)op.unshift({id:'pix_online',nome:'Pix agora'});
   if(c.exige_pagamento_antecipado===true)return online?[{id:'pix_online',nome:'Pix agora'}]:[];
   return op;
@@ -163,6 +163,7 @@ async function confirmar(token,body){
   }).select('*').single();
   if(error){
     if(error.code==='23P01')throw erro('horario_ocupado','Esse horário acabou de ser ocupado. Escolha outro.',409);
+    if(error.code==='23505')throw erro('agendamento_duplicado','Este cliente já tem um agendamento nesse horário.',409);
     throw error;
   }
 
