@@ -6,17 +6,45 @@ android {
     namespace 'com.saintsai.stock'
     compileSdk 35
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.saintsai.stock"
         minSdk 24
         targetSdk 35
-        versionCode 16
-        versionName "1.2.1"
+        versionCode 17
+        versionName "1.2.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            def storeFilePath = System.getenv("SAINTSAI_CLIENT_KEYSTORE")
+            if (storeFilePath) {
+                storeFile file(storeFilePath)
+                storePassword System.getenv("SAINTSAI_CLIENT_STORE_PASSWORD")
+                keyAlias System.getenv("SAINTSAI_CLIENT_KEY_ALIAS")
+                keyPassword System.getenv("SAINTSAI_CLIENT_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("SAINTSAI_CLIENT_KEYSTORE")) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'androidx.core:core:1.15.0'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
