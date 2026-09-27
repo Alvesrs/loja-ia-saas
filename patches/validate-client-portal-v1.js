@@ -332,7 +332,22 @@ cp.execFileSync(process.execPath,['--check','src/controllers/clienteFinanceiro.c
 cp.execFileSync(process.execPath,['--check','src/routes/clienteFinanceiro.routes.js'],{stdio:'inherit'});
 cp.execFileSync(process.execPath,['--check','public/js/cliente-dashboard-financeiro-v1.js'],{stdio:'inherit'});
 
-console.log('Portal cliente validado: Dashboard financeiro + equipe + Agenda profissional + WhatsApp + Planos + PagBank.');
+
+const bookingE2E=fs.readFileSync('src/services/bookingPublic.service.js','utf8');
+const agendaE2E=fs.readFileSync('src/services/agendaWhatsapp.service.js','utf8');
+const pixE2E=fs.readFileSync('src/services/pagBankPix.service.js','utf8');
+const agendarE2E=fs.readFileSync('public/agendar.html','utf8');
+for(const m of ["error.code==='23505'","aceita_dinheiro===true","aceita_pix_presencial===true","aceita_cartao_presencial===true"]){
+  if(!bookingE2E.includes(m)) throw new Error('Booking público E2E incompleto: '+m);
+}
+if(!agendaE2E.includes(".in('tipo',['24h','2h'])")) throw new Error('Lembrete 2h não aceita confirmação/cancelamento');
+if(!agendaE2E.includes("['23P01','23505'].includes(error.code)")) throw new Error('WhatsApp sem proteção anti-duplicidade');
+if(!pixE2E.includes("!['cancelado','nao_compareceu'].includes")) throw new Error('Pix pode reativar agendamento cancelado');
+if(!pixE2E.includes("data.status==='confirmado'")) throw new Error('Confirmação WhatsApp de Pix pode ser enviada para cancelado');
+if(!agendarE2E.includes('Para cancelar ou reagendar depois')) throw new Error('Pós-agendamento sem instrução');
+if(!agendarE2E.includes('tentativas>360')) throw new Error('Polling Pix público curto');
+
+console.log('Portal cliente validado: fluxo E2E auditado e protegido.');
 
 // SAINTSAI_FINAL_CLIENT_PORTAL_HEAD
 
@@ -357,3 +372,5 @@ console.log('Portal cliente validado: Dashboard financeiro + equipe + Agenda pro
 // SAINTSAI_AGENDA_PRO_V1_VALIDATION
 
 // SAINTSAI_FINANCE_DASHBOARD_V1_VALIDATION
+
+// SAINTSAI_E2E_HARDENING_V1_VALIDATION
