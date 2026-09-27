@@ -116,6 +116,13 @@ jobs:
             adb logcat -d -b crash > android-app/client-crash.txt
             if grep -F "Process: com.saintsai.stock" android-app/client-crash.txt; then exit 1; fi
             adb exec-out screencap -p > android-app/estoque-screen.png
+
+            adb install -r android-app/salesnotify/build/outputs/apk/debug/salesnotify-debug.apk
+            adb shell am force-stop com.saintsai.sales
+            adb shell monkey -p com.saintsai.sales -c android.intent.category.LAUNCHER 1
+            sleep 12
+            adb shell pidof com.saintsai.sales
+            adb exec-out screencap -p > android-app/sales-screen.png
             adb shell settings put secure show_ime_with_hard_keyboard 1
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest
@@ -136,6 +143,7 @@ jobs:
           path: |
             android-app/admin-screen.png
             android-app/estoque-screen.png
+            android-app/sales-screen.png
             android-app/layout-threebutton/
             android-app/layout-gestures/
             android-app/estoqueapp/build/reports/androidTests/
