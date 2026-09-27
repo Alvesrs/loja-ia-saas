@@ -20,6 +20,7 @@ function erroHttp(res,e){
   const m=String(e?.message||'');
   if(m==='nome_invalido')return res.status(400).json({erro:'Informe um nome válido para o profissional.'});
   if(m==='horarios_invalidos')return res.status(400).json({erro:'Confira os horários do profissional.'});
+  if(m==='pausas_invalidas')return res.status(400).json({erro:'Confira os dias e horários das pausas do profissional.'});
   if(m==='servico_invalido')return res.status(400).json({erro:'Um dos serviços selecionados é inválido.'});
   if(m==='profissional_nao_encontrado')return res.status(404).json({erro:'Profissional não encontrado.'});
   console.error('[profissionais]',m||e);
