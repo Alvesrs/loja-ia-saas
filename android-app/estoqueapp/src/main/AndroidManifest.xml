@@ -11,8 +11,8 @@
         android:usesCleartextTraffic="false"
         android:label="SaintsAI Cliente"
         android:theme="@style/AppTheme"
-        android:icon="@drawable/ic_launcher_saintsai_stock"
-        android:roundIcon="@drawable/ic_launcher_saintsai_stock">
+        android:icon="@drawable/saintsai_client_icon"
+        android:roundIcon="@drawable/saintsai_client_icon">
 
         <activity
             android:name=".MainActivity"
