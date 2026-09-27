@@ -45,5 +45,6 @@ cp.execFileSync(process.execPath,['--check',p],{stdio:'inherit'});
 
 const out=fs.readFileSync(p,'utf8').slice(a,b+2500);
 if(!out.includes("concluida:prompt.length>0"))throw new Error('Validação do Prompt não aplicada');
-if(!out.includes("titulo:'Configure sua equipe'"))throw new Error('Etapa equipe não aplicada');\nif(out.indexOf("id:'plano'")>out.indexOf("id:'operacao'"))throw new Error('Plano ainda está depois do WhatsApp');
+if(!out.includes("titulo:'Configure sua equipe'"))throw new Error('Etapa equipe não aplicada');
+if(out.indexOf("id:'plano'")>out.indexOf("id:'operacao'"))throw new Error('Plano ainda está depois do WhatsApp');
 console.log('[onboarding-coherence] PASS acesso unificado, prompt salvo e ordem coerente');
