@@ -22,6 +22,7 @@
     var dataUrl=await lerArquivoDataUrl(file);
     return apiFetch('/lojas/'+loja.id+'/servico-imagem',{
       method:'POST',
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({data_url:dataUrl})
     });
   }
@@ -90,6 +91,7 @@
         st.textContent='Salvando serviço…';
         await apiFetch('/lojas/'+loja.id+'/cliente-hub/servicos',{
           method:'POST',
+          headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
             nome:nome,
             descricao:descricao,
@@ -140,6 +142,7 @@
             var foto=await enviarFotoServico(f);
             await apiFetch('/lojas/'+loja.id+'/cliente-hub/servicos/'+b.dataset.photo,{
               method:'PUT',
+              headers:{'Content-Type':'application/json'},
               body:JSON.stringify(foto)
             });
             await refreshResumo();
@@ -183,6 +186,7 @@
         st.textContent='Salvando…';
         var x=await apiFetch('/lojas/'+loja.id+'/cliente-hub/equipe',{
           method:'PUT',
+          headers:{'Content-Type':'application/json'},
           body:JSON.stringify({quantidade_profissionais:Number($('eq-qtd').value)})
         });
         resumo.agenda_config=x;
