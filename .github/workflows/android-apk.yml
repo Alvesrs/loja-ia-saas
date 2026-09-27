@@ -94,12 +94,12 @@ jobs:
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest
             mkdir -p android-app/layout-threebutton
-            adb pull /sdcard/Android/data/com.saintsai.stock/files/. android-app/layout-threebutton/
+            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-threebutton/
             cp -r android-app/estoqueapp/build/outputs/androidTest-results/connected android-app/layout-threebutton/results
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.gestural
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest --rerun-tasks
             mkdir -p android-app/layout-gestures
-            adb pull /sdcard/Android/data/com.saintsai.stock/files/. android-app/layout-gestures/
+            adb pull /sdcard/Download/saintsai-layout/. android-app/layout-gestures/
 
 
       - name: Upload emulator screenshots

@@ -168,6 +168,14 @@ public class WindowInsetsTest {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output);
         } catch (java.io.IOException exception) { throw new AssertionError(exception); }
         finally { bitmap.recycle(); }
+        // Gradle's device runner removes app data after the test. Keep the QA
+        // capture in shared emulator storage before that cleanup happens.
+        String command = "mkdir -p /sdcard/Download/saintsai-layout && cp "
+                + new File(dir, name).getAbsolutePath() + " /sdcard/Download/saintsai-layout/" + name;
+        try (java.io.InputStream result = new android.os.ParcelFileDescriptor.AutoCloseInputStream(
+                InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command))) {
+            while (result.read() != -1) { /* Wait for the copy before app cleanup. */ }
+        } catch (java.io.IOException exception) { throw new AssertionError(exception); }
     }
 
     private WebView findWebView(View view) {
