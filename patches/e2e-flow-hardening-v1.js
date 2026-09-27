@@ -61,7 +61,7 @@ if(!agenda.includes("['23P01','23505'].includes(error.code)"))throw new Error('W
 const html=read('public/agendar.html');
 if(!html.includes('Para cancelar ou reagendar depois'))throw new Error('Pós-agendamento sem orientação de gestão');
 if(!html.includes('tentativas>360'))throw new Error('Polling Pix curto demais');
-const re=/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi;let m,n=0;
+const re=/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi;let m,n=0;
 while((m=re.exec(html))){const code=m[1].trim();if(!code)continue;const tmp=path.join(os.tmpdir(),'saintsai-e2e-audit-'+(++n)+'.js');fs.writeFileSync(tmp,code);try{cp.execFileSync(process.execPath,['--check',tmp],{stdio:'inherit'});}finally{try{fs.unlinkSync(tmp)}catch(_){}}}
 if(!n)throw new Error('Página pública sem JavaScript');
 console.log('Auditoria E2E: duplicidade, cancelamento tardio, Pix, lembretes e pós-agendamento protegidos.');
