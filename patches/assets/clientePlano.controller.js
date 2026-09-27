@@ -28,7 +28,7 @@ function resumoCobranca(c){
     valor_centavos:c.valor_centavos===null?null:Number(c.valor_centavos),
     duracao_meses:c.duracao_meses===null?null:Number(c.duracao_meses),
     criado_em:c.criado_em,
-    atualizado_em:c.atualizado_em
+    valor_centavos:c.valor_centavos===null?null:Number(c.valor_centavos),\n    duracao_meses:c.duracao_meses===null?null:Number(c.duracao_meses),\n    atualizado_em:c.atualizado_em
   };
 }
 
