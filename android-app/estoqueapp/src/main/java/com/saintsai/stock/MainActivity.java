@@ -1,17 +1,25 @@
 package com.saintsai.stock;
 
 import android.app.Activity;
+import android.Manifest;
+import android.app.AlertDialog;
+import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
+import android.os.Environment;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -23,11 +31,14 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends Activity {
     private static final String APP_URL = "https://backend-prod-production-f338.up.railway.app/cliente/";
     private static final String APP_HOST = "backend-prod-production-f338.up.railway.app";
     private static final int FILE_CHOOSER_REQUEST = 501;
+    public static final String CHANNEL_CLIENT = "saintsai_client_updates";
+    private static final String LATEST_APK_URL = "https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk";
 
     private WebView webView;
     private ProgressBar loading;
@@ -37,6 +48,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        createClientChannel();
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
+        }
+        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token ->
+            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("fcm_token", token).apply()
+        );
 
         getWindow().setStatusBarColor(Color.rgb(8, 7, 13));
         getWindow().setNavigationBarColor(Color.rgb(8, 7, 13));
@@ -88,6 +106,8 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
+
+        webView.addJavascriptInterface(new ClientBridge(), "AndroidClient");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -207,6 +227,56 @@ public class MainActivity extends Activity {
         setContentView(root);
         root.requestApplyInsets();
         webView.loadUrl(APP_URL);
+    }
+
+
+    public class ClientBridge {
+        @JavascriptInterface
+        public String getPushToken() {
+            return getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getString("fcm_token", "");
+        }
+
+        @JavascriptInterface
+        public int getVersionCode() { return BuildConfig.VERSION_CODE; }
+
+        @JavascriptInterface
+        public String getVersionName() { return BuildConfig.VERSION_NAME; }
+
+        @JavascriptInterface
+        public void installLatest() {
+            runOnUiThread(() -> {
+                try {
+                    DownloadManager dm=(DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
+                    DownloadManager.Request req=new DownloadManager.Request(Uri.parse(LATEST_APK_URL));
+                    req.setTitle("Atualização SaintsAI Cliente");
+                    req.setDescription("Baixando nova versão...");
+                    req.setMimeType("application/vnd.android.package-archive");
+                    req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,"SaintsAI-Cliente.apk");
+                    dm.enqueue(req);
+                    new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Atualização iniciada")
+                        .setMessage("Quando o download terminar, abra a notificação para instalar a nova versão por cima da atual.")
+                        .setPositiveButton("OK",null)
+                        .show();
+                } catch(Exception e) {
+                    openExternal(Uri.parse(LATEST_APK_URL));
+                }
+            });
+        }
+    }
+
+    private void createClientChannel() {
+        if (android.os.Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_CLIENT,
+                "SaintsAI · Novidades",
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        channel.setDescription("Novos agendamentos, pagamentos e avisos do SaintsAI");
+        channel.enableVibration(true);
+        nm.createNotificationChannel(channel);
     }
 
     private boolean handleNavigation(Uri uri) {
