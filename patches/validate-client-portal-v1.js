@@ -161,7 +161,7 @@ cp.execFileSync(process.execPath,['--check','src/controllers/servicoImagem.contr
 cp.execFileSync(process.execPath,['--check','src/routes/servicoImagem.routes.js'],{stdio:'inherit'});
 if(!hub.includes("titulo:'Cadastre seu trabalho'")) throw new Error('Onboarding sem cadastro do trabalho');
 if(!hub.includes("titulo:'Cadastre sua equipe'")&&!hub.includes("titulo:'Configure sua equipe'")) throw new Error('Onboarding sem equipe');
-if(!hub.includes("titulo:'Conecte o PagBank'")) throw new Error('Onboarding sem PagBank');
+if(!hub.includes("titulo:'Conecte o Mercado Pago'")) throw new Error('Onboarding sem Mercado Pago');
 if(!hub.includes('clientes_hoje')) throw new Error('Dashboard sem clientes de hoje');
 if(!hub.includes('vendas_hoje')) throw new Error('Dashboard sem vendas de hoje');
 if(!hub.includes('salvarEquipe')) throw new Error('Backend sem configuração da equipe');
@@ -202,8 +202,8 @@ for(const m of ['payments.read payments.create accounts.read','/oauth2/token','/
 if(!pagbankController.includes('status(req,res)')) throw new Error('PagBank sem endpoint de status');
 if(!pagbankRoutes.includes("'/lojas/:lojaId/status'")) throw new Error('Rota de status PagBank ausente');
 if(!pagbankPix.includes("connect.obterAccessTokenLoja")) throw new Error('Pix PagBank sem renovação automática de token');
-if(!configHtml.includes('PagBank e formas de pagamento')) throw new Error('Tela do cliente sem PagBank v2');
-if(!configHtml.includes("'/pagamentos/pagbank/lojas/'+loja.id+'/status'")) throw new Error('Tela do cliente não consulta status real do PagBank');
+if(!configHtml.includes('Mercado Pago e formas de pagamento')) throw new Error('Tela do cliente sem Mercado Pago');
+if(!configHtml.includes("'/pagamentos/mercadopago/lojas/'+loja.id+'/status'")) throw new Error('Tela do cliente não consulta status real do Mercado Pago');
 
 
 for(const p of [
@@ -362,7 +362,7 @@ console.log('Portal cliente validado: fluxo E2E auditado e protegido.');
 
 // SAINTSAI_CLIENT_WHATSAPP_ISOLATION_VALIDATION
 
-// SAINTSAI_PAGBANK_CONNECT_V2_VALIDATION
+// SAINTSAI_MERCADOPAGO_SWITCH_V1_VALIDATION
 
 // SAINTSAI_PROFISSIONAIS_V1_VALIDATION
 
