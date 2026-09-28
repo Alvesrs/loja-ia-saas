@@ -138,6 +138,7 @@ write('src/app.js',app);
 let booking=read('src/services/bookingPublic.service.js');
 booking=booking.replace("const pagBankPix=require('./pagBankPix.service');","const asaasPix=require('./asaasAgendamentoPix.service');");
 booking=booking.replace("c.provedor==='pagbank'","c.provedor==='asaas'");
+booking=booking.replace("const online=false; // MP_PIX_V2_PENDING","const online=Boolean(c.conectado&&c.provedor==='asaas'&&c.aceita_pix_online);");
 booking=booking.replace(/pagBankPix\.criarPixParaAgendamento/g,"asaasPix.criarPixParaAgendamento");
 write('src/services/bookingPublic.service.js',booking);
 
@@ -155,6 +156,7 @@ write('src/services/whatsappWorker.service.js',worker);
 
 let hub=read('src/controllers/clienteHub.controller.js');
 hub=hub.replace("id:'pagbank',titulo:'Conecte o PagBank',descricao:'Conecte sua conta PagBank para receber pagamentos online.',concluida:Boolean(pag?.conectado),destino:'pagamentos'","id:'asaas',titulo:'Ative pagamentos Asaas',descricao:'Crie sua conta de recebimento Asaas para receber Pix online.',concluida:Boolean(pag?.provedor==='asaas'&&pag?.conectado),destino:'pagamentos'");
+hub=hub.replace("id:'mercadopago',titulo:'Conecte o Mercado Pago',descricao:'Conecte sua conta Mercado Pago para receber pagamentos online.',concluida:Boolean(pag?.conectado),destino:'pagamentos'","id:'asaas',titulo:'Ative pagamentos Asaas',descricao:'Crie sua conta de recebimento Asaas para receber Pix online.',concluida:Boolean(pag?.provedor==='asaas'&&pag?.conectado),destino:'pagamentos'");
 write('src/controllers/clienteHub.controller.js',hub);
 
 let h=read('public/cliente-configuracao.html');
