@@ -155,8 +155,9 @@ worker=worker.replace(/pagBankPix\.expirarReservas\(\)/g,"asaasPix.expirarReserv
 write('src/services/whatsappWorker.service.js',worker);
 
 let hub=read('src/controllers/clienteHub.controller.js');
-hub=hub.replace("id:'pagbank',titulo:'Conecte o PagBank',descricao:'Conecte sua conta PagBank para receber pagamentos online.',concluida:Boolean(pag?.conectado),destino:'pagamentos'","id:'asaas',titulo:'Ative pagamentos Asaas',descricao:'Crie sua conta de recebimento Asaas para receber Pix online.',concluida:Boolean(pag?.provedor==='asaas'&&pag?.conectado),destino:'pagamentos'");
-hub=hub.replace("id:'mercadopago',titulo:'Conecte o Mercado Pago',descricao:'Conecte sua conta Mercado Pago para receber pagamentos online.',concluida:Boolean(pag?.conectado),destino:'pagamentos'","id:'asaas',titulo:'Ative pagamentos Asaas',descricao:'Crie sua conta de recebimento Asaas para receber Pix online.',concluida:Boolean(pag?.provedor==='asaas'&&pag?.conectado),destino:'pagamentos'");
+hub=hub.replace(/id:'pagbank'/g,"id:'asaas'").replace(/id:'mercadopago'/g,"id:'asaas'");
+hub=hub.replace(/titulo:'Conecte o PagBank'/g,"titulo:'Ative pagamentos Asaas'").replace(/titulo:'Conecte o Mercado Pago'/g,"titulo:'Ative pagamentos Asaas'");
+hub=hub.replace(/descricao:'Conecte sua conta PagBank para receber pagamentos online\.'/g,"descricao:'Crie sua conta de recebimento Asaas para receber Pix online.'").replace(/descricao:'Conecte sua conta Mercado Pago para receber pagamentos online\.'/g,"descricao:'Crie sua conta de recebimento Asaas para receber Pix online.'");
 write('src/controllers/clienteHub.controller.js',hub);
 
 let h=read('public/cliente-configuracao.html');
