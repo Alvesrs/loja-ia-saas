@@ -9,7 +9,7 @@ let svc=read('src/services/asaasSubconta.service.js');
 const anchor="  const body=await req('/v3/accounts',{method:'POST',body:payload});if(!body.id||!body.apiKey)throw new Error('asaas_subconta_resposta_invalida');";
 if(!svc.includes(anchor))throw new Error('Anchor criação Asaas não encontrado');
 
-const replacement=anchor+"\n  let statusFinal='SUBCONTA_CRIADA',mensagemFinal='Subconta Asaas criada. O titular deve concluir a ativação e validação recebidas por e-mail.';\n  if(c.ambiente==='sandbox'){try{await req('/v3/accounts/'+encodeURIComponent(String(body.id))+'/approve',{method:'POST'},c.rootKey);statusFinal='SUBCONTA_APROVADA_SANDBOX';mensagemFinal='Subconta Asaas criada e aprovada automaticamente no Sandbox para teste.';}catch(e){console.warn('[asaas-subconta] autoapprove sandbox',e?.status||'',e?.body||e?.message||e);mensagemFinal='Subconta Asaas criada no Sandbox. Se precisar acessar a conta, as comunicações do Sandbox são enviadas ao e-mail da conta-pai.';}}";
+const replacement=anchor+"\n  let statusFinal='SUBCONTA_CRIADA',mensagemFinal='Subconta Asaas criada. O titular deve concluir a ativação e validação recebidas por e-mail.';\n  if(c.ambiente==='sandbox'){try{await req('/v3/sandbox/myAccount/approve',{method:'POST'},String(body.apiKey));statusFinal='SUBCONTA_APROVADA_SANDBOX';mensagemFinal='Subconta Asaas criada e aprovada automaticamente no Sandbox para teste.';}catch(e){console.warn('[asaas-subconta] autoapprove sandbox',e?.status||'',e?.body||e?.message||e);mensagemFinal='Subconta Asaas criada no Sandbox. Se precisar acessar a conta, as comunicações do Sandbox são enviadas ao e-mail da conta-pai.';}}";
 svc=svc.replace(anchor,replacement);
 
 svc=svc.replace(
@@ -33,7 +33,7 @@ const fn=[
 "  for(const x of data||[]){",
 "    if(!x?.provedor_usuario_id)continue;",
 "    try{",
-"      await req('/v3/accounts/'+encodeURIComponent(String(x.provedor_usuario_id))+'/approve',{method:'POST'},c.rootKey);",
+"      const subKey=await obterApiKeyLoja(x.loja_id);await req('/v3/sandbox/myAccount/approve',{method:'POST'},subKey);",
 "      await supabase.from('saintsai_pagamento_config').update({provedor_status:'SUBCONTA_APROVADA_SANDBOX',provedor_conta_resumo:'Asaas Sandbox ativado e aprovado',atualizado_em:new Date().toISOString()}).eq('loja_id',x.loja_id);",
 "      console.log('[asaas-subconta] sandbox aprovado loja='+String(x.loja_id));",
 "    }catch(e){console.warn('[asaas-subconta] sandbox approve pendente',x.loja_id,e?.status||'',e?.body||e?.message||e);}",
