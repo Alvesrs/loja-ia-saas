@@ -57,7 +57,9 @@ writeLines('src/services/asaasSubconta.service.js',[
 "  if(atual&&atual.provedor_secret_id&&String(atual.provedor_secret_id)!==String(secretId))await supabase.rpc('saintsai_delete_payment_secret',{p_secret_id:atual.provedor_secret_id}).catch(()=>{});",
 "  return {ok:true,conectado:true,status:'SUBCONTA_CRIADA',conta_id:String(body.id),wallet_id:body.walletId?String(body.walletId):null,mensagem:'Subconta Asaas criada. O titular deve concluir a ativação e validação recebidas por e-mail.'};",
 "}",
-"module.exports={cfg,configurado,req,status,criarSubconta,obterApiKeyLoja,tokenWebhook};"
+"async function diagnosticarContaPai(){const c=cfg();if(!c.rootKey)return;try{const i=await req('/v3/myAccount/commercialInfo/',{method:'GET'},c.rootKey);const doc=String(i?.cpfCnpj||'').replace(/\\D/g,'');console.log('[asaas-parent] ambiente='+c.ambiente+' personType='+String(i?.personType||'desconhecido')+' cpfCnpj=***'+doc.slice(-4));}catch(e){console.error('[asaas-parent] diagnostico falhou '+String(e?.status||e?.message||'erro'));}}",
+"setTimeout(()=>{diagnosticarContaPai().catch(()=>{});},1200);",
+"module.exports={cfg,configurado,req,status,criarSubconta,obterApiKeyLoja,tokenWebhook,diagnosticarContaPai};"
 ]);
 
 writeLines('src/controllers/asaasSubconta.controller.js',[
