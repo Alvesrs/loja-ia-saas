@@ -17,6 +17,15 @@ const ownerEmails = () => String(process.env.SAAS_ADMIN_EMAILS || '').split(',')
 const money = v => Math.max(0, Number(v || 0));
 const monthStart = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
 const addMonths = (d,n) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+n, 1));
+const monthRange = value => {
+  const raw=String(value||'').trim();
+  if(raw && !/^\d{4}-\d{2}$/.test(raw)) return null;
+  if(!raw){const ini=monthStart(new Date());return {key:ini.toISOString().slice(0,7),ini,fim:addMonths(ini,1)};}
+  const [anoStr,mesStr]=raw.split('-'),ano=Number(anoStr),mes=Number(mesStr);
+  if(mes<1||mes>12) return null;
+  const ini=new Date(Date.UTC(ano,mes-1,1));
+  return {key:raw,ini,fim:new Date(Date.UTC(ano,mes,1))};
+};
 
 async function requireUser(req,res,next){
   try{
@@ -76,10 +85,14 @@ router.get('/contexto',requireUser,(req,res)=>res.json({
 }));
 
 router.get('/vendas',requireUser,async(req,res)=>{
-  const limit=Math.min(200,Math.max(1,Number(req.query.limit||100)));
-  const {data,error}=await db.from('gv_vendas').select('*').eq('empresa_id',req.gv.empresa.id).order('vendido_em',{ascending:false}).limit(limit);
+  const periodo=monthRange(req.query.mes);
+  if(!periodo) return res.status(400).json({erro:'Mês inválido. Use AAAA-MM.'});
+  const {data,error}=await db.from('gv_vendas').select('*')
+    .eq('empresa_id',req.gv.empresa.id)
+    .gte('vendido_em',periodo.ini.toISOString()).lt('vendido_em',periodo.fim.toISOString())
+    .order('vendido_em',{ascending:false});
   if(error) return res.status(500).json({erro:'Não foi possível carregar as vendas.'});
-  res.json({vendas:data||[]});
+  res.json({mes:periodo.key,vendas:data||[]});
 });
 
 router.post('/vendas',requireUser,async(req,res)=>{
@@ -179,7 +192,7 @@ router.post('/produtos',requireUser,async(req,res)=>{
 
 router.get('/dashboard',requireUser,async(req,res)=>{
   try{
-    const now=new Date(),ini=monthStart(now),fim=addMonths(ini,1),prevIni=addMonths(ini,-1);
+    const periodo=monthRange(req.query.mes);if(!periodo)return res.status(400).json({erro:'Mês inválido. Use AAAA-MM.'});const ini=periodo.ini,fim=periodo.fim,prevIni=addMonths(ini,-1);
     const [{data:atual,error:aErr},{data:anterior,error:pErr}]=await Promise.all([
       db.from('gv_vendas').select('id,cliente_id,cliente_nome,categoria,origem,valor,custo,vendido_em').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString()),
       db.from('gv_vendas').select('id,valor,custo').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',prevIni.toISOString()).lt('vendido_em',ini.toISOString())
@@ -191,6 +204,7 @@ router.get('/dashboard',requireUser,async(req,res)=>{
     const porDia={},origens={},categorias={},tipos={novo:0,recorrente:0};
     for(const v of vendas){const dia=String(v.vendido_em).slice(0,10);porDia[dia]=(porDia[dia]||0)+Number(v.valor||0);origens[v.origem||'Outro']=(origens[v.origem||'Outro']||0)+1;categorias[v.categoria||'Sem categoria']=(categorias[v.categoria||'Sem categoria']||0)+Number(v.valor||0);const tipo=String(v.observacao||'').includes('[CLIENTE_TIPO]recorrente')?'recorrente':'novo';tipos[tipo]=(tipos[tipo]||0)+1;v.tipo_cliente=tipo;}
     res.json({
+      mes:periodo.key,
       metricas:{faturamento,lucro,vendas:vendas.length,ticket_medio:ticket,clientes,faturamento_anterior:prevFat,variacao_faturamento_pct:prevFat>0?((faturamento-prevFat)/prevFat)*100:null},
       por_dia:Object.entries(porDia).map(([data,valor])=>({data,valor})).sort((a,b)=>a.data.localeCompare(b.data)),
       origens:Object.entries(origens).map(([nome,total])=>({nome,total})).sort((a,b)=>b.total-a.total),
