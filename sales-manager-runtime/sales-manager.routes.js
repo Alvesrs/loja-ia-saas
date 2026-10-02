@@ -17,12 +17,18 @@ const ownerEmails = () => String(process.env.SAAS_ADMIN_EMAILS || '').split(',')
 const money = v => Math.max(0, Number(v || 0));
 const monthStart = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
 const addMonths = (d,n) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+n, 1));
+const FIRST_GV_MONTH='2026-01';
+const currentBrazilMonth = () => {
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+  const year=parts.find(p=>p.type==='year')?.value;
+  const month=parts.find(p=>p.type==='month')?.value;
+  return year+'-'+month;
+};
 const monthRange = value => {
-  const raw=String(value||'').trim();
-  if(raw && !/^\d{4}-\d{2}$/.test(raw)) return null;
-  if(!raw){const ini=monthStart(new Date());return {key:ini.toISOString().slice(0,7),ini,fim:addMonths(ini,1)};}
+  const raw=String(value||currentBrazilMonth()).trim();
+  if(!/^\d{4}-\d{2}$/.test(raw)) return null;
   const [anoStr,mesStr]=raw.split('-'),ano=Number(anoStr),mes=Number(mesStr);
-  if(mes<1||mes>12) return null;
+  if(mes<1||mes>12||raw<FIRST_GV_MONTH||raw>currentBrazilMonth()) return null;
   const ini=new Date(Date.UTC(ano,mes-1,1));
   return {key:raw,ini,fim:new Date(Date.UTC(ano,mes,1))};
 };
@@ -86,7 +92,7 @@ router.get('/contexto',requireUser,(req,res)=>res.json({
 
 router.get('/vendas',requireUser,async(req,res)=>{
   const periodo=monthRange(req.query.mes);
-  if(!periodo) return res.status(400).json({erro:'Mês inválido. Use AAAA-MM.'});
+  if(!periodo) return res.status(400).json({erro:'Escolha um mês entre janeiro de 2026 e o mês atual.'});
   const {data,error}=await db.from('gv_vendas').select('*')
     .eq('empresa_id',req.gv.empresa.id)
     .gte('vendido_em',periodo.ini.toISOString()).lt('vendido_em',periodo.fim.toISOString())
@@ -192,7 +198,7 @@ router.post('/produtos',requireUser,async(req,res)=>{
 
 router.get('/dashboard',requireUser,async(req,res)=>{
   try{
-    const periodo=monthRange(req.query.mes);if(!periodo)return res.status(400).json({erro:'Mês inválido. Use AAAA-MM.'});const ini=periodo.ini,fim=periodo.fim,prevIni=addMonths(ini,-1);
+    const periodo=monthRange(req.query.mes);if(!periodo)return res.status(400).json({erro:'Escolha um mês entre janeiro de 2026 e o mês atual.'});const ini=periodo.ini,fim=periodo.fim,prevIni=addMonths(ini,-1);
     const [{data:atual,error:aErr},{data:anterior,error:pErr}]=await Promise.all([
       db.from('gv_vendas').select('id,cliente_id,cliente_nome,categoria,origem,valor,custo,vendido_em').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString()),
       db.from('gv_vendas').select('id,valor,custo').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',prevIni.toISOString()).lt('vendido_em',ini.toISOString())
@@ -219,13 +225,9 @@ router.get('/dashboard',requireUser,async(req,res)=>{
 router.get('/exportar-excel',requireUser,async(req,res)=>{
   try{
     const ExcelJS=require('exceljs');
-    const mes=String(req.query?.mes||'').trim();
-    if(!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({erro:'Informe o mês no formato AAAA-MM.'});
-    const [anoStr,mesStr]=mes.split('-');
-    const ano=Number(anoStr),mesNum=Number(mesStr);
-    if(mesNum<1||mesNum>12) return res.status(400).json({erro:'Mês inválido.'});
-    const ini=new Date(Date.UTC(ano,mesNum-1,1));
-    const fim=new Date(Date.UTC(ano,mesNum,1));
+    const periodo=monthRange(req.query?.mes);
+    if(!periodo) return res.status(400).json({erro:'Escolha um mês entre janeiro de 2026 e o mês atual.'});
+    const mes=periodo.key,ini=periodo.ini,fim=periodo.fim;
 
     const {data:vendas,error}=await db.from('gv_vendas').select('*')
       .eq('empresa_id',req.gv.empresa.id)
