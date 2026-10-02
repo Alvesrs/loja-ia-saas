@@ -2,6 +2,8 @@
 const fs=require('node:fs');
 fs.mkdirSync('src/routes',{recursive:true});
 fs.copyFileSync('sales-manager-runtime/sales-manager.routes.js','src/routes/sales-manager.routes.js');
+fs.mkdirSync('public/gerenciador-vendas',{recursive:true});
+fs.copyFileSync('sales-manager/public/index.html','public/gerenciador-vendas/index.html');
 const appPath='src/app.js';
 let app=fs.readFileSync(appPath,'utf8');
 const marker='// SALES_MANAGER_API_V2';
@@ -13,4 +15,4 @@ if(!app.includes(marker)){
   app=app.slice(0,idx)+block+'\n'+app.slice(idx);
   fs.writeFileSync(appPath,app);
 }
-console.log('Sales Manager API V2 aplicada.');
+console.log('Sales Manager API V2 aplicada com interface mensal sincronizada.');
