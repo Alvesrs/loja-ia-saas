@@ -7,6 +7,8 @@
       if (!r.ok) throw new Error('version_unavailable');
       const v = await r.json();
       if (typeof v.versao !== 'string') throw new Error('invalid_version');
+      // Descarta somente caches antigos do SaintsAI; mantém login e dados locais.
+      if ('caches' in window) { const keys=await caches.keys(); await Promise.all(keys.filter(k=>/^(loja-ia-shell-|saintsai-)/.test(k)).map(k=>caches.delete(k))); }
       const url = new URL(location.href);
       url.searchParams.set('atualizacao', v.versao);
       url.searchParams.set('recarregar', String(Date.now()));
@@ -23,7 +25,7 @@
     btn.onclick = atualizar;
     btn.setAttribute('aria-label', 'Atualizar SaintsAI Cliente');
     const versao = document.getElementById('saintsai-update-version');
-    if (versao) versao.textContent = ' · sistema 04/10';
+    if (versao) versao.textContent = ' · interface 06/10';
     // O botão superior mantém a instalação nativa disponível, com nome claro.
     const android = document.getElementById('native-update');
     if (android) android.textContent = 'Atualizar Android';
