@@ -1,0 +1,2 @@
+const express=require('express');const {exigirLogin}=require('../middleware/auth');const {exigirDonoDaLoja}=require('../middleware/lojaOwnership');const c=require('../controllers/clienteVideo.controller');
+module.exports=function(app){const r=express.Router({mergeParams:true});r.use(exigirLogin,exigirDonoDaLoja);r.get('/',c.listar);r.post('/:tipo/:itemId',express.raw({type:'video/mp4',limit:'10mb'}),c.upload);r.delete('/:tipo/:itemId',c.remover);app.use('/api/lojas/:lojaId/midias-video',r);};
