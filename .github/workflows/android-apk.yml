@@ -104,7 +104,9 @@ jobs:
             adb exec-out screencap -p > android-app/estoque-screen.png
 
             adb shell settings put secure show_ime_with_hard_keyboard 1
+            adb shell locksettings set-pin 1234
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.SecurityLockTest
+            adb shell locksettings clear --old 1234
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest || echo "Aviso: teste de teclado/insets instável no emulador Android 16"
             mkdir -p android-app/layout-threebutton
@@ -119,7 +121,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-Validation-v1.2.5
+          name: SaintsAI-Cliente-Validation-v1.2.6
           path: |
             android-app/estoque-screen.png
             android-app/layout-threebutton/
@@ -130,35 +132,40 @@ jobs:
 
       - name: Package APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.17.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.5.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.18.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.6.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.17
-          path: android-app/Agente-SaintsAI-v1.0.17.apk
+          name: Agente-SaintsAI-APK-v1.0.18
+          path: android-app/Agente-SaintsAI-v1.0.18.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.5
-          path: android-app/SaintsAI-Cliente-v1.2.5.apk
+          name: SaintsAI-Cliente-APK-v1.2.6
+          path: android-app/SaintsAI-Cliente-v1.2.6.apk
           if-no-files-found: error
 
       - name: Publish latest SaintsAI Cliente
         run: |
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "Uma versão mais nova já está sendo construída; publicação antiga ignorada."
+            exit 0
+          fi
           mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.5.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.17.apk ../downloads/Agente-SaintsAI.apk
+          cp SaintsAI-Cliente-v1.2.6.apk ../downloads/SaintsAI-Cliente.apk
+          cp Agente-SaintsAI-v1.0.18.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":20,"versionName":"1.2.5","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          {"versionCode":21,"versionName":"1.2.6","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.5 [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.6 [skip ci]"
           git push

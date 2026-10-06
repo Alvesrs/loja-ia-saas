@@ -31,7 +31,7 @@ public final class SaintsSecurity {
     private final LinearLayout cover;
     private final TextView message;
     private final String allowedPrefix;
-    private boolean unlocked=false, active=false, pending=false, credentialPending=false;
+    private boolean unlocked=false, active=false, pending=false, credentialPending=false, authenticatedPending=false;
     private Boolean toggleTarget=null;
     private CancellationSignal cancellation;
 
@@ -51,8 +51,8 @@ public final class SaintsSecurity {
     private boolean trusted(){String url=web.getUrl();return url!=null&&url.startsWith(allowedPrefix);}
     private KeyguardManager keyguard(){return (KeyguardManager)activity.getSystemService(Context.KEYGUARD_SERVICE);}
     private void lock(){unlocked=false;cover.setVisibility(View.VISIBLE);cover.bringToFront();cover.requestFocus();activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);}
-    public void resume(){active=true;if(enabled()&&!unlocked){lock();if(!credentialPending&&!pending)authenticate();}}
-    public void pause(){active=false;if(enabled())lock();if(pending&&!credentialPending&&cancellation!=null)cancellation.cancel();}
+    public void resume(){active=true;if(authenticatedPending){authenticatedPending=false;success();return;}if(enabled()&&!unlocked){lock();if(!credentialPending&&!pending)authenticate();}}
+    public void pause(){active=false;if(enabled())lock();/* O PIN do sistema pode pausar a Activity; manter a tela coberta até confirmação. */}
     public boolean isLocked(){return enabled()&&!unlocked;}
     @JavascriptInterface public String getSecurityStatus(){return "{\"supported\":true,\"enabled\":"+enabled()+"}";}
     @JavascriptInterface public void requestSecurityToggle(){activity.runOnUiThread(()->{if(!trusted()||pending||credentialPending)return;toggleTarget=!enabled();authenticate();});}
@@ -70,8 +70,8 @@ public final class SaintsSecurity {
         else b.setNegativeButton("Usar PIN",executor,(dialog,which)->{pending=false;showCredential();});
         cancellation=new CancellationSignal();pending=true;
         b.build().authenticate(cancellation,executor,new BiometricPrompt.AuthenticationCallback(){
-            @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){pending=false;if(active)success();}
-            @Override public void onAuthenticationError(int code,CharSequence text){pending=false;if(credentialPending)return;if(Build.VERSION.SDK_INT<30&&(code==11||code==12||code==7||code==9)){if(active)showCredential();return;}toggleTarget=null;message.setText("SaintsAI protegido\n\nToque em desbloquear para tentar novamente.");}
+            @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){pending=false;if(active)success();else authenticatedPending=true;}
+            @Override public void onAuthenticationError(int code,CharSequence text){pending=false;authenticatedPending=false;if(credentialPending)return;if(Build.VERSION.SDK_INT<30&&(code==11||code==12||code==7||code==9)){if(active)showCredential();return;}toggleTarget=null;message.setText("SaintsAI protegido\n\nToque em desbloquear para tentar novamente.");}
             @Override public void onAuthenticationFailed(){message.setText("Biometria não reconhecida. Tente novamente.");}
         });
     }
