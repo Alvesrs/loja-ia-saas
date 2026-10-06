@@ -1,0 +1,6 @@
+const BUCKET='saintsai-galeria';
+const MIMES={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4'};
+function seguro(m,lojaId){return m&&m.loja_id===lojaId&&['foto','video'].includes(m.tipo)&&['saintsai-galeria','produto-imagens','servico-imagens','saintsai-videos'].includes(m.storage_bucket)&&typeof m.descricao==='string'&&m.descricao.trim().length>0&&new RegExp('^'+lojaId+'/[a-zA-Z0-9-]+\\.'+(m.tipo==='video'?'mp4':'(?:jpg|jpeg|png|webp)')+'$').test(m.arquivo_path||'');}
+function url(m,lojaId){if(!seguro(m,lojaId))return null;try{const base=new URL(process.env.SUPABASE_URL);if(base.protocol!=='https:')return null;return base.origin+'/storage/v1/object/public/'+m.storage_bucket+'/'+m.arquivo_path;}catch(_){return null;}}
+function detalhes(body){const descricao=String(body?.descricao||'').trim();if(!descricao||descricao.length>500)throw Error('Escreva uma descrição de até 500 caracteres.');const raw=Array.isArray(body?.etiquetas)?body.etiquetas:String(body?.etiquetas||'').split(',');const etiquetas=[...new Set(raw.map(t=>String(t).trim()).filter(Boolean))];if(etiquetas.length>12||etiquetas.some(t=>t.length>60))throw Error('Use até 12 etiquetas, com no máximo 60 caracteres cada.');return{descricao,etiquetas};}
+module.exports={BUCKET,MIMES,seguro,url,detalhes};
