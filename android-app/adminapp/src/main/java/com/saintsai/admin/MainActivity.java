@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
     private static final String PROXY_PREFIX = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
 
     private WebView webView;
+    private SaintsSecurity security;
     private ProgressBar loading;
     private LinearLayout errorView;
     private boolean loadingHtmlManually = false;
@@ -84,6 +85,10 @@ public class MainActivity extends Activity {
                     loadHtmlPage(target);
                     return true;
                 }
+                if(request.isForMainFrame()&&!request.getUrl().toString().startsWith(PROXY_PREFIX)){
+                    try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,request.getUrl()));}catch(android.content.ActivityNotFoundException ignored){}
+                    return true;
+                }
                 return false;
             }
 
@@ -128,6 +133,8 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
+        security=new SaintsSecurity(this,root,webView,PROXY_PREFIX);
+        webView.addJavascriptInterface(security,"AndroidSecurity");
         setContentView(root);
         loadHtmlPage(APP_URL);
     }
@@ -151,11 +158,18 @@ public class MainActivity extends Activity {
         loadingHtmlManually = false;
     }
 
+    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();}
+    @Override protected void onPause(){if(security!=null)security.pause();super.onPause();}
+
     @Override
     public void onBackPressed() {
+        if(security!=null&&security.isLocked()){finish();return;}
         if (webView != null && webView.canGoBack()) webView.goBack();
         else super.onBackPressed();
     }
+
+    @Override protected void onActivityResult(int code,int result,android.content.Intent data){if(security!=null&&security.result(code,result))return;super.onActivityResult(code,result,data);}
+    @Override protected void onDestroy(){if(security!=null)security.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
 
     private LinearLayout makeMessage(String msg) {
         LinearLayout box = new LinearLayout(this);

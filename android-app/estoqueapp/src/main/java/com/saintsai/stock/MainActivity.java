@@ -41,6 +41,7 @@ public class MainActivity extends Activity {
     private static final String LATEST_APK_URL = "https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk";
 
     private WebView webView;
+    private SaintsSecurity security;
     private ProgressBar loading;
     private LinearLayout errorView;
     private ValueCallback<Uri[]> fileChooserCallback;
@@ -224,6 +225,8 @@ public class MainActivity extends Activity {
                 )
         );
 
+        security=new SaintsSecurity(this,root,webView,"https://backend-prod-production-f338.up.railway.app/");
+        webView.addJavascriptInterface(security,"AndroidSecurity");
         setContentView(root);
         root.requestApplyInsets();
         webView.loadUrl(APP_URL);
@@ -296,6 +299,7 @@ public class MainActivity extends Activity {
             return true;
         }
 
+        if(!("https".equals(scheme)&&APP_HOST.equals(host))){openExternal(uri);return true;}
         return false;
     }
 
@@ -311,6 +315,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(security!=null&&security.result(requestCode,resultCode))return;
         if (requestCode == FILE_CHOOSER_REQUEST) {
             if (fileChooserCallback != null) {
                 Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
@@ -322,8 +327,12 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();}
+    @Override protected void onPause(){if(security!=null)security.pause();super.onPause();}
+
     @Override
     public void onBackPressed() {
+        if(security!=null&&security.isLocked()){finish();return;}
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
@@ -333,6 +342,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if(security!=null)security.destroy();
         if (fileChooserCallback != null) {
             fileChooserCallback.onReceiveValue(null);
             fileChooserCallback = null;
