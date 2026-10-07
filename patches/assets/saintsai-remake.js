@@ -29,6 +29,7 @@ function client(){
  home.append(overview,actions);if(setup)home.append(setup);if(push)home.append(push);home.append(workspace);if(records)home.append(records);
  oldGrid?.remove();oldMain?.remove();shortcuts?.remove();
  const brand=$('.sa-sidebar .sa-logo small');if(brand)brand.textContent='Seu negócio';
+ document.querySelectorAll('.sa-side-links a[href="cliente-estoque.html"]').forEach(a=>a.remove());
  const footer=$('.sa-side-footer small');if(footer)footer.textContent='Seu atendimento, organizado.';
 }
 function admin(){
@@ -52,7 +53,7 @@ function admin(){
  const sync=()=>{const selected=location.pathname.includes('prospeccao')?'prospeccao':location.hash.slice(1)||'home';dock.querySelectorAll('[data-rm-view]').forEach(b=>{const active=b.dataset.rmView===selected;b.classList.toggle('current',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});};
  document.body.append(dock);window.addEventListener('hashchange',sync);sync();
  const update=$('#admin-update-bar');const config=$('#view-config');if(update&&config){update.classList.add('rm-update-settings');config.append(update);}
- const drawer=$('#drawer');if(drawer){for(const [id,name] of [['clientesMenuBtn','Clientes'],['estoqueMenuBtn','Catálogos de clientes']]){const b=$('#'+id);if(b)b.textContent=name;}const heading=drawer.querySelector('.saintsBy');if(heading)heading.textContent='GESTÃO SAINTSAI';drawer.querySelectorAll('.nav>button').forEach(b=>{const labels={home:'Visão geral',vendas:'Recebimentos',registro:'Cadastrar cliente',teste:'Conta de teste',assinaturas:'Assinaturas',config:'Configurações'};if(labels[b.dataset.view])b.textContent=labels[b.dataset.view];});}
+ const drawer=$('#drawer');if(drawer){for(const [id,name] of [['clientesMenuBtn','Clientes'],['estoqueMenuBtn','Catálogos de clientes']]){const b=$('#'+id);if(b)b.textContent=name;}drawer.querySelectorAll('.nav>button[onclick]').forEach(b=>{const action=b.getAttribute('onclick')||'';if(action.includes('gerenciador-contas'))b.textContent='Gerenciador de vendas';if(action.includes('admin-leads'))b.textContent='Leads e orientações';});const prospect=drawer.querySelector('a[href="admin-prospeccao.html"]');if(prospect)prospect.textContent='Prospecção';const heading=drawer.querySelector('.saintsBy');if(heading)heading.textContent='GESTÃO SAINTSAI';drawer.querySelectorAll('.nav>button').forEach(b=>{const labels={home:'Visão geral',vendas:'Recebimentos',registro:'Cadastrar cliente',teste:'Conta de teste',assinaturas:'Assinaturas',config:'Configurações'};if(labels[b.dataset.view])b.textContent=labels[b.dataset.view];});}
 }
 function start(){if(document.body.dataset.rmReady)return;document.body.dataset.rmReady='true';const file=location.pathname.split('/').pop();if(/login|cadastro|registro/.test(file)){document.body.classList.add(file.startsWith('admin')?'rm-admin':'rm-client','rm-auth-flow');return;}if(file.startsWith('admin'))admin();else client();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
