@@ -14,10 +14,11 @@ jobs:
           node-version: '22'
       - name: Build current interface
         run: |
+          cp railway.json /tmp/saintsai-build.json
           python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
           python3 - <<'PY'
           import json,subprocess
-          for command in json.load(open('railway.json'))['build']['buildCommand'].split(' && '):
+          for command in json.load(open('/tmp/saintsai-build.json'))['build']['buildCommand'].split(' && '):
               if command.startswith('node patches/'):
                   subprocess.run(command.split(),check=True)
           PY
