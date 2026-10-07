@@ -119,6 +119,7 @@ jobs:
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb logcat -c
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest || { adb logcat -d > android-app/external-links-logcat.txt; exit 1; }
+            adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb shell pm grant com.saintsai.stock android.permission.POST_NOTIFICATIONS || true
             adb logcat -c
             adb shell am start -W -n com.saintsai.stock/.MainActivity
