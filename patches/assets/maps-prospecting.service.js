@@ -11,7 +11,7 @@ function normalizar(place,categoria,cidade,uf){
  const state=parts.find(x=>x.types?.includes('administrative_area_level_1'))?.shortText;
  if(norm(city)!==norm(cidade)||state!==uf)return null;
  const telefone=String(place.internationalPhoneNumber||'').replace(/\D/g,'');
- if(!/^55\d{2}9\d{8}$/.test(telefone)||!place.id||!place.displayName?.text)return null;
+ if(!/^55\d{10,11}$/.test(telefone)||!place.id||!place.displayName?.text)return null;
  const avaliacoes=Math.max(0,Number(place.userRatingCount)||0),nota=Math.max(0,Math.min(5,Number(place.rating)||0));
  const score=Math.min(95,65+Math.min(20,Math.round(Math.log10(1+avaliacoes)*7))+Math.round(nota*2));
  return{id:'maps-'+place.id,nome:place.displayName.text,categoria:CATEGORIAS[categoria].label,endereco:place.formattedAddress||'',telefone,telefone_exibicao:place.internationalPhoneNumber,whatsapp:'https://wa.me/'+telefone,score,nivel:score>=84?'Alta prioridade':'Bom potencial',motivos:['WhatsApp confirmado na conexão da sua loja.','Atividade e avaliações públicas indicam potencial de atendimento.','Não é necessário ter site; a prioridade não confirma intenção de compra.'],avaliacoes,nota,origem:'Google Maps',atribuicoes:(place.attributions||[]).map(x=>String(x.provider||'')).filter(Boolean),automacao:'Não avaliada',site:''};
