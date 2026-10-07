@@ -1,7 +1,7 @@
 const fs=require('node:fs');
 function edit(p,fn){fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));}
 fs.copyFileSync('patches/assets/clientDeletion.service.js','src/services/clientDeletion.service.js');
-edit('src/controllers/admin.controller.js',s=>{const a=s.indexOf('async function excluirClienteGerenciado('),b=s.indexOf('\nasync function operacao(',a);if(a<0||b<0)throw Error('Exclusão não encontrada');return s.slice(0,a)+`async function excluirClienteGerenciado(req,res){
+edit('src/controllers/admin.controller.js',s=>{const a=s.indexOf('async function excluirClienteGerenciado('),b=s.indexOf('\nasync function ',a+1);if(a<0||b<0)throw Error('Exclusão não encontrada');return s.slice(0,a)+`async function excluirClienteGerenciado(req,res){
  const id=String(req.params.lojaId||'');if(!ehUuid(id))return res.status(400).json({erro:'Cliente inválido.'});
  try{return res.json(await require('../services/clientDeletion.service').excluir(id,req.usuario));}
  catch(e){console.error('[admin] excluir cliente:',e.message);return res.status(e.status||503).json({erro:e.status?e.message:'Não foi possível excluir o cliente.'});}

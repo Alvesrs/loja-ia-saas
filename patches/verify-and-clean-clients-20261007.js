@@ -37,7 +37,7 @@ module.exports=async function verifyAndClean(){
   const {data:after,error:aerr}=await db.from('lojas').select('id').eq('dono_id',owner);if(aerr||after.length!==stores.length)throw Error('Lojas ADM alteradas');
   if((await http('/admin/me')).body.admin!==true)throw Error('ADM deixou de acessar após limpeza');
   const listed=await http('/admin/clientes-gerenciados');if(listed.status!==200||listed.body.length)throw Error('Listagem não está vazia após limpeza');
-  const {error:mark}=await db.from('whatsapp_eventos_processados').insert({provedor:'manutencao',id_externo:marker,status:'processado',processado_em:new Date().toISOString()});if(mark)throw mark;
+  const {error:mark}=await db.from('whatsapp_eventos_processados').insert({provedor:'manutencao',id_externo:marker,status:'concluido',processado_em:new Date().toISOString()});if(mark)throw mark;
   console.log('[repair.live] CONCLUIDO: clientes removidos, ADM preservado e APIs verificadas');
  }finally{if(fixtureUser)await auth.auth.admin.deleteUser(fixtureUser);if(jwt)await auth.auth.admin.signOut(jwt,'local');}
 };
