@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import static androidx.test.espresso.intent.Intents.*;
+import static androidx.test.espresso.intent.VerificationModes.times;
 import static androidx.test.espresso.intent.matcher.IntentMatchers.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
