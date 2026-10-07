@@ -42,12 +42,15 @@ public class SecurityLockTest {
   device.pressHome();
   try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    // Sem digital cadastrada no emulador, o Android mostra o PIN do aparelho.
-   boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),15000);
-   if(!pin){androidx.test.uiautomator.UiObject2 fallback=device.findObject(By.textContains("PIN"));if(fallback!=null)fallback.click();pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),10000);}
-   assertTrue("PIN do sistema não apareceu",pin);
-   for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
-   androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));
-   if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
+   androidx.test.uiautomator.UiObject2 password=device.wait(Until.findObject(By.res("com.android.systemui","lockPassword")),10000);
+   if(password==null){androidx.test.uiautomator.UiObject2 fallback=device.findObject(By.textContains("PIN"));if(fallback!=null&&fallback.isClickable())fallback.click();password=device.wait(Until.findObject(By.res("com.android.systemui","lockPassword")),5000);}
+   if(password!=null){password.click();password.setText("1234");device.pressKeyCode(KeyEvent.KEYCODE_ENTER);}
+   else {
+    // Compatibilidade com o teclado da tela de bloqueio em outras versões do Android.
+    boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);assertTrue("PIN do sistema não apareceu",pin);
+    for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
+    androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
+   }
    AtomicBoolean unlocked=new AtomicBoolean(false);
    for(int i=0;i<50&&!unlocked.get();i++){Thread.sleep(100);scenario.onActivity(activity->{try{java.lang.reflect.Field f=MainActivity.class.getDeclaredField("security");f.setAccessible(true);unlocked.set(!((SaintsSecurity)f.get(activity)).isLocked());}catch(Exception e){throw new RuntimeException(e);}});}
    assertTrue("Confirmação do PIN não desbloqueou o aplicativo",unlocked.get());
