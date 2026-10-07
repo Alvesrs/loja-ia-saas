@@ -90,6 +90,19 @@ function studio(){
    const first=pane.querySelector('.saas-head .saas-actions .primary');if(first)first.textContent='+ Novo cliente';
   }
  }
+ const gallery=$('.gallery-shell');if(gallery){
+  const toolbar=el('div','st-media-toolbar'),search=$('.gallery-search'),filters=$('.gallery-filter');if(search)toolbar.append(search);if(filters)toolbar.append(filters);const grid=$('#gallery-grid');if(grid)grid.before(toolbar);
+  const tip=$('.gallery-tip');if(tip){const help=el('details','st-inline-help');const summary=el('summary','');summary.textContent='Como preparar fotos e vídeos para a IA';help.append(summary,tip);gallery.append(help);}
+  const intro=$('.gallery-intro');if(intro)intro.textContent='Seu conteúdo, pronto para o atendimento.';
+ }
+ const agent=$('.agent-shell');if(agent){
+  const form=$('#agent-form');if(form){form.classList.add('st-agent-workspace');const title=form.querySelector('h2');if(title)title.textContent='Como seu agente atende';const personality=$('#personalidade')?.closest('.agent-field');if(personality){personality.classList.add('st-personality');const badge=el('span','st-field-number');badge.textContent='01';personality.prepend(badge);}
+  const notice=$('#aviso')?.closest('.agent-field');if(notice){notice.classList.add('st-notice');const badge=el('span','st-field-number');badge.textContent='02';notice.prepend(badge);const label=notice.querySelector('label');if(label)label.textContent='Aviso temporário';}}
+ }
+ const agenda=$('#appointments');if(agenda){
+  const blocks=$('#block-save')?.closest('section');if(blocks){const fold=el('details','st-agenda-settings');const title=el('summary','');title.textContent='Disponibilidade e dias de folga';blocks.before(fold);fold.append(title,blocks);const recurring=$('#team')?.closest('section');if(recurring)fold.append(recurring);}
+  const name=$('.top .brand');if(name)name.textContent='Sua agenda';const back=$('#back');if(back)back.textContent='← Início';
+ }
  document.querySelectorAll('.sa-mobile-nav,.gallery-nav').forEach(nav=>{nav.classList.add('st-dock');nav.querySelectorAll('a').forEach(a=>{if(a.textContent.trim()==='Início'){const span=a.querySelector('span');if(span)span.textContent='Hoje';}});});
 }
 function start(){if(document.body.dataset.rmReady)return;document.body.dataset.rmReady='true';const file=location.pathname.split('/').pop();if(/login|cadastro|registro/.test(file)){document.body.classList.add(file.startsWith('admin')?'rm-admin':'rm-client','rm-auth-flow');return;}if(file.startsWith('admin'))admin();else client();studio();}
