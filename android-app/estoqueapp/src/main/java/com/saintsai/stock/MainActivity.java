@@ -465,7 +465,7 @@ public class MainActivity extends Activity {
 
     private void notifyPushState() {
         runOnUiThread(() -> {
-            if (webView == null) return;
+            if (webView == null || isFinishing() || isDestroyed()) return;
             String current = webView.getUrl();
             if (current == null || !APP_HOST.equals(Uri.parse(current).getHost())) return;
             webView.evaluateJavascript("window.dispatchEvent(new Event('saintsai-push-updated'))", null);
@@ -500,7 +500,13 @@ public class MainActivity extends Activity {
         }
         if (webView != null) {
             webView.stopLoading();
+            webView.setWebChromeClient(null);
+            webView.setWebViewClient(new WebViewClient());
+            webView.removeJavascriptInterface("AndroidClient");
+            webView.removeJavascriptInterface("AndroidSecurity");
+            if(webView.getParent() instanceof ViewGroup)((ViewGroup)webView.getParent()).removeView(webView);
             webView.destroy();
+            webView=null;
         }
         super.onDestroy();
     }
