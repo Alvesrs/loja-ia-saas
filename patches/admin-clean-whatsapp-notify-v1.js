@@ -17,6 +17,9 @@ for(const name of ['admin-mobile.html','admin-cliente-cadastro.html','admin-clie
  }
  write(p,h);
 }
+// Só contatos publicados como WhatsApp; telefone comum não confirma conta no WhatsApp.
+const prospectService='src/services/prospeccao.service.js';
+write(prospectService,read(prospectService).replace("const phoneRaw=tag(t,'contact:whatsapp','whatsapp','contact:phone','phone');","const phoneRaw=tag(t,'contact:whatsapp','whatsapp');"));
 let ui=read('public/js/admin-central-saas.js');
 ui=ui.replace("</a></div></article>';}",`</a><button type="button" data-notificar-loja="'+esc(x.id)+'" data-loja-nome="'+esc(x.nome).replace(/"/g,'&quot;')+'">Testar notificação</button></div></article>';}`);
 write('public/js/admin-central-saas.js',ui);

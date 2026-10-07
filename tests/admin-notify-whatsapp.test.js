@@ -10,3 +10,9 @@ test('invalid shop or oversized/blank input never sends',async()=>{for(const [bo
 test('nonexistent shop never sends',async()=>{const h=routeHarness({loja:null});assert.equal((await h.run({titulo:'Teste',mensagem:'Oi'})).statusCode,404);assert.equal(h.pushCalls.length,0);});
 test('no registered devices is reported without claiming delivery',async()=>{const h=routeHarness({result:{enviados:0,dispositivos:0}});const r=await h.run({titulo:'Teste',mensagem:'Oi'});assert.equal(r.body.enviados,0);assert.equal(r.body.dispositivos,0);});
 test('WhatsApp frontend prefers native bridge and uses external HTTPS fallback',()=>{const p=fs.readFileSync('public/admin-prospeccao.html','utf8');assert.match(p,/AndroidAgent.openWhatsApp\(phone\)/);assert.match(p,/https:\/\/api.whatsapp.com\/send\?phone=/);assert.doesNotMatch(p,/window.location.href=a.href/);assert.doesNotMatch(p,/\\n<\/nav>/);assert.match(fs.readFileSync('public/js/admin-central-saas.js','utf8'),/data-notificar-loja/);});
+
+test('prospecting excludes generic phone listings and keeps explicit public WhatsApp',async()=>{
+ const code=fs.readFileSync('src/services/prospeccao.service.js','utf8');let n=0;const module={exports:{}};const elements=[{type:'node',id:1,tags:{name:'Só telefone',phone:'+55 43 3333-6565'}},{type:'node',id:2,tags:{name:'WhatsApp público','contact:whatsapp':'+55 43 99999-9999'}}];
+ vm.runInNewContext(code,{module,AbortController,setTimeout,clearTimeout,fetch:async()=>({ok:true,json:async()=>++n===1?[{boundingbox:['-24','-23','-52','-51']}]:{elements}})});
+ const r=await module.exports.buscarProspeccao({uf:'PR',cidade:'Londrina',categoria:'barbearia'});assert.equal(r.leads.length,1);assert.equal(r.leads[0].nome,'WhatsApp público');assert.equal(r.leads[0].whatsapp,'https://wa.me/5543999999999');
+});
