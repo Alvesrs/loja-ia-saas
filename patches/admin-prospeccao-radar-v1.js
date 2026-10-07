@@ -6,7 +6,7 @@ function ensureDir(p){fs.mkdirSync(p,{recursive:true})}
 
 ensureDir('src/services');
 
-const service = String.raw\`
+const service = String.raw`
 const CATEGORIAS = Object.freeze({
   barbearia: {
     label:'Barbearia',
@@ -205,12 +205,12 @@ async function buscarProspeccao({uf,cidade,categoria}){
 }
 
 module.exports={buscarProspeccao,scoreLead,CATEGORIAS};
-\`;
+`;
 write('src/services/prospeccao.service.js',service);
 
 let controller=read('src/controllers/admin.controller.js');
 if(!controller.includes('async function buscarProspeccao')){
-  const fn=String.raw\`
+  const fn=String.raw`
 async function buscarProspeccao(req,res){
   try{
     const service=require('../services/prospeccao.service');
@@ -226,7 +226,7 @@ async function buscarProspeccao(req,res){
     return res.status(status).json({erro:mensagem});
   }
 }
-\`;
+`;
   controller=controller.replace('\nasync function operacao(req, res) {',fn+'\nasync function operacao(req, res) {');
   controller=controller.replace(/module\.exports\s*=\s*\{([^}]+)\};/, (m,inner)=>{
     const nomes=inner.split(',').map(x=>x.trim()).filter(Boolean);
@@ -245,7 +245,7 @@ if(!routes.includes("'/prospeccao/buscar'")){
 }
 write('src/routes/admin.routes.js',routes);
 
-const page=String.raw\`<!doctype html>
+const page=String.raw`<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -335,7 +335,7 @@ $('buscar').onclick=buscar;
 $('cidade').addEventListener('keydown',e=>{if(e.key==='Enter')buscar()});
 $('verSalvos').onclick=()=>{soSalvos=!soSalvos;$('verSalvos').textContent=soSalvos?'Ver todos':'Só salvos';render()};
 </script>
-</body></html>\`;
+</body></html>`;
 write('public/admin-prospeccao.html',page);
 
 for(const p of ['public/admin-mobile.html','public/admin.html']){
