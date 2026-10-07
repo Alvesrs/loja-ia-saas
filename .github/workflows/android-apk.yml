@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.12 prospect persistence validation
+# trigger: 1.2.12 new pairing and native update validation
 
 permissions:
   contents: write

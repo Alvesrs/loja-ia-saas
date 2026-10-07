@@ -1,7 +1,13 @@
 const fs=require('node:fs');
 function edit(p,fn){fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));}
 const w='src/services/wahaOnboarding.service.js';
-if(!fs.readFileSync(w,'utf8').includes('async function obterOuCriarConfig('))throw Error('Função de configuração do pareamento ausente');
+if(!fs.readFileSync(w,'utf8').includes('async function obterOuCriarConfig('))edit(w,s=>s.replace('async function iniciarPareamento(',`async function obterOuCriarConfig(lojaId,fone,sessao){
+ const itens=await configuracoes.listarConfiguracoesWhatsapp(lojaId);
+ let cfg=itens.find(x=>x.provedor==='waha'&&x.ativo)||itens.find(x=>x.provedor==='waha');
+ if(cfg){if(cfg.identificador_externo!==sessao||cfg.numero_whatsapp!==fone||!cfg.ativo)cfg=await configuracoes.atualizarConfiguracaoWhatsapp(cfg.id,lojaId,{numero_whatsapp:fone,identificador_externo:sessao,ativo:true});return cfg;}
+ return configuracoes.criarConfiguracaoWhatsapp({provedor:'waha',numero_whatsapp:fone,identificador_externo:sessao,ativo:true},lojaId);
+}
+async function iniciarPareamento(`));
 edit('public/admin-mobile.html',s=>{
  const a=s.indexOf('async function loadClients(){'),b=s.indexOf('\nasync function loadPlans()',a);if(a<0||b<0)throw Error('Lista não encontrada');
  return (s.slice(0,a)+`async function loadClients(){try{const xs=await apiFetch('/admin/clientes-gerenciados');if(!Array.isArray(xs))throw Error('Resposta inválida ao carregar clientes.');clientesCache=xs;renderPicks();}catch(e){if(e instanceof SessaoExpiradaError)return fazerLogout();for(const id of ['clientesPick','estoquePick']){$(id).innerHTML='<div class="pick"><span>'+esc(e.message||'Não foi possível carregar os clientes.')+'</span><button type="button" data-retry-clients>Tentar novamente</button></div>';}document.querySelectorAll('[data-retry-clients]').forEach(b=>b.onclick=loadClients);}}
