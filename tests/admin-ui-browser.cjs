@@ -15,12 +15,14 @@ await p.evaluate(leads=>localStorage.setItem('saintsai-prospeccao-v1',JSON.strin
 await p.goto('http://127.0.0.1:8765/admin-prospeccao.html');await p.locator('#cidade').fill('Maringá');await p.locator('#buscar').click();await p.locator('#restaurar').waitFor({state:'visible'});await p.locator('#restaurar').click();if(await p.locator('[data-wa]').count()!==actual.leads.length)throw Error('Links não restaurados');for(const a of await p.locator('[data-wa]').all())if(!/^https:\/\/wa.me\/55\d{10,11}$/.test(await a.getAttribute('href')))throw Error('Link incompleto');await p.screenshot({path:'ui-artifacts/prospect-real-data.png',fullPage:true});
 // Results survive a different page and reload without calling search again.
 await p.route('**/js/api.js*',r=>r.fulfill({contentType:'text/javascript',body:`async function apiFetch(u){if(u.includes('minhas-lojas'))return {lojas:[]};throw Error('Busca automática indevida: '+u)}`}));
-await p.goto('about:blank');await p.goto('http://127.0.0.1:8765/admin-prospeccao.html');
+await p.route('**/outra-pagina.html',r=>r.fulfill({contentType:'text/html',body:'<html><body>Outra página</body></html>'}));await p.goto('http://127.0.0.1:8765/outra-pagina.html');await p.goto('http://127.0.0.1:8765/admin-prospeccao.html');
 if(await p.locator('#cidade').inputValue()!=='Maringá')throw Error('Cidade não persistida');
 if(await p.locator('[data-wa]').count()!==actual.leads.length)throw Error('Resultados não persistidos');
 await p.reload();if(await p.locator('[data-wa]').count()!==actual.leads.length)throw Error('Resultados perdidos no reload');
 await p.evaluate(()=>window.AndroidClient={openWhatsApp(phone){window.clientPhone=phone}});await p.locator('[data-wa]').first().click();await p.waitForFunction(()=>!!window.clientPhone);
 if(await p.evaluate(()=>window.clientPhone)!==actual.leads[0].telefone.replace(/\D/g,''))throw Error('Bridge Cliente abriu número errado');
+await p.evaluate(()=>{delete window.AndroidClient;window.open=(url)=>{window.externalWhatsApp=url;return {};}});await p.locator('[data-wa]').first().click();
+if(await p.evaluate(()=>window.externalWhatsApp)!=='https://api.whatsapp.com/send?phone='+actual.leads[0].telefone.replace(/\D/g,''))throw Error('Fallback abriu dentro da página');
 console.log('PROSPECT_PERSISTENCE_AND_CLIENT_BRIDGE_PASSED');
 await p.unroute('**/js/api.js*');
 await p.route('**/js/api.js*',r=>r.fulfill({contentType:'text/javascript',body:`async function apiFetch(u,o){if(o?.method==='DELETE'){if(window.failDelete)throw Error('Exclusão indisponível para teste');window.clientDeleted=true;return {ok:true}}return {nome:'Cliente para excluir'}}`}));
