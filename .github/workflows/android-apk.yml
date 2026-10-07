@@ -1,4 +1,5 @@
 name: Build SaintsAI APKs
+# trigger: 1.2.8 publish retry
 
 permissions:
   contents: write
