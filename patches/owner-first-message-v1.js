@@ -1,0 +1,14 @@
+const fs=require('node:fs');
+const edit=(p,fn)=>fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));
+fs.copyFileSync('patches/assets/owner-sales-prompt.js','src/services/ownerSalesPrompt.js');
+fs.copyFileSync('patches/assets/owner-first-message.service.js','src/services/ownerFirstMessage.service.js');
+edit('src/services/ownerProspecting.service.js',s=>s.replace('module.exports={permitido,','module.exports={chatPorTelefone,permitido,'));
+edit('src/routes/admin.routes.js',s=>s.replace("router.post('/prospeccao/autorizar'",`router.post('/prospeccao/iniciar',exigirAdmin,async(req,res)=>{try{res.json(await require('../services/ownerFirstMessage.service').iniciar(req.usuario,req.body||{}));}catch(e){res.status(e.status||503).json({erro:e.status?e.message:'Não foi possível iniciar a abordagem.'});}});
+router.post('/prospeccao/autorizar'`));
+edit('src/services/salesSeller.service.js',s=>s.replace('  const historico=await buscarHistorico(lojaId,contato);',`  const promptDono=await require('./ownerFirstMessage.service').promptDaLoja(lojaId);
+  const historico=await buscarHistorico(lojaId,contato);
+  const fallbackSeguro=()=>promptDono?'O SaintsAI ajuda a responder clientes com as informações da empresa. Se quiser uma proposta, o dono confirma os valores. Qual é a principal dificuldade no atendimento de vocês?':fallback(pergunta);`).replaceAll('return fallback(pergunta);','return fallbackSeguro();').replace('systemPrompt:SYSTEM_PROMPT,','systemPrompt:promptDono||SYSTEM_PROMPT,').replace("contexto:historico ?", "contexto:(promptDono?'Primeira abordagem já enviada: '+require('./ownerSalesPrompt').INTRO+'\\n':'')+(historico ?").replace("'Ainda não há histórico salvo além da abordagem inicial.',","'Ainda não há histórico salvo além da abordagem inicial.'),"));
+edit('public/js/owner-prospecting.js',s=>s.replace('Envie a primeira abordagem no WhatsApp.','Ao abrir um contato, a primeira abordagem é enviada automaticamente uma única vez.').replace('Autorizando somente este contato…','Enviando a primeira abordagem…').replace("await apiFetch('/admin/prospeccao/autorizar'","const resultado=await apiFetch('/admin/prospeccao/iniciar'").replace("status.textContent='Contato autorizado. Abrindo o WhatsApp…';","status.textContent=resultado.status==='ja_enviada'?'A abordagem já foi enviada antes. Abrindo o WhatsApp…':'Primeira abordagem enviada. Abrindo o WhatsApp…';"));
+edit('public/admin-prospeccao.html',s=>s.replace('owner-prospecting.js?v=2026.10.07.6','owner-prospecting.js?v=2026.10.07.7'));
+for(const t of ['admin','cliente'])edit('public/'+t+'-versao.json',s=>{const d=JSON.parse(s);d.versao='2026.10.07.7';return JSON.stringify(d)});
+console.log('Prompt do dono e abordagem inicial única pela prospecção.');
