@@ -23,3 +23,14 @@ body.sa-dashboard .top{padding:18px 0!important;min-height:76px!important;displa
 @media(max-width:560px){.sa-hero-v5{padding:18px!important;gap:14px!important;margin:16px 0!important}.sa-hero-v5 h1{font-size:25px!important}.sa-hero-v5 .sa-new{width:100%;font-size:12px;justify-content:center;gap:10px}.sa-hero-v5 .sa-new span{display:none}.sa-stat{min-height:105px!important;padding:14px!important}.sa-stat-value{font-size:24px!important}.sa-shortcut{min-height:55px!important}.sa-shortcut strong{font-size:11px}.sa-shortcuts{margin:12px 0 16px!important}.sa-main-grid{gap:12px}.sa-panel{padding:16px}.sa-setup{padding:16px!important}.sa-welcome .sa-eyebrow{font-size:9px}.brand-shell{padding-top:20px}.brand-card{padding:18px!important}}
 /* Configurações pela foto, quatro destinos na navegação. */
 .sa-mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}.sa-profile-button{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;min-width:44px;padding:0;border:1px solid #77668f66;border-radius:50%;overflow:hidden;background:#3c3050;cursor:pointer}.sa-profile-button .sa-company-logo{width:100%;height:100%;border-radius:50%}.sa-profile-button .sa-company-letter{font-size:21px}.top .sa-profile-button:hover{border-color:#c5abf1}.sa-profile-button:focus-visible{outline:2px solid #d4baff;outline-offset:3px}.sa-profile-button+.sa-company-name{min-width:0}.sa-custom-brand{gap:12px}.agent-settings-panel [hidden]{display:none!important}#tab-estoque{cursor:default}.cliente-tabs:has(#tab-estoque){grid-template-columns:1fr 1fr!important}
+
+/* Clean square polish — 2026.10.06 */
+.sa-hero-v5,.sa-stat,.sa-panel,.sa-setup,.sa-shortcut,.saas-head,.saas-metric,.saas-client,.brand-card,.brand-preview{border-radius:8px!important}
+.sa-new,.saas-actions .btn,.sa-menu-logout,.brand-shell #saintsai-update-fixed{border-radius:7px!important}
+.sa-profile-button,.sa-profile-button .sa-company-logo{border-radius:8px!important}
+.sa-menu{border-radius:10px 10px 0 0!important}
+body.sa-dashboard .top{gap:12px!important}
+.sa-panel,.sa-stat,.sa-shortcut,.sa-setup{border-color:#34313f!important}
+.sa-shortcut{background:#15161d!important}
+.sa-shortcut:hover{background:#1b1c25!important}
+@media(max-width:560px){.sa-hero-v5,.sa-stat,.sa-panel,.sa-setup{border-radius:7px!important}.sa-shortcut{border-radius:6px!important}}
