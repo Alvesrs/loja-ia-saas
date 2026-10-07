@@ -30,7 +30,7 @@ public class SecurityLockTest {
     FrameLayout root=new FrameLayout(activity);WebView web=new WebView(activity);root.addView(web);
     SaintsSecurity gate=new SaintsSecurity(activity,root,web,"https://backend-prod-production-f338.up.railway.app/");
     assertTrue(gate.isLocked());assertEquals(View.VISIBLE,root.getChildAt(root.getChildCount()-1).getVisibility());
-    assertTrue((activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_SECURE)!=0);
+    assertEquals("Cliente deve permitir prints mesmo com biometria",0,activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_SECURE);
     gate.pause();assertTrue(gate.isLocked());gate.result(8051,android.app.Activity.RESULT_CANCELED);assertTrue(gate.isLocked());
     gate.destroy();web.destroy();
     context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();
@@ -100,4 +100,25 @@ public class SecurityLockTest {
    assertTrue("Confirmação do PIN não desbloqueou o aplicativo",unlocked.get());
   }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
  }
+ @Test public void notificationPermissionFlowDoesNotRelockButLeavingAppStillDoes(){
+  android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();
+  try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   scenario.onActivity(activity->{
+    try{
+     java.lang.reflect.Field field=MainActivity.class.getDeclaredField("security");field.setAccessible(true);
+     SaintsSecurity gate=(SaintsSecurity)field.get(activity);
+     java.lang.reflect.Field unlocked=SaintsSecurity.class.getDeclaredField("unlocked");unlocked.setAccessible(true);unlocked.setBoolean(gate,true);
+     context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",true).commit();
+     activity.beginNotificationFlow();assertTrue(activity.new ClientBridge().notificationRequestPending());
+     gate.pause();gate.resume();assertFalse("A permissão de notificação não pode pedir digital novamente",gate.isLocked());
+     activity.endNotificationFlow();assertFalse(activity.new ClientBridge().notificationRequestPending());
+     gate.pause();assertTrue("Sair de verdade continua protegendo a conta",gate.isLocked());
+     assertEquals("Prints devem ser permitidos",0,activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_SECURE);
+    }catch(Exception e){throw new RuntimeException(e);}
+    finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
+   });
+  }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
+ }
+
 }

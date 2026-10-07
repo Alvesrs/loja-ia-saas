@@ -43,6 +43,8 @@ public class MainActivity extends Activity {
     public static final String CHANNEL_CLIENT = "saintsai_client_updates";
     private static final String LATEST_APK_URL = "https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk";
 
+    private static final int NOTIFICATION_SETTINGS_REQUEST = 7003;
+    private volatile boolean notificationFlow = false;
     private WebView webView;
     private SaintsSecurity security;
     private ProgressBar loading;
@@ -53,9 +55,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createClientChannel();
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
-        }
         refreshPushToken();
 
         getWindow().setStatusBarColor(Color.rgb(8, 7, 13));
@@ -257,19 +256,35 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public boolean notificationRequestPending() { return notificationFlow; }
+
+        @JavascriptInterface
+        public String getPushError() {
+            return getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getString("push_error", "");
+        }
+
+        @JavascriptInterface
         public void requestNotifications() {
             runOnUiThread(() -> {
+                if (notificationFlow || (security != null && security.isLocked())) return;
                 refreshPushToken();
                 if (notificationsEnabled()) { notifyPushState(); return; }
-                boolean asked = getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getBoolean("permission_asked", false);
-                if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                    && (!asked || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
-                    getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putBoolean("permission_asked", true).apply();
-                    requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
-                } else {
-                    Intent settings = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
-                    settings.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
-                    startActivity(settings);
+                beginNotificationFlow();
+                try {
+                    boolean asked = getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getBoolean("permission_asked", false);
+                    if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        && (!asked || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
+                        getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putBoolean("permission_asked", true).apply();
+                        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
+                    } else {
+                        Intent settings = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                        settings.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+                        startActivityForResult(settings, NOTIFICATION_SETTINGS_REQUEST);
+                    }
+                } catch (ActivityNotFoundException error) {
+                    endNotificationFlow();
+                    getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("push_error", "Abra Configurações do Android > Aplicativos > SaintsAI Cliente > Notificações para permitir.").apply();
+                    notifyPushState();
                 }
             });
         }
@@ -350,6 +365,13 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == NOTIFICATION_SETTINGS_REQUEST) {
+            super.onActivityResult(requestCode, resultCode, data);
+            endNotificationFlow();
+            refreshPushToken();
+            notifyPushState();
+            return;
+        }
         if(security!=null&&security.result(requestCode,resultCode))return;
         if (requestCode == FILE_CHOOSER_REQUEST) {
             if (security != null) security.endTrustedExternalFlow();
@@ -382,11 +404,25 @@ public class MainActivity extends Activity {
         return selected.isEmpty() ? null : selected.toArray(new Uri[0]);
     }
 
+    void beginNotificationFlow() {
+        notificationFlow = true;
+        if (security != null) security.beginTrustedExternalFlow();
+        notifyPushState();
+    }
+
+    void endNotificationFlow() {
+        notificationFlow = false;
+        if (security != null) security.endTrustedExternalFlow();
+    }
+
     private void refreshPushToken() {
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
-            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
+            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("fcm_token", token).remove("push_error").apply();
             notifyPushState();
-        }).addOnFailureListener(error -> notifyPushState());
+        }).addOnFailureListener(error -> {
+            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("push_error", "Não foi possível conectar ao serviço de notificações. Verifique a conexão e tente novamente.").apply();
+            notifyPushState();
+        });
     }
 
     private void notifyPushState() {
@@ -400,7 +436,7 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 7002) { refreshPushToken(); notifyPushState(); }
+        if (requestCode == 7002) { endNotificationFlow(); refreshPushToken(); notifyPushState(); }
     }
 
     @Override protected void onResume(){super.onResume();if(security!=null)security.resume();notifyPushState();}

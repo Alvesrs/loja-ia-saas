@@ -50,7 +50,7 @@ public final class SaintsSecurity {
     private boolean enabled(){return prefs.getBoolean("enabled",false);}
     private boolean trusted(){String url=web.getUrl();return url!=null&&url.startsWith(allowedPrefix);}
     private KeyguardManager keyguard(){return (KeyguardManager)activity.getSystemService(Context.KEYGUARD_SERVICE);}
-    private void lock(){unlocked=false;cover.setVisibility(View.VISIBLE);cover.bringToFront();cover.requestFocus();activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);}
+    private void lock(){unlocked=false;cover.setVisibility(View.VISIBLE);cover.bringToFront();cover.requestFocus();}
     public void resume(){active=true;if(trustedExternalFlow)return;if(authenticatedPending){authenticatedPending=false;success();return;}if(enabled()&&!unlocked){lock();if(!credentialPending&&!pending)authenticate();}}
     public void pause(){active=false;if(enabled()&&!trustedExternalFlow)lock();/* Seletores iniciados pelo app não contam como saída; o PIN do sistema continua protegido. */}
     public void beginTrustedExternalFlow(){trustedExternalFlow=true;}
@@ -82,7 +82,7 @@ public final class SaintsSecurity {
     private void success(){
         if(toggleTarget!=null){prefs.edit().putBoolean("enabled",toggleTarget).apply();toggleTarget=null;}
         unlocked=true;cover.setVisibility(View.GONE);web.requestFocus();
-        if(enabled())activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);else activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+
         web.evaluateJavascript("window.dispatchEvent(new Event('saintsai-security-change'))",null);
     }
     public void destroy(){trustedExternalFlow=false;if(cancellation!=null)cancellation.cancel();}

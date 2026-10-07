@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.9 publish retry
+# trigger: 1.2.10 publish retry
 
 permissions:
   contents: write
@@ -83,7 +83,7 @@ jobs:
       - name: Package APKs
         run: |
           cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.19.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.9.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.10.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -95,8 +95,8 @@ jobs:
       - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.9
-          path: android-app/SaintsAI-Cliente-v1.2.9.apk
+          name: SaintsAI-Cliente-APK-v1.2.10
+          path: android-app/SaintsAI-Cliente-v1.2.10.apk
           if-no-files-found: error
 
       - name: Publish latest SaintsAI Cliente
@@ -107,17 +107,17 @@ jobs:
             exit 0
           fi
           mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.9.apk ../downloads/SaintsAI-Cliente.apk
+          cp SaintsAI-Cliente-v1.2.10.apk ../downloads/SaintsAI-Cliente.apk
           cp Agente-SaintsAI-v1.0.19.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":24,"versionName":"1.2.9","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          {"versionCode":25,"versionName":"1.2.10","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.9 [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.10 [skip ci]"
           git push
 
       - name: Enable KVM
@@ -163,7 +163,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-Validation-v1.2.9
+          name: SaintsAI-Cliente-Validation-v1.2.10
           path: |
             android-app/estoque-screen.png
             android-app/layout-threebutton/

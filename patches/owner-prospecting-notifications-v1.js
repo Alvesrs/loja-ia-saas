@@ -25,7 +25,7 @@ edit('src/services/clientPush.service.js',s=>s.replace('module.exports={registra
 module.exports={registrar,notificarLoja,validarConfiguracao};`));
 edit('src/server.js',s=>s+`\nrequire('./services/clientPush.service').validarConfiguracao().then(()=>console.info('[client-push] credencial_validada')).catch(()=>console.error('[client-push] credencial_indisponivel'));\n`);
 edit('public/admin-prospeccao.html',s=>s.replace('</body>','<script src="js/owner-prospecting.js?v=2026.10.07.3"></script></body>').replace("$('cards').innerHTML='<div class=\"empty\">Falha na busca. Tente novamente.</div>'","$('cards').innerHTML='<div class=\"empty\">'+esc(e.message||'A fonte de contatos está indisponível agora. Tente novamente em alguns minutos.')+'</div>'"));
-edit('public/cliente-central.html',s=>s.replace("    const token=String(window.AndroidClient.getPushToken","    if(typeof window.AndroidClient.notificationsEnabled==='function'&&!window.AndroidClient.notificationsEnabled())return;\n    const token=String(window.AndroidClient.getPushToken").replace('</body>','<script src="js/client-notifications.js?v=2026.10.07.4"></script></body>'));
+edit('public/cliente-central.html',s=>s.replace("    const token=String(window.AndroidClient.getPushToken","    if(typeof window.AndroidClient.notificationsEnabled==='function'&&!window.AndroidClient.notificationsEnabled())return;\n    const token=String(window.AndroidClient.getPushToken").replace('</body>','<script src="js/client-notifications.js?v=2026.10.07.5"></script></body>'));
 edit('src/services/prospeccao.service.js',s=>{
  s=s.replace("async function geocodificar(cidade,uf){","const geoCache=new Map(),resultCache=new Map(),inflight=new Map();\nasync function geocodificar(cidade,uf){\n  const cacheKey=cidade.toLowerCase()+'|'+uf;const cached=geoCache.get(cacheKey);if(cached&&Date.now()-cached.time<86400000)return cached.value;");
  s=s.replace('{},10000)','{},6000)').replace('return {south:b[0],north:b[1],west:b[2],east:b[3],nome:item.display_name||cidade};',"const value={south:b[0],north:b[1],west:b[2],east:b[3],nome:item.display_name||cidade};if(geoCache.size>=200)geoCache.delete(geoCache.keys().next().value);geoCache.set(cacheKey,{time:Date.now(),value});return value;");
@@ -42,5 +42,5 @@ edit('src/services/prospeccao.service.js',s=>{
 module.exports={buscarProspeccao,scoreLead,CATEGORIAS};`);
  return s;
 });
-for(const type of ['admin','cliente']){const p='public/'+type+'-versao.json';if(fs.existsSync(p)){const v=JSON.parse(fs.readFileSync(p));v.versao='2026.10.07.4';v.novidades=['Busca resiliente, notificações e modo vendedor exclusivo do dono',...(v.novidades||[])];fs.writeFileSync(p,JSON.stringify(v,null,2));}}
+for(const type of ['admin','cliente']){const p='public/'+type+'-versao.json';if(fs.existsSync(p)){const v=JSON.parse(fs.readFileSync(p));v.versao='2026.10.07.5';v.novidades=['Busca resiliente, notificações e modo vendedor exclusivo do dono',...(v.novidades||[])];fs.writeFileSync(p,JSON.stringify(v,null,2));}}
 console.log('Prospecção do dono e notificações v1 aplicadas.');
