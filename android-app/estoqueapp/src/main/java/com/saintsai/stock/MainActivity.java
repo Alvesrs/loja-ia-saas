@@ -9,6 +9,9 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.ClipData;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -158,6 +161,10 @@ public class MainActivity extends Activity {
                 if (security != null) security.beginTrustedExternalFlow();
                 try {
                     Intent intent = fileChooserParams.createIntent();
+                    if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
+                        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                    }
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST);
                     return true;
                 } catch (ActivityNotFoundException e) {
@@ -321,13 +328,32 @@ public class MainActivity extends Activity {
         if (requestCode == FILE_CHOOSER_REQUEST) {
             if (security != null) security.endTrustedExternalFlow();
             if (fileChooserCallback != null) {
-                Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                Uri[] results = collectSelectedUris(resultCode, data);
                 fileChooserCallback.onReceiveValue(results);
                 fileChooserCallback = null;
             }
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    static Uri[] collectSelectedUris(int resultCode, Intent data) {
+        if (resultCode != Activity.RESULT_OK || data == null) return null;
+        LinkedHashSet<Uri> selected = new LinkedHashSet<>();
+        ClipData clip = data.getClipData();
+        if (clip != null) {
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                Uri uri = clip.getItemAt(i).getUri();
+                if (uri != null) selected.add(uri);
+            }
+        }
+        Uri single = data.getData();
+        if (single != null) selected.add(single);
+        if (selected.isEmpty()) {
+            Uri[] parsed = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+            if (parsed != null) for (Uri uri : parsed) if (uri != null) selected.add(uri);
+        }
+        return selected.isEmpty() ? null : selected.toArray(new Uri[0]);
     }
 
     @Override protected void onResume(){super.onResume();if(security!=null)security.resume();}
