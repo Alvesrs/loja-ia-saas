@@ -82,14 +82,14 @@ jobs:
 
       - name: Package APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.18.apk
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.19.apk
           cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.8.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.18
-          path: android-app/Agente-SaintsAI-v1.0.18.apk
+          name: Agente-SaintsAI-APK-v1.0.19
+          path: android-app/Agente-SaintsAI-v1.0.19.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Cliente
@@ -108,7 +108,7 @@ jobs:
           fi
           mkdir -p ../downloads
           cp SaintsAI-Cliente-v1.2.8.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.18.apk ../downloads/Agente-SaintsAI.apk
+          cp Agente-SaintsAI-v1.0.19.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
           {"versionCode":23,"versionName":"1.2.8","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF

@@ -13,6 +13,12 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
+import android.os.Message;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -59,6 +65,7 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setLoadsImagesAutomatically(true);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
+        s.setSupportMultipleWindows(true);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.clearCache(true);
 
@@ -66,7 +73,28 @@ public class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
+        webView.addJavascriptInterface(new Object(){
+            @JavascriptInterface public void openWhatsApp(String phone){
+                if(phone == null || !phone.matches("55[0-9]{10,11}")) return;
+                runOnUiThread(() -> openExternal(Uri.parse("whatsapp://send?phone=" + phone)));
+            }
+        },"AndroidAgent");
+        webView.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean gesture, Message result){
+                if(!gesture) return false;
+                WebView child=new WebView(MainActivity.this);
+                child.setWebViewClient(new WebViewClient(){
+                    @Override public boolean shouldOverrideUrlLoading(WebView v, String url){openExternal(Uri.parse(url));v.destroy();return true;}
+                    @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r){return shouldOverrideUrlLoading(v,r.getUrl().toString());}
+                });
+                ((WebView.WebViewTransport)result.obj).setWebView(child);result.sendToTarget();return true;
+            }
+        });
         webView.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url){
+                if(url.startsWith(PROXY_PREFIX)){loadHtmlPage(url);return true;}
+                return openExternal(Uri.parse(url));
+            }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (request.isForMainFrame()
@@ -86,7 +114,7 @@ public class MainActivity extends Activity {
                     return true;
                 }
                 if(request.isForMainFrame()&&!request.getUrl().toString().startsWith(PROXY_PREFIX)){
-                    try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,request.getUrl()));}catch(android.content.ActivityNotFoundException ignored){}
+                    openExternal(request.getUrl());
                     return true;
                 }
                 return false;
@@ -137,6 +165,26 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(security,"AndroidSecurity");
         setContentView(root);
         loadHtmlPage(APP_URL);
+    }
+
+    private boolean openExternal(Uri uri){
+        String scheme=uri.getScheme();
+        if(!("https".equalsIgnoreCase(scheme)||"http".equalsIgnoreCase(scheme)||"whatsapp".equalsIgnoreCase(scheme)||"tel".equalsIgnoreCase(scheme)||"mailto".equalsIgnoreCase(scheme)))return true;
+        String host=uri.getHost();
+        boolean wa="whatsapp".equalsIgnoreCase(scheme)||"wa.me".equalsIgnoreCase(host)||"api.whatsapp.com".equalsIgnoreCase(host)||"web.whatsapp.com".equalsIgnoreCase(host);
+        if(wa){
+            String phone="wa.me".equalsIgnoreCase(host)?uri.getLastPathSegment():uri.getQueryParameter("phone");
+            if(phone==null)phone="";phone=phone.replaceAll("[^0-9]","");
+            if(!phone.matches("55[0-9]{10,11}")){Toast.makeText(this,"Número de WhatsApp inválido",Toast.LENGTH_LONG).show();return true;}
+            Uri.Builder link=new Uri.Builder().scheme("whatsapp").authority("send").appendQueryParameter("phone",phone);
+            String message=uri.getQueryParameter("text");if(message!=null)link.appendQueryParameter("text",message);
+            for(String pkg:new String[]{"com.whatsapp","com.whatsapp.w4b"}){
+                try{startActivity(new Intent(Intent.ACTION_VIEW,link.build()).setPackage(pkg));return true;}catch(android.content.ActivityNotFoundException ignored){}
+            }
+            uri=new Uri.Builder().scheme("https").authority("api.whatsapp.com").path("/send").appendQueryParameter("phone",phone).build();
+        }
+        try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}catch(android.content.ActivityNotFoundException e){Toast.makeText(this,"Não foi possível abrir. Instale o WhatsApp ou um navegador.",Toast.LENGTH_LONG).show();}
+        return true;
     }
 
     private void loadHtmlPage(String url) {

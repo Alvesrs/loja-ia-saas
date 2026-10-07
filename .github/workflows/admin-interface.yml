@@ -1,0 +1,35 @@
+name: SaintsAI Agente Interface
+on:
+  push:
+    branches: [main]
+    paths: ['patches/admin-clean-whatsapp-notify-v1.js', 'patches/assets/admin-clean.css', 'patches/assets/admin-notify.js', 'tests/admin-ui-browser.cjs', '.github/workflows/admin-interface.yml']
+  workflow_dispatch:
+jobs:
+  interface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build current interface
+        run: |
+          python3 -m zipfile -e loja-ia-saas-whatsapp-12a.zip .
+          python3 - <<'PY'
+          import json,subprocess
+          for command in json.load(open('railway.json'))['build']['buildCommand'].split(' && '):
+              if command.startswith('node patches/'):
+                  subprocess.run(command.split(),check=True)
+          PY
+          node --test tests/admin-notify-whatsapp.test.js tests/prospeccao-static.test.js
+      - name: Install browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/saintsai-ui" playwright@1.62.1
+          node "$RUNNER_TEMP/saintsai-ui/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Test mobile and desktop interface
+        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node tests/admin-ui-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SaintsAI-Agente-Interface
+          path: ui-artifacts/
