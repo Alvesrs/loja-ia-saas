@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.12 new pairing and native update validation
+# trigger: 1.2.13 new pairing and native update validation
 
 permissions:
   contents: write
@@ -84,7 +84,7 @@ jobs:
       - name: Package APKs
         run: |
           cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.22.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.12.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.13.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
@@ -96,8 +96,8 @@ jobs:
       - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.12
-          path: android-app/SaintsAI-Cliente-v1.2.12.apk
+          name: SaintsAI-Cliente-APK-v1.2.13
+          path: android-app/SaintsAI-Cliente-v1.2.13.apk
           if-no-files-found: error
 
       - name: Enable KVM
@@ -147,7 +147,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-Validation-v1.2.12
+          name: SaintsAI-Cliente-Validation-v1.2.13
           path: |
             android-app/estoque-screen.png
             android-app/layout-threebutton/
@@ -167,10 +167,10 @@ jobs:
             exit 0
           fi
           mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.12.apk ../downloads/SaintsAI-Cliente.apk
+          cp SaintsAI-Cliente-v1.2.13.apk ../downloads/SaintsAI-Cliente.apk
           cp Agente-SaintsAI-v1.0.22.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":27,"versionName":"1.2.12","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          {"versionCode":28,"versionName":"1.2.13","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cat > ../downloads/saintsai-agente.json <<'EOF'
           {"versionCode":23,"versionName":"1.0.22","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
@@ -180,6 +180,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json downloads/saintsai-agente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.12 [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.13 [skip ci]"
           git push
 

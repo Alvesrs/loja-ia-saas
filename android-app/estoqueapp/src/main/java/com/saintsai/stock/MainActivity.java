@@ -244,6 +244,9 @@ public class MainActivity extends Activity {
 
 
     public class ClientBridge {
+        @JavascriptInterface public String getSaleMessage(){return getSharedPreferences("saintsai_client_push",MODE_PRIVATE).getString("sale_message","Venda concluída! Você recebeu {valor}.");}
+        @JavascriptInterface public void setSaleMessage(String value){if(webView.getUrl()==null||!webView.getUrl().startsWith("https://"+APP_HOST+"/"))return;String text=value==null?"":value.trim();if(text.length()>180)text=text.substring(0,180);getSharedPreferences("saintsai_client_push",MODE_PRIVATE).edit().putString("sale_message",text).apply();}
+
         @JavascriptInterface
         public void openWhatsApp(String phone) {
             if(phone==null||!phone.matches("55[0-9]{10,11}"))return;
@@ -340,6 +343,9 @@ public class MainActivity extends Activity {
         channel.setDescription("Novos agendamentos, pagamentos e avisos do SaintsAI");
         channel.enableVibration(true);
         nm.createNotificationChannel(channel);
+        NotificationChannel sales=new NotificationChannel("saintsai_sales_v1","SaintsAI · Vendas recebidas",NotificationManager.IMPORTANCE_HIGH);
+        sales.setDescription("Valor recebido e som de venda");sales.enableVibration(true);
+        sales.setSound(Uri.parse("android.resource://"+getPackageName()+"/"+com.saintsai.stock.R.raw.sale_chime),new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).build());nm.createNotificationChannel(sales);
     }
 
     private boolean handleNavigation(Uri uri) {
