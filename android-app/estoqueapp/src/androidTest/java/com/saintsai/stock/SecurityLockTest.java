@@ -1,6 +1,9 @@
 package com.saintsai.stock;
 
 import android.view.View;
+import android.content.ClipData;
+import android.content.Intent;
+import android.net.Uri;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
@@ -57,6 +60,23 @@ public class SecurityLockTest {
     gate.destroy();web.destroy();
    });
   }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
+ }
+
+ @Test public void multiplePickerResultReturnsAllSelectedUris(){
+  Intent data=new Intent();
+  android.content.ClipData clip=android.content.ClipData.newRawUri("m1",Uri.parse("content://media/1"));
+  clip.addItem(new android.content.ClipData.Item(Uri.parse("content://media/2")));
+  data.setClipData(clip);
+  Uri[] result=MainActivity.collectSelectedUris(android.app.Activity.RESULT_OK,data);
+  assertNotNull(result);assertEquals(2,result.length);
+  assertEquals("content://media/1",result[0].toString());
+  assertEquals("content://media/2",result[1].toString());
+ }
+
+ @Test public void singlePickerResultStillWorks(){
+  Intent data=new Intent();data.setData(Uri.parse("content://media/single"));
+  Uri[] result=MainActivity.collectSelectedUris(android.app.Activity.RESULT_OK,data);
+  assertNotNull(result);assertEquals(1,result.length);assertEquals("content://media/single",result[0].toString());
  }
 
  @Test public void devicePinUnlocksAfterSystemConfirmation() throws Exception {
