@@ -4,6 +4,7 @@ for(const [a,b] of [['admin-clean.css','public/css/admin-clean.css'],['admin-not
 for(const name of ['admin-mobile.html','admin-cliente-cadastro.html','admin-cliente.html','admin-cliente-plano.html','admin-cliente-whatsapp.html','admin-prospeccao.html']){
  const p='public/'+name;if(!fs.existsSync(p))continue;let h=read(p);
  h=h.replace(/\\n(?=\s*<\/nav>)/g,'\n');
+ h=h.replace(/js\/admin-central-saas\.js\?v=[^"]+/g,'js/admin-central-saas.js?v=2026.10.07.1');
  if(!h.includes('admin-clean.css'))h=h.replace('</head>','<link rel="stylesheet" href="css/admin-clean.css?v=2026.10.07.1"></head>');
  if(name==='admin-mobile.html'&&!h.includes('js/admin-notify.js'))h=h.replace('</body>','<script src="js/admin-notify.js?v=2026.10.07.1"></script></body>');
  if(name==='admin-prospeccao.html'){
