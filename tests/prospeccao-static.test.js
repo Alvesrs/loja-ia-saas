@@ -5,7 +5,7 @@ const fs=require('node:fs');
 test('prospecção tem página, rota e ranking',()=>{
   assert.equal(fs.existsSync('public/admin-prospeccao.html'),true);
   const page=fs.readFileSync('public/admin-prospeccao.html','utf8');
-  assert.match(page,/Buscar clientes|Buscar no Maps/);
+  assert.match(page,/Buscar clientes|Buscar no Maps|Buscar no mapa/);
   assert.match(page,/Automação não identificada|automacao/);
   const routes=fs.readFileSync('src/routes/admin.routes.js','utf8');
   assert.match(routes,/prospeccao\/buscar/);
