@@ -240,7 +240,7 @@ let routes=read('src/routes/admin.routes.js');
 if(!routes.includes("'/prospeccao/buscar'")){
   routes=routes.replace(
     'module.exports = router;',
-    "router.get('/prospeccao/buscar', exigirAdmin, controller.buscarProspeccao);\\n\\nmodule.exports = router;"
+    "router.get('/prospeccao/buscar', exigirAdmin, controller.buscarProspeccao);\n\nmodule.exports = router;"
   );
 }
 write('src/routes/admin.routes.js',routes);
