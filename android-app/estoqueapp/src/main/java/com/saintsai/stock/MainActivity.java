@@ -56,9 +56,7 @@ public class MainActivity extends Activity {
         if (android.os.Build.VERSION.SDK_INT >= 33) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
         }
-        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token ->
-            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("fcm_token", token).apply()
-        );
+        refreshPushToken();
 
         getWindow().setStatusBarColor(Color.rgb(8, 7, 13));
         getWindow().setNavigationBarColor(Color.rgb(8, 7, 13));
@@ -249,6 +247,34 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public boolean notificationsEnabled() {
+            if (!androidx.core.app.NotificationManagerCompat.from(MainActivity.this).areNotificationsEnabled()) return false;
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                NotificationChannel channel = getSystemService(NotificationManager.class).getNotificationChannel(CHANNEL_CLIENT);
+                if (channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE) return false;
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void requestNotifications() {
+            runOnUiThread(() -> {
+                refreshPushToken();
+                if (notificationsEnabled()) { notifyPushState(); return; }
+                boolean asked = getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getBoolean("permission_asked", false);
+                if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    && (!asked || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
+                    getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putBoolean("permission_asked", true).apply();
+                    requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7002);
+                } else {
+                    Intent settings = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                    settings.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    startActivity(settings);
+                }
+            });
+        }
+
+        @JavascriptInterface
         public int getVersionCode() { return BuildConfig.VERSION_CODE; }
 
         @JavascriptInterface
@@ -356,7 +382,29 @@ public class MainActivity extends Activity {
         return selected.isEmpty() ? null : selected.toArray(new Uri[0]);
     }
 
-    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();}
+    private void refreshPushToken() {
+        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
+            getSharedPreferences("saintsai_client_push", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
+            notifyPushState();
+        }).addOnFailureListener(error -> notifyPushState());
+    }
+
+    private void notifyPushState() {
+        runOnUiThread(() -> {
+            if (webView == null) return;
+            String current = webView.getUrl();
+            if (current == null || !APP_HOST.equals(Uri.parse(current).getHost())) return;
+            webView.evaluateJavascript("window.dispatchEvent(new Event('saintsai-push-updated'))", null);
+        });
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 7002) { refreshPushToken(); notifyPushState(); }
+    }
+
+    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();notifyPushState();}
+
     @Override protected void onPause(){if(security!=null)security.pause();super.onPause();}
 
     @Override
