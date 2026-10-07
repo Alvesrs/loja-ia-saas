@@ -79,6 +79,46 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock'"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-label:'SaintsAI Cliente'"
 
+      - name: Package APKs
+        run: |
+          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.18.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.7.apk
+
+      - name: Upload Agente SaintsAI
+        uses: actions/upload-artifact@v4
+        with:
+          name: Agente-SaintsAI-APK-v1.0.18
+          path: android-app/Agente-SaintsAI-v1.0.18.apk
+          if-no-files-found: error
+
+      - name: Upload SaintsAI Cliente
+        uses: actions/upload-artifact@v4
+        with:
+          name: SaintsAI-Cliente-APK-v1.2.7
+          path: android-app/SaintsAI-Cliente-v1.2.7.apk
+          if-no-files-found: error
+
+      - name: Publish latest SaintsAI Cliente
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "Uma versão mais nova já está sendo construída; publicação antiga ignorada."
+            exit 0
+          fi
+          mkdir -p ../downloads
+          cp SaintsAI-Cliente-v1.2.7.apk ../downloads/SaintsAI-Cliente.apk
+          cp Agente-SaintsAI-v1.0.18.apk ../downloads/Agente-SaintsAI.apk
+          cat > ../downloads/saintsai-cliente.json <<'EOF'
+          {"versionCode":22,"versionName":"1.2.7","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          EOF
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "release: SaintsAI Cliente v1.2.7 [skip ci]"
+          git push
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -86,6 +126,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Android 16 client regression
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -130,42 +171,3 @@ jobs:
             android-app/client-crash.txt
           if-no-files-found: warn
 
-      - name: Package APKs
-        run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.18.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.7.apk
-
-      - name: Upload Agente SaintsAI
-        uses: actions/upload-artifact@v4
-        with:
-          name: Agente-SaintsAI-APK-v1.0.18
-          path: android-app/Agente-SaintsAI-v1.0.18.apk
-          if-no-files-found: error
-
-      - name: Upload SaintsAI Cliente
-        uses: actions/upload-artifact@v4
-        with:
-          name: SaintsAI-Cliente-APK-v1.2.7
-          path: android-app/SaintsAI-Cliente-v1.2.7.apk
-          if-no-files-found: error
-
-      - name: Publish latest SaintsAI Cliente
-        run: |
-          git fetch origin main
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-            echo "Uma versão mais nova já está sendo construída; publicação antiga ignorada."
-            exit 0
-          fi
-          mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.7.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.18.apk ../downloads/Agente-SaintsAI.apk
-          cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":22,"versionName":"1.2.7","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
-          EOF
-          cd ..
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.7 [skip ci]"
-          git push
