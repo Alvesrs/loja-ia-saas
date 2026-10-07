@@ -115,6 +115,10 @@ public class MainActivity extends Activity {
         cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleNavigation(Uri.parse(url));
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleNavigation(request.getUrl());
@@ -241,6 +245,12 @@ public class MainActivity extends Activity {
 
     public class ClientBridge {
         @JavascriptInterface
+        public void openWhatsApp(String phone) {
+            if(phone==null||!phone.matches("55[0-9]{10,11}"))return;
+            runOnUiThread(() -> openExternal(Uri.parse("whatsapp://send?phone="+phone)));
+        }
+
+        @JavascriptInterface
         public String getPushToken() {
             return getSharedPreferences("saintsai_client_push", MODE_PRIVATE).getString("fcm_token", "");
         }
@@ -353,14 +363,42 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    private void openExternal(Uri uri) {
-        if (uri == null) return;
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            startActivity(intent);
-        } catch (ActivityNotFoundException ignored) {
-            // Mantém o WebView aberto caso nenhum app externo consiga tratar o link.
+    private boolean openExternal(Uri uri){
+        String scheme=uri.getScheme();
+        if("intent".equalsIgnoreCase(scheme)){
+            try{
+                Intent external=Intent.parseUri(uri.toString(),Intent.URI_INTENT_SCHEME);
+                Uri data=external.getData();
+                if(data!=null&&("whatsapp".equalsIgnoreCase(data.getScheme())||"wa.me".equalsIgnoreCase(data.getHost())||"api.whatsapp.com".equalsIgnoreCase(data.getHost())))return openExternal(data);
+                String fallback=external.getStringExtra("browser_fallback_url");
+                if(data!=null&&"https".equalsIgnoreCase(data.getScheme())){
+                    String pkg=external.getPackage();
+                    if("com.google.android.apps.maps".equals(pkg)){
+                        try{startActivity(new Intent(Intent.ACTION_VIEW,data).setPackage(pkg).addCategory(Intent.CATEGORY_BROWSABLE));return true;}catch(android.content.ActivityNotFoundException ignored){}
+                    }
+                    if(fallback!=null&&fallback.startsWith("https://"))return openExternal(Uri.parse(fallback));
+                    return openExternal(data);
+                }
+            }catch(java.net.URISyntaxException ignored){}
+            android.widget.Toast.makeText(this,"Não foi possível abrir este link externo",android.widget.Toast.LENGTH_LONG).show();
+            return true;
         }
+        if(!("https".equalsIgnoreCase(scheme)||"http".equalsIgnoreCase(scheme)||"whatsapp".equalsIgnoreCase(scheme)||"tel".equalsIgnoreCase(scheme)||"mailto".equalsIgnoreCase(scheme)))return true;
+        String host=uri.getHost();
+        boolean wa="whatsapp".equalsIgnoreCase(scheme)||"wa.me".equalsIgnoreCase(host)||"api.whatsapp.com".equalsIgnoreCase(host)||"web.whatsapp.com".equalsIgnoreCase(host);
+        if(wa){
+            String phone="wa.me".equalsIgnoreCase(host)?uri.getLastPathSegment():uri.getQueryParameter("phone");
+            if(phone==null)phone="";phone=phone.replaceAll("[^0-9]","");
+            if(!phone.matches("55[0-9]{10,11}")){android.widget.Toast.makeText(this,"Número de WhatsApp inválido",android.widget.Toast.LENGTH_LONG).show();return true;}
+            Uri.Builder link=new Uri.Builder().scheme("whatsapp").authority("send").appendQueryParameter("phone",phone);
+            String message=uri.getQueryParameter("text");if(message!=null&&!message.isEmpty())link.appendQueryParameter("text",message);
+            for(String pkg:new String[]{"com.whatsapp","com.whatsapp.w4b"}){
+                try{startActivity(new Intent(Intent.ACTION_VIEW,link.build()).setPackage(pkg));return true;}catch(android.content.ActivityNotFoundException ignored){}
+            }
+            uri=new Uri.Builder().scheme("https").authority("api.whatsapp.com").path("/send").appendQueryParameter("phone",phone).build();
+        }
+        try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}catch(android.content.ActivityNotFoundException e){android.widget.Toast.makeText(this,"Não foi possível abrir. Instale o WhatsApp ou um navegador.",android.widget.Toast.LENGTH_LONG).show();}
+        return true;
     }
 
     @Override
