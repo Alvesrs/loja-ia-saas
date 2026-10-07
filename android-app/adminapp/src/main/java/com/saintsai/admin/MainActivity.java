@@ -97,6 +97,14 @@ public class MainActivity extends Activity {
             }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri targetUri=request.getUrl();
+                String targetScheme=targetUri.getScheme(), targetHost=targetUri.getHost();
+                if ("whatsapp".equalsIgnoreCase(targetScheme)||"intent".equalsIgnoreCase(targetScheme)
+                        ||"wa.me".equalsIgnoreCase(targetHost)||"api.whatsapp.com".equalsIgnoreCase(targetHost)
+                        ||"web.whatsapp.com".equalsIgnoreCase(targetHost)) {
+                    openExternal(targetUri);
+                    return true;
+                }
                 if (request.isForMainFrame()
                         && "GET".equalsIgnoreCase(request.getMethod())
                         && request.getUrl().toString().startsWith(PROXY_PREFIX)) {
@@ -169,6 +177,24 @@ public class MainActivity extends Activity {
 
     private boolean openExternal(Uri uri){
         String scheme=uri.getScheme();
+        if("intent".equalsIgnoreCase(scheme)){
+            try{
+                Intent external=Intent.parseUri(uri.toString(),Intent.URI_INTENT_SCHEME);
+                Uri data=external.getData();
+                if(data!=null&&("whatsapp".equalsIgnoreCase(data.getScheme())||"wa.me".equalsIgnoreCase(data.getHost())||"api.whatsapp.com".equalsIgnoreCase(data.getHost())))return openExternal(data);
+                String fallback=external.getStringExtra("browser_fallback_url");
+                if(data!=null&&"https".equalsIgnoreCase(data.getScheme())){
+                    String pkg=external.getPackage();
+                    if("com.google.android.apps.maps".equals(pkg)){
+                        try{startActivity(new Intent(Intent.ACTION_VIEW,data).setPackage(pkg).addCategory(Intent.CATEGORY_BROWSABLE));return true;}catch(android.content.ActivityNotFoundException ignored){}
+                    }
+                    if(fallback!=null&&fallback.startsWith("https://"))return openExternal(Uri.parse(fallback));
+                    return openExternal(data);
+                }
+            }catch(java.net.URISyntaxException ignored){}
+            Toast.makeText(this,"Não foi possível abrir este link externo",Toast.LENGTH_LONG).show();
+            return true;
+        }
         if(!("https".equalsIgnoreCase(scheme)||"http".equalsIgnoreCase(scheme)||"whatsapp".equalsIgnoreCase(scheme)||"tel".equalsIgnoreCase(scheme)||"mailto".equalsIgnoreCase(scheme)))return true;
         String host=uri.getHost();
         boolean wa="whatsapp".equalsIgnoreCase(scheme)||"wa.me".equalsIgnoreCase(host)||"api.whatsapp.com".equalsIgnoreCase(host)||"web.whatsapp.com".equalsIgnoreCase(host);
@@ -177,7 +203,7 @@ public class MainActivity extends Activity {
             if(phone==null)phone="";phone=phone.replaceAll("[^0-9]","");
             if(!phone.matches("55[0-9]{10,11}")){Toast.makeText(this,"Número de WhatsApp inválido",Toast.LENGTH_LONG).show();return true;}
             Uri.Builder link=new Uri.Builder().scheme("whatsapp").authority("send").appendQueryParameter("phone",phone);
-            String message=uri.getQueryParameter("text");if(message!=null)link.appendQueryParameter("text",message);
+            String message=uri.getQueryParameter("text");if(message!=null&&!message.isEmpty())link.appendQueryParameter("text",message);
             for(String pkg:new String[]{"com.whatsapp","com.whatsapp.w4b"}){
                 try{startActivity(new Intent(Intent.ACTION_VIEW,link.build()).setPackage(pkg));return true;}catch(android.content.ActivityNotFoundException ignored){}
             }

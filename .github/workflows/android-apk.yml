@@ -66,10 +66,11 @@ jobs:
       - name: Build signed SaintsAI Cliente
         env:
           SAINTSAI_CLIENT_KEYSTORE: saintsai-client-release.jks
+          SAINTSAI_AGENT_KEYSTORE: ../estoqueapp/saintsai-client-release.jks
           SAINTSAI_CLIENT_STORE_PASSWORD: ${{ env.CLIENT_STORE_PASSWORD }}
           SAINTSAI_CLIENT_KEY_ALIAS: ${{ env.CLIENT_KEY_ALIAS }}
           SAINTSAI_CLIENT_KEY_PASSWORD: ${{ env.CLIENT_KEY_PASSWORD }}
-        run: gradle --no-daemon :estoqueapp:assembleRelease
+        run: gradle --no-daemon :estoqueapp:assembleRelease :adminapp:assembleRelease
 
       - name: Validate signed client APK
         run: |
@@ -82,14 +83,14 @@ jobs:
 
       - name: Package APKs
         run: |
-          cp adminapp/build/outputs/apk/debug/adminapp-debug.apk Agente-SaintsAI-v1.0.19.apk
+          cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.20.apk
           cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.10.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.19
-          path: android-app/Agente-SaintsAI-v1.0.19.apk
+          name: Agente-SaintsAI-APK-v1.0.20
+          path: android-app/Agente-SaintsAI-v1.0.20.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Cliente
@@ -113,6 +114,8 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
+            adb install -r android-app/adminapp/build/outputs/apk/debug/adminapp-debug.apk
+            gradle -p android-app --no-daemon :adminapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.admin.ExternalLinksTest
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb shell pm grant com.saintsai.stock android.permission.POST_NOTIFICATIONS || true
             adb logcat -c
@@ -148,6 +151,7 @@ jobs:
             android-app/layout-gestures/
             android-app/estoqueapp/build/reports/androidTests/
             android-app/client-crash.txt
+            android-app/adminapp/build/reports/androidTests/
           if-no-files-found: warn
 
       - name: Publish latest SaintsAI Cliente
@@ -159,14 +163,17 @@ jobs:
           fi
           mkdir -p ../downloads
           cp SaintsAI-Cliente-v1.2.10.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.19.apk ../downloads/Agente-SaintsAI.apk
+          cp Agente-SaintsAI-v1.0.20.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
           {"versionCode":25,"versionName":"1.2.10","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          EOF
+          cat > ../downloads/saintsai-agente.json <<'EOF'
+          {"versionCode":21,"versionName":"1.0.20","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json
+          git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json downloads/saintsai-agente.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "release: SaintsAI Cliente v1.2.10 [skip ci]"
           git push

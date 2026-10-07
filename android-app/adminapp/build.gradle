@@ -10,7 +10,26 @@ android {
         applicationId "com.saintsai.admin"
         minSdk 24
         targetSdk 35
-        versionCode 20
-        versionName "1.0.19"
+        versionCode 21
+        versionName "1.0.20"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        release {
+            def keyPath=System.getenv("SAINTSAI_AGENT_KEYSTORE")
+            if(keyPath){
+                storeFile file(keyPath)
+                storePassword System.getenv("SAINTSAI_CLIENT_STORE_PASSWORD")
+                keyAlias System.getenv("SAINTSAI_CLIENT_KEY_ALIAS")
+                keyPassword System.getenv("SAINTSAI_CLIENT_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes { release { minifyEnabled false; if(System.getenv("SAINTSAI_AGENT_KEYSTORE")) signingConfig signingConfigs.release } }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.6.1'
 }
