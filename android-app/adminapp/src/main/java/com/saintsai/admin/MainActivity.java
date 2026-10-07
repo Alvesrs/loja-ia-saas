@@ -32,6 +32,21 @@ public class MainActivity extends Activity {
     private static final String APP_URL = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/login.html?next=admin-mobile.html&ui=16";
     private static final String PROXY_PREFIX = "https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/saintsai-proxy/painel/";
 
+    public class AgentBridge {
+        @JavascriptInterface public int getVersionCode(){return BuildConfig.VERSION_CODE;}
+        @JavascriptInterface public String getVersionName(){return BuildConfig.VERSION_NAME;}
+        @JavascriptInterface public void installLatest(){runOnUiThread(() -> {
+            try{
+                android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+                android.app.DownloadManager.Request req=new android.app.DownloadManager.Request(Uri.parse("https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"));
+                req.setTitle("Atualização Agente SaintsAI");req.setMimeType("application/vnd.android.package-archive");
+                req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS,"Agente-SaintsAI-"+System.currentTimeMillis()+".apk");
+                dm.enqueue(req);
+                new android.app.AlertDialog.Builder(MainActivity.this).setTitle("Atualização iniciada").setMessage("Quando o download terminar, toque na notificação para instalar a nova versão. Sua conta será mantida.").setPositiveButton("OK",null).show();
+            }catch(Exception e){Toast.makeText(MainActivity.this,"Não foi possível baixar a atualização. Confira a conexão e tente novamente.",Toast.LENGTH_LONG).show();}
+        });}
+    }
     private WebView webView;
     private SaintsSecurity security;
     private ProgressBar loading;
@@ -73,7 +88,7 @@ public class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
-        webView.addJavascriptInterface(new Object(){
+        webView.addJavascriptInterface(new AgentBridge(){
             @JavascriptInterface public void openWhatsApp(String phone){
                 if(phone == null || !phone.matches("55[0-9]{10,11}")) return;
                 runOnUiThread(() -> openExternal(Uri.parse("whatsapp://send?phone=" + phone)));

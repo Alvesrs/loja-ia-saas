@@ -7,7 +7,7 @@ edit('src/controllers/admin.controller.js',s=>{const a=s.indexOf('async function
  catch(e){console.error('[admin] excluir cliente:',e.message);return res.status(e.status||503).json({erro:e.status?e.message:'Não foi possível excluir o cliente.'});}
 }
 `+s.slice(b);});
-edit('src/services/wahaOnboarding.service.js',s=>{const a=s.indexOf('function canonNumero('),b=s.indexOf('\nasync function liberarNumeroEmOutrasLojas',a);if(a<0||b<0)throw Error('Normalizador ausente');s=s.slice(0,a)+`function canonNumero(valor){
+edit('src/services/wahaOnboarding.service.js',s=>{const a=s.indexOf('function canonNumero('),b=s.indexOf('\n}',a)+3;if(a<0||b<0)throw Error('Normalizador ausente');s=s.slice(0,a)+`function canonNumero(valor){
  let d=String(valor||'').replace(/\\D/g,'');if(d.length===10||d.length===11)d='55'+d;
  // WhatsApp sometimes omits the ninth mobile digit in the Brazilian account JID.
  if(/^55\\d{2}9[6-9]\\d{7}$/.test(d))d=d.slice(0,4)+d.slice(5);

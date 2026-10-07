@@ -46,4 +46,19 @@ public class ExternalLinksTest {
    intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("whatsapp://send?phone=5544991001088"))));
   }finally{Intents.release();}
  }
+ @Test public void updateBridgeQueuesTheAgentApkDownload()throws Exception{
+  try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   scenario.onActivity(a->{
+    android.app.DownloadManager dm=(android.app.DownloadManager)a.getSystemService(Activity.DOWNLOAD_SERVICE);
+    java.util.Set<Long> before=new java.util.HashSet<>();
+    try(android.database.Cursor c=dm.query(new android.app.DownloadManager.Query())){while(c.moveToNext())before.add(c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_ID)));}
+    a.new AgentBridge().installLatest();
+    boolean found=false;
+    try(android.database.Cursor c=dm.query(new android.app.DownloadManager.Query())){while(c.moveToNext()){
+      long id=c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_ID));
+      if(!before.contains(id)){assertEquals("https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk",c.getString(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_URI)));found=true;dm.remove(id);}
+    }}assertTrue("APK download was queued",found);
+   });
+  }
+ }
 }
