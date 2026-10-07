@@ -261,17 +261,17 @@ const page=String.raw`<!doctype html>
 main{max-width:980px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px 80px}
 .top{display:flex;align-items:center;gap:14px;margin-bottom:18px}.back{color:#cab9ef;text-decoration:none;font-weight:700}
 h1{font-size:28px;letter-spacing:-.7px;margin:0}.sub{color:var(--muted);line-height:1.5;margin:6px 0 0}
-.filters{display:grid;grid-template-columns:120px 1fr 1fr auto;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
-label{display:grid;gap:6px;color:#c8c2cf;font-size:12px}select,input{min-height:44px;border:1px solid #3a3743;border-radius:6px;background:#0e0e14;color:#fff;padding:0 11px;font:inherit;outline:none}
-button{min-height:44px;border:0;border-radius:6px;padding:0 15px;font:inherit;font-weight:800;cursor:pointer}.primary{background:var(--p);color:#171020;align-self:end}
+.filters{display:grid;grid-template-columns:minmax(96px,120px) minmax(0,1fr) minmax(0,1fr) minmax(150px,auto);gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:visible}
+label{display:grid;gap:6px;color:#c8c2cf;font-size:12px}select,input{width:100%;min-width:0;min-height:46px;border:1px solid #3a3743;border-radius:6px;background:#0e0e14;color:#fff;padding:0 12px;font:inherit;outline:none;line-height:1.2;appearance:auto}
+button{min-height:44px;border:0;border-radius:6px;padding:0 15px;font:inherit;font-weight:800;cursor:pointer;white-space:normal}.primary{background:var(--p);color:#171020;align-self:end;width:100%}
 .tools{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:16px 0 10px}.status{color:var(--muted);font-size:12px}
 .cards{display:grid;gap:10px}.card{border:1px solid var(--line);background:#111118;border-radius:8px;padding:15px}
 .head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.name{font-size:17px;font-weight:850}.score{font-size:21px;font-weight:900}.score small{display:block;font-size:10px;color:var(--muted);font-weight:650;text-align:right}
 .badges{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.badge{border:1px solid #3c3748;border-radius:5px;padding:5px 7px;font-size:10px;color:#d7cde5}.high{color:var(--ok);border-color:#31553e}.mid{color:var(--warn);border-color:#5b5032}
 .meta{display:grid;gap:5px;color:#b9b3c0;font-size:12px;line-height:1.5}.why{margin:12px 0 0;padding-left:18px;color:#c8c0d0}.why li{margin:4px 0}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.actions button,.actions a{min-height:38px;display:inline-flex;align-items:center;text-decoration:none;border-radius:6px;padding:0 12px;font-weight:800;font-size:12px}.wa{background:#d7caef;color:#1c1722}.ghost{border:1px solid #3a3545;background:#17151d;color:#ddd}.danger{border:1px solid #4d3138;background:#1d1417;color:#e6b6c2}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.actions button,.actions a{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;border-radius:6px;padding:0 13px;font-weight:800;font-size:12px;flex:1 1 145px}.wa{background:#d7caef;color:#1c1722}.wa-icon{font-size:17px;line-height:1}.ghost{border:1px solid #3a3545;background:#17151d;color:#ddd}.danger{border:1px solid #4d3138;background:#1d1417;color:#e6b6c2}.top3{border-color:#5e4a79;box-shadow:0 0 0 1px rgba(168,139,232,.12) inset}.top3-label{display:inline-flex;align-items:center;gap:6px;margin:0 0 8px;padding:5px 7px;border-radius:5px;background:#211a2b;color:#d9c7ff;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .note{margin:13px 0;color:#8f8999;font-size:11px;line-height:1.5}.empty{text-align:center;color:var(--muted);padding:42px 12px;border:1px dashed #302d38;border-radius:8px}
-@media(max-width:720px){.filters{grid-template-columns:1fr 1fr}.filters .city{grid-column:1/-1}.filters .primary{grid-column:1/-1}.head{align-items:center}.score{font-size:19px}}
+@media(max-width:720px){main{padding-left:12px;padding-right:12px}.filters{grid-template-columns:1fr;padding:12px}.filters .city,.filters .primary{grid-column:auto}.head{align-items:center}.score{font-size:19px}.tools{align-items:stretch;flex-direction:column}.tools button{width:100%}.actions{display:grid;grid-template-columns:1fr 1fr}.actions a,.actions button{width:100%;min-width:0}.actions .wa{grid-column:1/-1}.card{padding:13px}.badges{gap:5px}}
 </style>
 </head>
 <body>
@@ -303,14 +303,14 @@ function salvarEstado(v){localStorage.setItem(key,JSON.stringify(v))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function render(){
  const st=estado();
- const lista=ultimo.filter(x=>!soSalvos||st[x.id]==='salvo');
+ const lista=ultimo.filter(x=>!soSalvos||st[x.id]==='salvo'); const topIds=new Set(ultimo.slice(0,3).map(x=>x.id));
  $('cards').innerHTML=lista.length?lista.map(x=>{
    const s=st[x.id]||'';
    const cls=x.score>=84?'high':x.score>=70?'mid':'';
-   return '<article class="card"><div class="head"><div><div class="name">'+esc(x.nome)+'</div><div class="badges"><span class="badge '+cls+'">'+esc(x.nivel)+'</span><span class="badge">'+esc(x.categoria)+'</span><span class="badge">'+esc(x.automacao)+'</span></div></div><div class="score">'+x.score+'<small>score</small></div></div>'+
+   const top=topIds.has(x.id); return '<article class="card '+(top?'top3':'')+'">'+(top?'<div class="top3-label">★ Top 3 recomendado</div>':'')+'<div class="head"><div><div class="name">'+esc(x.nome)+'</div><div class="badges"><span class="badge '+cls+'">'+esc(x.nivel)+'</span><span class="badge">'+esc(x.categoria)+'</span><span class="badge">'+esc(x.automacao)+'</span></div></div><div class="score">'+x.score+'<small>score</small></div></div>'+
    '<div class="meta">'+(x.endereco?'<div>📍 '+esc(x.endereco)+'</div>':'')+(x.horario?'<div>🕒 '+esc(x.horario)+'</div>':'')+(x.telefone_exibicao?'<div>☎ '+esc(x.telefone_exibicao)+'</div>':'')+(x.site?'<div>🌐 '+esc(x.site)+'</div>':'')+'</div>'+
    '<ul class="why">'+x.motivos.map(m=>'<li>'+esc(m)+'</li>').join('')+'</ul>'+
-   '<div class="actions">'+(x.whatsapp?'<a class="wa" target="_blank" rel="noopener" href="'+esc(x.whatsapp)+'">Abrir WhatsApp</a>':'')+
+   '<div class="actions">'+(x.whatsapp?'<a class="wa" target="_blank" rel="noopener" href="'+esc(x.whatsapp)+'"><span class="wa-icon">◉</span> WhatsApp</a>':'<span class="badge">WhatsApp não encontrado</span>')+
    '<button class="ghost" data-a="salvo" data-id="'+esc(x.id)+'">'+(s==='salvo'?'Salvo ✓':'Salvar')+'</button>'+
    '<button class="ghost" data-a="contatado" data-id="'+esc(x.id)+'">'+(s==='contatado'?'Contatado ✓':'Marcar contatado')+'</button>'+
    '<button class="danger" data-a="descartado" data-id="'+esc(x.id)+'">Descartar</button></div></article>'
@@ -326,7 +326,7 @@ async function buscar(){
    const r=await apiFetch('/admin/prospeccao/buscar?'+q.toString());
    ultimo=(r.leads||[]).filter(x=>estado()[x.id]!=='descartado');
    soSalvos=false;$('verSalvos').textContent='Só salvos';
-   $('status').textContent=ultimo.length+' oportunidades · '+(r.categoria||'')+' · '+(r.local||cidade);
+   $('status').textContent=ultimo.length+' oportunidades · Top 3 destacados · '+(r.categoria||'')+' · '+(r.local||cidade);
    render();
  }catch(e){$('status').textContent=e.message||'Não foi possível buscar empresas.';$('cards').innerHTML='<div class="empty">Falha na busca. Tente novamente.</div>'}
  finally{$('buscar').disabled=false;$('buscar').textContent='Buscar clientes'}
