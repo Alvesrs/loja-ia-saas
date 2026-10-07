@@ -31,7 +31,7 @@ public final class SaintsSecurity {
     private final LinearLayout cover;
     private final TextView message;
     private final String allowedPrefix;
-    private boolean unlocked=false, active=false, pending=false, credentialPending=false, authenticatedPending=false;
+    private boolean unlocked=false, active=false, pending=false, credentialPending=false, authenticatedPending=false, trustedExternalFlow=false;
     private Boolean toggleTarget=null;
     private CancellationSignal cancellation;
 
@@ -51,8 +51,10 @@ public final class SaintsSecurity {
     private boolean trusted(){String url=web.getUrl();return url!=null&&url.startsWith(allowedPrefix);}
     private KeyguardManager keyguard(){return (KeyguardManager)activity.getSystemService(Context.KEYGUARD_SERVICE);}
     private void lock(){unlocked=false;cover.setVisibility(View.VISIBLE);cover.bringToFront();cover.requestFocus();activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);}
-    public void resume(){active=true;if(authenticatedPending){authenticatedPending=false;success();return;}if(enabled()&&!unlocked){lock();if(!credentialPending&&!pending)authenticate();}}
-    public void pause(){active=false;if(enabled())lock();/* O PIN do sistema pode pausar a Activity; manter a tela coberta até confirmação. */}
+    public void resume(){active=true;if(trustedExternalFlow)return;if(authenticatedPending){authenticatedPending=false;success();return;}if(enabled()&&!unlocked){lock();if(!credentialPending&&!pending)authenticate();}}
+    public void pause(){active=false;if(enabled()&&!trustedExternalFlow)lock();/* Seletores iniciados pelo app não contam como saída; o PIN do sistema continua protegido. */}
+    public void beginTrustedExternalFlow(){trustedExternalFlow=true;}
+    public void endTrustedExternalFlow(){trustedExternalFlow=false;active=true;}
     public boolean isLocked(){return enabled()&&!unlocked;}
     @JavascriptInterface public String getSecurityStatus(){return "{\"supported\":true,\"enabled\":"+enabled()+"}";}
     @JavascriptInterface public void requestSecurityToggle(){activity.runOnUiThread(()->{if(!trusted()||pending||credentialPending)return;toggleTarget=!enabled();authenticate();});}
@@ -83,5 +85,5 @@ public final class SaintsSecurity {
         if(enabled())activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);else activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         web.evaluateJavascript("window.dispatchEvent(new Event('saintsai-security-change'))",null);
     }
-    public void destroy(){if(cancellation!=null)cancellation.cancel();}
+    public void destroy(){trustedExternalFlow=false;if(cancellation!=null)cancellation.cancel();}
 }
