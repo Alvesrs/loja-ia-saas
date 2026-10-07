@@ -131,7 +131,9 @@ public class SecurityLockTest {
    ClientMessagingService service=new ClientMessagingService();
    java.lang.reflect.Method attach=android.content.ContextWrapper.class.getDeclaredMethod("attachBaseContext",android.content.Context.class);attach.setAccessible(true);attach.invoke(service,context);
    service.onMessageReceived(new com.google.firebase.messaging.RemoteMessage.Builder("diagnostico").addData("title","Venda de teste").addData("body","Mensagem personalizada de validação").build());
-   android.service.notification.StatusBarNotification[] notices=nm.getActiveNotifications();assertEquals(1,notices.length);
+   android.service.notification.StatusBarNotification[] notices=nm.getActiveNotifications();
+   for(int i=0;i<50&&notices.length==0;i++){Thread.sleep(100);notices=nm.getActiveNotifications();}
+   assertEquals("O Android deve publicar a notificação recebida",1,notices.length);
    assertEquals("Venda de teste",notices[0].getNotification().extras.getString(android.app.Notification.EXTRA_TITLE));
    assertEquals("Mensagem personalizada de validação",notices[0].getNotification().extras.getString(android.app.Notification.EXTRA_TEXT));nm.cancelAll();
   }
