@@ -155,11 +155,13 @@ public class MainActivity extends Activity {
                     fileChooserCallback.onReceiveValue(null);
                 }
                 fileChooserCallback = filePathCallback;
+                if (security != null) security.beginTrustedExternalFlow();
                 try {
                     Intent intent = fileChooserParams.createIntent();
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST);
                     return true;
                 } catch (ActivityNotFoundException e) {
+                    if (security != null) security.endTrustedExternalFlow();
                     fileChooserCallback = null;
                     return false;
                 }
@@ -317,6 +319,7 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(security!=null&&security.result(requestCode,resultCode))return;
         if (requestCode == FILE_CHOOSER_REQUEST) {
+            if (security != null) security.endTrustedExternalFlow();
             if (fileChooserCallback != null) {
                 Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
                 fileChooserCallback.onReceiveValue(results);

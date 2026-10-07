@@ -35,6 +35,30 @@ public class SecurityLockTest {
   }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
  }
 
+ @Test public void trustedFilePickerDoesNotRelockUnlockedApp() throws Exception {
+  android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",true).commit();
+  try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   scenario.onActivity(activity->{
+    FrameLayout root=new FrameLayout(activity);WebView web=new WebView(activity);root.addView(web);
+    SaintsSecurity gate=new SaintsSecurity(activity,root,web,"https://backend-prod-production-f338.up.railway.app/");
+    try{
+      java.lang.reflect.Field unlocked=SaintsSecurity.class.getDeclaredField("unlocked");
+      unlocked.setAccessible(true);unlocked.setBoolean(gate,true);
+    }catch(Exception e){throw new RuntimeException(e);}
+    gate.beginTrustedExternalFlow();
+    gate.pause();
+    assertFalse("Abrir a galeria não pode bloquear o app",gate.isLocked());
+    gate.resume();
+    assertFalse("Voltar do seletor não pode pedir biometria de novo",gate.isLocked());
+    gate.endTrustedExternalFlow();
+    gate.pause();
+    assertTrue("Depois do seletor, sair do app deve voltar a bloquear",gate.isLocked());
+    gate.destroy();web.destroy();
+   });
+  }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
+ }
+
  @Test public void devicePinUnlocksAfterSystemConfirmation() throws Exception {
   android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
   context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",true).commit();
