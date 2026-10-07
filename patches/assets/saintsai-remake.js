@@ -55,6 +55,43 @@ function admin(){
  const update=$('#admin-update-bar');const config=$('#view-config');if(update&&config){update.classList.add('rm-update-settings');config.append(update);}
  const drawer=$('#drawer');if(drawer){for(const [id,name] of [['clientesMenuBtn','Clientes'],['estoqueMenuBtn','Catálogos de clientes']]){const b=$('#'+id);if(b)b.textContent=name;}drawer.querySelectorAll('.nav>button[onclick]').forEach(b=>{const action=b.getAttribute('onclick')||'';if(action.includes('gerenciador-contas'))b.textContent='Gerenciador de vendas';if(action.includes('admin-leads'))b.textContent='Leads e orientações';});const prospect=drawer.querySelector('a[href="admin-prospeccao.html"]');if(prospect)prospect.textContent='Prospecção';const heading=drawer.querySelector('.saintsBy');if(heading)heading.textContent='GESTÃO SAINTSAI';drawer.querySelectorAll('.nav>button').forEach(b=>{const labels={home:'Visão geral',vendas:'Recebimentos',registro:'Cadastrar cliente',teste:'Conta de teste',assinaturas:'Assinaturas',config:'Configurações'};if(labels[b.dataset.view])b.textContent=labels[b.dataset.view];});}
 }
-function start(){if(document.body.dataset.rmReady)return;document.body.dataset.rmReady='true';const file=location.pathname.split('/').pop();if(/login|cadastro|registro/.test(file)){document.body.classList.add(file.startsWith('admin')?'rm-admin':'rm-client','rm-auth-flow');return;}if(file.startsWith('admin'))admin();else client();}
+function studio(){
+ document.body.classList.add('studio-v2');
+ const clientHome=document.body.classList.contains('rm-client-home');
+ if(clientHome){
+  const home=$('#business-home'),welcome=$('.sa-welcome');
+  if(welcome){welcome.querySelector('h1').textContent='Hoje';const label=welcome.querySelector('.sa-eyebrow');if(label)label.textContent='SEU DIA DE TRABALHO';const action=welcome.querySelector('.sa-new');if(action){action.innerHTML=svg('calendar')+'<span>Agendar</span>';action.setAttribute('aria-label','Novo agendamento');}}
+  const tabs=el('nav','st-tabs');tabs.setAttribute('aria-label','Resumo do negócio');
+  const day=el('section','st-day'),finance=el('section','st-finance'),activity=el('section','st-activity');
+  day.id='st-day';finance.id='st-finance';activity.id='st-activity';finance.hidden=true;activity.hidden=true;
+  const balance=$('.rm-balance'),figures=$('.rm-figures'),workspace=$('.rm-workspace'),context=$('.rm-context'),actions=$('.rm-actions');
+  const strip=el('div','st-pulse');if(balance){balance.querySelector('.rm-kicker')?.remove();balance.querySelector('.rm-balance-link')?.remove();strip.append(balance);}
+  const count=$('#sa-clients')?.closest('.sa-stat');if(count)strip.append(count);
+  day.append(strip);if(workspace){if(context)context.remove();day.append(workspace);}if(actions)day.append(actions);
+  const financeHead=el('div','st-section-title');financeHead.innerHTML='<span class="rm-kicker">CONTROLE FINANCEIRO</span><h2>Seu dinheiro, com clareza.</h2><p>Valores registrados nos atendimentos.</p>';finance.append(financeHead);
+  if(figures)finance.append(figures);if(context)finance.append(context);
+  const records=$('.rm-records');if(records)activity.append(records);
+  const overview=$('.rm-overview');overview?.remove();
+  for(const [name,id] of [['Meu dia','st-day'],['Financeiro','st-finance'],['Histórico','st-activity']]){const b=el('button',id==='st-day'?'selected':'');b.type='button';b.textContent=name;b.dataset.stPanel=id;b.setAttribute('aria-controls',id);b.setAttribute('aria-pressed',String(id==='st-day'));b.onclick=()=>{for(const section of [day,finance,activity])section.hidden=section.id!==id;tabs.querySelectorAll('button').forEach(n=>{const active=n===b;n.classList.toggle('selected',active);n.setAttribute('aria-pressed',String(active));});};tabs.append(b);}
+  home.prepend(tabs,day,finance,activity);
+  const actionNames={Serviços:['people','Serviços'],Galeria:['gallery','Galeria'],WhatsApp:['spark','WhatsApp']};if(actions)actions.querySelectorAll('a').forEach(a=>{const strong=a.querySelector('strong');const key=strong?.textContent;const config=actionNames[key];if(config){a.querySelector('svg')?.remove();a.insertAdjacentHTML('afterbegin',svg(config[0]));a.querySelector('small')?.remove();}});
+  const panel=$('.sa-today-v5');if(panel){panel.querySelector('.sa-eyebrow').textContent='ATENDIMENTOS';panel.querySelector('h2').textContent='Sua agenda';}
+  const setup=$('#setup-zone');if(setup)home.append(setup);const push=$('#client-push-settings');if(push)home.append(push);
+ }
+ if(document.body.classList.contains('rm-admin-workspace')){
+  const pane=$('#saas-central'),metrics=$('.rm-admin-metrics');
+  if(pane&&metrics){
+   pane.querySelector('.saas-head h2').textContent='Central de comando';pane.querySelector('.saas-head p').textContent='Seu produto. Seus clientes. Seu crescimento.';
+   const primary=el('div','st-owner-pulse'),secondary=el('details','st-owner-details');const summary=el('summary','');summary.textContent='Ver todos os indicadores';secondary.append(summary);
+   for(const id of ['saas-mes','saas-ativos','saas-vencendo']){const metric=$('#'+id)?.closest('.saas-metric');if(metric)primary.append(metric);}
+   metrics.before(primary);secondary.append(metrics);primary.after(secondary);
+   const commands=$('.rm-owner-actions');if(commands){commands.classList.add('st-owner-command');commands.querySelector('[data-owner-clients] span').textContent='Carteira de clientes';commands.querySelector('[data-owner-clients] small').textContent='Contas, planos e atendimento';}
+   const receipt=$('#saas-receipt-section');if(receipt){const note=receipt.querySelector('.saas-note');if(note){const details=el('details','st-receipt-help');const title=el('summary','');title.textContent='Como os recebimentos são calculados';details.append(title,note);receipt.append(details);}const title=receipt.querySelector('h2');if(title)title.textContent='Últimos recebimentos';}
+   const first=pane.querySelector('.saas-head .saas-actions .primary');if(first)first.textContent='+ Novo cliente';
+  }
+ }
+ document.querySelectorAll('.sa-mobile-nav,.gallery-nav').forEach(nav=>{nav.classList.add('st-dock');nav.querySelectorAll('a').forEach(a=>{if(a.textContent.trim()==='Início'){const span=a.querySelector('span');if(span)span.textContent='Hoje';}});});
+}
+function start(){if(document.body.dataset.rmReady)return;document.body.dataset.rmReady='true';const file=location.pathname.split('/').pop();if(/login|cadastro|registro/.test(file)){document.body.classList.add(file.startsWith('admin')?'rm-admin':'rm-client','rm-auth-flow');return;}if(file.startsWith('admin'))admin();else client();studio();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
