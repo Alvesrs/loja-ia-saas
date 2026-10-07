@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.11 publish retry
+# trigger: 1.2.11 prospect persistence validation
 
 permissions:
   contents: write
