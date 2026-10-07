@@ -121,4 +121,19 @@ public class SecurityLockTest {
   }finally{context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();}
  }
 
+ @Test public void receivedPushCreatesRealAndroidNotification() throws Exception {
+  android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",false).commit();
+  UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).executeShellCommand("pm grant "+context.getPackageName()+" android.permission.POST_NOTIFICATIONS");
+  try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   scenario.onActivity(activity->{assertTrue(activity.new ClientBridge().notificationsEnabled());});
+   android.app.NotificationManager nm=context.getSystemService(android.app.NotificationManager.class);nm.cancelAll();
+   ClientMessagingService service=new ClientMessagingService();
+   java.lang.reflect.Method attach=android.content.ContextWrapper.class.getDeclaredMethod("attachBaseContext",android.content.Context.class);attach.setAccessible(true);attach.invoke(service,context);
+   service.onMessageReceived(new com.google.firebase.messaging.RemoteMessage.Builder("diagnostico").addData("title","Venda de teste").addData("body","Mensagem personalizada de validação").build());
+   android.service.notification.StatusBarNotification[] notices=nm.getActiveNotifications();assertEquals(1,notices.length);
+   assertEquals("Venda de teste",notices[0].getNotification().extras.getString(android.app.Notification.EXTRA_TITLE));
+   assertEquals("Mensagem personalizada de validação",notices[0].getNotification().extras.getString(android.app.Notification.EXTRA_TEXT));nm.cancelAll();
+  }
+ }
 }
