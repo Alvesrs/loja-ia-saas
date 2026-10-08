@@ -12,10 +12,13 @@ edit('src/services/wahaOnboarding.service.js',s=>{
   if(!s.includes(anchor))throw Error('Patch anchor missing: '+anchor);
   s=s.replace(anchor,helper+anchor);
  }
- s=s.replace("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]}","config:webhookConfig(e,await isOwnerStore(lojaId))");
- s=s.replace(".select('identificador_externo')\n    .eq('provedor','waha')", ".select('identificador_externo,loja_id')\n    .eq('provedor','waha')");
- s=s.replace("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]}","config:webhookConfig(e,await isOwnerStore(cfg.loja_id))");
- if(s.includes("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha'"))throw Error('WAHA session config anchor was not fully replaced');
+ let configCount=0;
+ s=s.replace(/config\s*:\s*\{\s*webhooks\s*:\s*\[\s*\{\s*url\s*:\s*e\.publicBase\s*\+\s*['"]\/api\/webhooks\/waha['"]\s*,\s*events\s*:\s*\[\s*['"]message\.any['"]\s*\]\s*,\s*hmac\s*:\s*\{\s*key\s*:\s*e\.hmac\s*\}\s*\}\s*\]\s*\}/g,()=>{
+  configCount++;
+  return configCount===1?'config:webhookConfig(e,await isOwnerStore(lojaId))':'config:webhookConfig(e,await isOwnerStore(cfg.loja_id))';
+ });
+ s=s.replace(/\.select\(\s*['"]identificador_externo['"]\s*\)/,".select('identificador_externo,loja_id')");
+ if(configCount!==2)throw Error('Expected two WAHA session configs, found '+configCount);
  return s;
 });
 for(const name of ['client-notifications','owner-prospecting'])fs.copyFileSync('patches/assets/'+name+'.js','public/js/'+name+'.js');
