@@ -49,7 +49,7 @@ test('dashboard reúne quatro indicadores e prospecção com paginação persist
   const painel=home.slice(inicio,fim);
   assert.equal((painel.match(/class="metric"/g)||[]).length,4);
   assert.match(painel,/id="home-prospecting"/);
-  assert.doesNotMatch(home,/href="admin-prospeccao\.html"/);
+  assert.ok(home.includes('a[href="admin-prospeccao.html"]{display:none!important}'));
   const script=fs.readFileSync('public/js/admin-home-prospecting.js','utf8');
   assert.match(script,/SAINTSAI_MUNICIPIOS/);
   assert.match(script,/localeCompare\(b,'pt-BR'/);
