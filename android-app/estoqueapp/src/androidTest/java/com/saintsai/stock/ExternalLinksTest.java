@@ -31,7 +31,7 @@ public class ExternalLinksTest {
    for(int i=0;i<urls.length;i++){
     final String url=urls[i];final boolean main=i==2;
     scenario.onActivity(a->{WebView w=web(a);w.stopLoading();assertTrue(w.getWebViewClient().shouldOverrideUrlLoading(w,request(url,main)));});
-    intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("whatsapp://send?phone=5544991001088"))),times(i+1));
+    intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))),times(i+1));
    }
    CountDownLatch loaded=new CountDownLatch(1),done=new CountDownLatch(1);
    scenario.onActivity(a->{WebView w=web(a);w.stopLoading();w.setWebViewClient(new android.webkit.WebViewClient(){@Override public void onPageFinished(WebView v,String url){loaded.countDown();}});w.loadDataWithBaseURL("https://saintsai.test/","<html><body>Teste</body></html>","text/html","UTF-8",null);});
@@ -39,7 +39,7 @@ public class ExternalLinksTest {
    scenario.onActivity(a->web(a).evaluateJavascript("AndroidClient.openWhatsApp('5544991001088'); 'ok';",v->done.countDown()));
    assertTrue(done.await(8,TimeUnit.SECONDS));
    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-   intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("whatsapp://send?phone=5544991001088"))),times(5));
+   intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))),times(5));
   }finally{Intents.release();}
  }
 }

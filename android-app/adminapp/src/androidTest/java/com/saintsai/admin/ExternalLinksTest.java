@@ -27,13 +27,20 @@ public class ExternalLinksTest {
   Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
    scenario.onActivity(a->{WebView w=web(a);w.stopLoading();assertTrue(w.getWebViewClient().shouldOverrideUrlLoading(w,request(url,main)));});
-   intended(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("whatsapp://send?phone="+expectedPhone))));
+   intended(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/"+expectedPhone))));
   }finally{Intents.release();}
  }
  @Test public void exactReportedWhatsAppRedirectIsExternalEvenInSubframe(){redirect("whatsapp://send/?phone=5544991001088&text&type=phone_number&app_absent=0&wame_ctl=1",false,"5544991001088");}
  @Test public void httpsWhatsAppRedirectIsExternalEvenInSubframe(){redirect("https://api.whatsapp.com/send/?phone=5544991001088",false,"5544991001088");}
  @Test public void mainFrameStillOpensWhatsApp(){redirect("https://wa.me/5544991001088",true,"5544991001088");}
  @Test public void wrappedWhatsAppIntentNeverLoadsInWebView(){redirect("intent://send?phone=5544991001088#Intent;scheme=whatsapp;package=com.whatsapp;end;",false,"5544991001088");}
+ @Test public void directWebViewLoadRecoversToExternalWhatsApp(){
+  Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
+   scenario.onActivity(a->{WebView w=web(a);w.stopLoading();w.getWebViewClient().onPageStarted(w,"whatsapp://send/?phone=5544991001088",null);});
+   intended(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
+  }finally{Intents.release();}
+ }
  @Test public void javascriptBridgeOpensNativeWhatsApp()throws Exception{
   Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
@@ -43,7 +50,7 @@ public class ExternalLinksTest {
    scenario.onActivity(a->{WebView w=web(a);w.evaluateJavascript("AndroidAgent.openWhatsApp('5544991001088'); 'ok';",v->done.countDown());});
    assertTrue(done.await(8,TimeUnit.SECONDS));
    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-   intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("whatsapp://send?phone=5544991001088"))));
+   intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
   }finally{Intents.release();}
  }
  @Test public void updateBridgeQueuesTheAgentApkDownload()throws Exception{

@@ -35,6 +35,10 @@ public class MainActivity extends Activity {
     public class AgentBridge {
         @JavascriptInterface public int getVersionCode(){return BuildConfig.VERSION_CODE;}
         @JavascriptInterface public String getVersionName(){return BuildConfig.VERSION_NAME;}
+        @JavascriptInterface public void openWhatsApp(String phone){
+            if(phone==null||!phone.matches("55[0-9]{10,11}"))return;
+            runOnUiThread(() -> openExternal(Uri.parse("https://wa.me/"+phone)));
+        }
         @JavascriptInterface public void installLatest(){runOnUiThread(() -> {
             try{
                 android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
@@ -88,12 +92,7 @@ public class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
-        webView.addJavascriptInterface(new AgentBridge(){
-            @JavascriptInterface public void openWhatsApp(String phone){
-                if(phone == null || !phone.matches("55[0-9]{10,11}")) return;
-                runOnUiThread(() -> openExternal(Uri.parse("whatsapp://send?phone=" + phone)));
-            }
-        },"AndroidAgent");
+        webView.addJavascriptInterface(new AgentBridge(),"AndroidAgent");
         webView.setWebChromeClient(new WebChromeClient(){
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean gesture, Message result){
                 if(!gesture) return false;
@@ -145,6 +144,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if(recoverExternalWhatsApp(view, Uri.parse(url))) return;
                 loading.setVisibility(View.VISIBLE);
                 errorView.setVisibility(View.GONE);
                 webView.setVisibility(View.VISIBLE);
@@ -159,6 +159,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if(recoverExternalWhatsApp(view,request.getUrl())) return;
                 if (request.isForMainFrame() && !loadingHtmlManually) {
                     loading.setVisibility(View.GONE);
                     webView.setVisibility(View.GONE);
@@ -190,6 +191,18 @@ public class MainActivity extends Activity {
         loadHtmlPage(APP_URL);
     }
 
+    // Defensive recovery for direct loads and redirects that skip URL interception.
+    private boolean recoverExternalWhatsApp(WebView view,Uri uri){
+        String scheme=uri.getScheme(),host=uri.getHost();
+        boolean external="whatsapp".equalsIgnoreCase(scheme)||"wa.me".equalsIgnoreCase(host)||"api.whatsapp.com".equalsIgnoreCase(host)||"web.whatsapp.com".equalsIgnoreCase(host)
+            ||("intent".equalsIgnoreCase(scheme)&&uri.toString().contains("scheme=whatsapp"));
+        if(!external)return false;
+        view.stopLoading();
+        loading.setVisibility(View.GONE);errorView.setVisibility(View.GONE);view.setVisibility(View.VISIBLE);
+        openExternal(uri);
+        if(view.canGoBack())view.goBack();
+        return true;
+    }
     private boolean openExternal(Uri uri){
         String scheme=uri.getScheme();
         if("intent".equalsIgnoreCase(scheme)){
@@ -217,10 +230,10 @@ public class MainActivity extends Activity {
             String phone="wa.me".equalsIgnoreCase(host)?uri.getLastPathSegment():uri.getQueryParameter("phone");
             if(phone==null)phone="";phone=phone.replaceAll("[^0-9]","");
             if(!phone.matches("55[0-9]{10,11}")){Toast.makeText(this,"Número de WhatsApp inválido",Toast.LENGTH_LONG).show();return true;}
-            Uri.Builder link=new Uri.Builder().scheme("whatsapp").authority("send").appendQueryParameter("phone",phone);
+            Uri.Builder link=new Uri.Builder().scheme("https").authority("wa.me").path("/"+phone);
             String message=uri.getQueryParameter("text");if(message!=null&&!message.isEmpty())link.appendQueryParameter("text",message);
             for(String pkg:new String[]{"com.whatsapp","com.whatsapp.w4b"}){
-                try{startActivity(new Intent(Intent.ACTION_VIEW,link.build()).setPackage(pkg));return true;}catch(android.content.ActivityNotFoundException ignored){}
+                try{startActivity(new Intent(Intent.ACTION_VIEW,link.build()).setPackage(pkg).addCategory(Intent.CATEGORY_BROWSABLE));return true;}catch(android.content.ActivityNotFoundException|SecurityException ignored){}
             }
             uri=new Uri.Builder().scheme("https").authority("api.whatsapp.com").path("/send").appendQueryParameter("phone",phone).build();
         }
