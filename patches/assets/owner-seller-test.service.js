@@ -34,7 +34,7 @@ async function restart(usuario,{lojaId,requestId}={}){
  const {error:reset}=await db.from('saintsai_sales_conversations').upsert({session_id:c.identificador_externo,contato,loja_id:lojaId,configuracao_id:c.id,ativo:true,ativado_em:started,atualizado_em:started,ultimo_evento_id:'prospeccao:iniciado:'+Date.now(),briefing,lead_status:'conversa',briefing_step:0,prompt_rascunho:null,prompt_aprovada:false,prompt_aprovada_em:null,ultimo_audio_em:null,audio_divulgado:false},{onConflict:'session_id,contato'});if(reset)throw reset;
  try{
  const message={canal:'whatsapp',lojaId,configuracaoId:c.id,contato,idExterno:event.idExterno};
- const result=await envio.enviarRespostaWhatsapp(message,{lojaId,contato,idExterno:event.idExterno,resposta:'🧪 Novo teste do vendedor SaintsAI.\n'+INTRO+'\nPara testar a contratação, responda “quero contratar”. Nenhuma cobrança ou conta real será criada neste teste.'},{provedor:'waha',destinatarioId:c.identificador_externo});
+ const result=await envio.enviarRespostaWhatsapp(message,{lojaId,contato,idExterno:event.idExterno,resposta:INTRO},{provedor:'waha',destinatarioId:c.identificador_externo});
  if(result.status!=='enviado')throw Error('test_send_unconfirmed');await idem.concluirEventoWhatsapp(event);
  return {ok:true,status:'iniciado',telefone};
  }catch(_){await db.from('saintsai_sales_conversations').update({ativo:false}).eq('session_id',c.identificador_externo).eq('contato',contato).eq('loja_id',lojaId);throw erro('O envio não foi confirmado. Confira o WhatsApp antes de iniciar um novo teste.',503);}
