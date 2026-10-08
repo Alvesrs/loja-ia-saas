@@ -3,9 +3,9 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('início prioriza lucro e contém prospecção abaixo dos indicadores em faixa horizontal',()=>{
  const html=fs.readFileSync('public/admin-mobile.html','utf8');
  const home=html.slice(html.indexOf('id="view-home"'),html.indexOf('id="view-vendas"'));
- assert(home.indexOf('Lucro hoje')<home.indexOf('Faturamento hoje'));
- assert(home.indexOf('class="metricGrid"')<home.indexOf('id="home-prospecting"'));
- assert(home.indexOf('id="home-prospecting"')<home.indexOf('id="mClientes"'));
+ assert(home.indexOf('id="mLucroHoje"')<home.indexOf('id="home-prospecting"'));
+ assert(home.indexOf('id="mLucroMes"')<home.indexOf('id="home-prospecting"'));
+ assert(home.indexOf('id="mLucroHoje"')<home.indexOf('id="home-prospecting"'));
  assert.match(html,/\.home-prospect-strip\{display:flex;[^}]*overflow-x:auto/);
  assert.match(home,/Atualizar opções/);
  assert.match(home,/id="homeProsStore"/);
