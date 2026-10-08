@@ -64,7 +64,7 @@ const atendenteSource=fs.readFileSync('src/services/whatsappAtendente.service.js
 if(atendenteSource.indexOf("ownerSalesAutomation.service').analisar")<0||atendenteSource.indexOf("ownerSalesAutomation.service').analisar")>atendenteSource.indexOf("agendaWhatsapp.tentarResponder(mensagem)"))throw Error('Detector de automações precisa rodar antes do fluxo de agenda.');
 
 const assert=require('node:assert/strict');
-for(const text of ['Esta é uma mensagem automática. Acesse nosso catálogo: https://exemplo.com','Olá, recebemos sua mensagem. Nosso atendimento é virtual.','Digite 1 para escolher uma opção.'])if(!automationTest.respostaAutomatica(text))throw Error('Automação de atendimento não reconhecida.');
+for(const text of ['Esta é uma mensagem automática. Acesse nosso catálogo: https://exemplo.com','Bem-vindo. Segue o link para agendamento: https://agendas.link/exemplo. Mensagem automática. Este número é exclusivo para agendamentos.','Olá, recebemos sua mensagem. Nosso atendimento é virtual.','Digite 1 para escolher uma opção.'])if(!automationTest.respostaAutomatica(text))throw Error('Automação de atendimento não reconhecida.');
 for(const text of ['Olá! Sou a Ana, posso ajudar?','Não temos atendimento automático, prefiro conversar.','Pode me explicar melhor?'])if(automationTest.respostaAutomatica(text))throw Error('Mensagem humana classificada como automação.');
 for(const text of ['não atende bem','mais ou menos','funciona','não muito'])if(!automationTest.respostaCurtaAtendimento(text))throw Error('Resposta curta da pergunta comercial não reconhecida.');
 if(automationTest.respostaCurtaAtendimento('Qual a previsão do tempo?'))throw Error('Assunto alheio classificado como resposta comercial.');
