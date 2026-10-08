@@ -29,7 +29,7 @@ async function restart(usuario,{lojaId,requestId}={}){
  if(old){const {data:real,error:er}=await db.from('saintsai_sales_onboarding').select('id').eq('conversa_id',old.id).limit(1).maybeSingle();if(er)throw er;if(real)throw erro('Este contato já possui uma contratação real. Ela não será apagada pelo teste.');}
  const {data:running,error:ej}=await db.from('whatsapp_fila_processamento').select('id').eq('loja_id',lojaId).eq('contato',contato).eq('status','processando').limit(1);if(ej)throw ej;if(running?.length)throw erro('Aguarde a resposta atual terminar e clique novamente.');
  const event={provedor:'waha',idExterno:'seller-test:'+usuario.id+':'+requestId};
- if(!await idem.reservarEventoWhatsapp(event))return {ok:true,status:'ja_iniciado',telefone};
+ if(!await idem.reservarEventoWhatsapp(event)){const {data:prior,error:ep}=await db.from('whatsapp_eventos_processados').select('status').eq('provedor',event.provedor).eq('id_externo',event.idExterno).maybeSingle();if(ep)throw ep;if(prior?.status!=='concluido')throw erro('Este reinício ainda está em andamento ou seu envio não foi confirmado. Confira o WhatsApp.',409);return {ok:true,status:'ja_iniciado',telefone};}
  const started=new Date().toISOString(),briefing={__saintsai_test:true,__test_started:started,__test_run:requestId};
  const {error:reset}=await db.from('saintsai_sales_conversations').upsert({session_id:c.identificador_externo,contato,loja_id:lojaId,configuracao_id:c.id,ativo:true,ativado_em:started,atualizado_em:started,ultimo_evento_id:'prospeccao:iniciado:'+Date.now(),briefing,lead_status:null,briefing_step:0,prompt_rascunho:null,prompt_aprovada:false,prompt_aprovada_em:null,ultimo_audio_em:null,audio_divulgado:false},{onConflict:'session_id,contato'});if(reset)throw reset;
  try{
@@ -59,7 +59,7 @@ async function handle(args,c){
  return {handled:false};
 }
 async function save(c,briefing,ativo=true){const {error}=await db.from('saintsai_sales_conversations').update({briefing,ativo,atualizado_em:new Date().toISOString()}).eq('id',c.id);if(error)throw error;}
-async function since(lojaId,contato){const {data,error}=await db.from('saintsai_sales_conversations').select('briefing').eq('loja_id',lojaId).eq('contato',contato).limit(1).maybeSingle();if(error)throw error;return isTest(data)?data.briefing.__test_started:null;}
+async function since(lojaId,contato){const {data,error}=await db.from('saintsai_sales_conversations').select('briefing').eq('loja_id',lojaId).eq('contato',contato).order('atualizado_em',{ascending:false}).limit(1).maybeSingle();if(error)throw error;return isTest(data)?data.briefing.__test_started:null;}
 async function stale(job){const date=await since(job.loja_id,job.contato);return date&&(!job.criado_em||Date.parse(job.criado_em)<Date.parse(date));}
 function info(usuario){if(usuario?.id!==process.env.SAINTSAI_OWNER_USER_ID)throw erro('Acesso restrito ao dono.',403);return {telefone:PHONE,exibicao:'+55 43 9643-1742'};}
 module.exports={restart,handle,isTest,offer,since,stale,info};
