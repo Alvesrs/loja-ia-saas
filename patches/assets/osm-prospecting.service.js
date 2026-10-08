@@ -2,7 +2,7 @@ const source=require('./prospeccao.service');
 const db=require('../config/supabase');
 const owner=require('./ownerProspecting.service');
 async function buscarProspeccao(args){
- const offset=Math.max(0,Number.isInteger(Number(args.offset))?Number(args.offset):0),limit=20;
+ const offset=Math.max(0,Number.isInteger(Number(args.offset))?Number(args.offset):0),limit=10;
  let session=null;
  if(args.lojaId){const {data:l,error}=await db.from('lojas').select('dono_id').eq('id',args.lojaId).maybeSingle();if(error)throw Error('Não foi possível consultar sua loja.');if(l?.dono_id!==args.usuario?.id)throw Object.assign(Error('Escolha uma loja da sua própria conta.'),{status:403});const {data:c,error:ec}=await db.from('whatsapp_configuracoes').select('provedor,identificador_externo').eq('loja_id',args.lojaId).eq('ativo',true).limit(2);if(ec)throw Error('Não foi possível consultar sua conexão.');if(c?.length===1&&c[0].provedor==='waha')session=c[0].identificador_externo;}
  const result=await source.buscarProspeccao(args),unique=new Map();for(const lead of result.leads||[])if(/^55\d{10,11}$/.test(lead.telefone||''))unique.set(lead.telefone,lead);
