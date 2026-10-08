@@ -3,7 +3,7 @@ const {createHmac,randomUUID}=require('node:crypto');
 const plans=require('../config/planos');
 const billing=require('./asaas.service');
 const subscriptions=require('./assinaturas.service');
-const {recusou,RESPOSTA_RECUSA}=require('./ownerSalesPrompt');
+const {recusou,relacionadaAoSaintsai,RESPOSTA_RECUSA}=require('./ownerSalesPrompt');
 const TABLE='saintsai_sales_onboarding';
 const now=()=>new Date().toISOString();
 const text=v=>String(v||'').trim().slice(0,3000);
@@ -69,6 +69,9 @@ async function handle(args){
   if(row)await change(row,'declined');await checked(await db.from('saintsai_sales_conversations').update({ativo:false,atualizado_em:now()}).eq('id',c.id));
   return {handled:true,response:RESPOSTA_RECUSA};
  }
+ const planoValido=available().some(p=>input===p.codigo.toLowerCase()||input===p.nome.toLowerCase()||input==='plano '+p.codigo.toLowerCase()||input==='quero '+p.codigo.toLowerCase());
+ const pagamentoValido=row?.phase==='payment_method'&&/^(pix|quero pix|cart[aã]o|cart[aã]o de cr[eé]dito|quero cart[aã]o)$/.test(input);
+ if(!relacionadaAoSaintsai(input)&&!planoValido&&!pagamentoValido)return {handled:true,response:null};
  if(row?.phase==='briefing'){if(c.lead_status!=='prompt_pronta')return {handled:false};row=await change(row,'offer');}
  if(!row&&c.lead_status==='prompt_pronta')row=await ensure(c,args.lojaId);
  if(!row)return {handled:false};
@@ -88,7 +91,7 @@ async function handle(args){
  else response='Sua contratação está sendo preparada. Aguarde um instante.';
  return {handled:true,response};
 }
-async function after(args,response){const c=await conversation(args.lojaId,args.contato);if(c?.lead_status==='prompt_pronta'){const row=await ensure(c,args.lojaId);if(row?.phase==='briefing')await change(row,'offer');return offer();}return response;}
+async function after(args,response){if(response===null||response===undefined||String(response).trim()==='')return response;const c=await conversation(args.lojaId,args.contato);if(c?.lead_status==='prompt_pronta'){const row=await ensure(c,args.lojaId);if(row?.phase==='briefing')await change(row,'offer');return offer();}return response;}
 async function list(usuario,lojaId){
  if(!process.env.SAINTSAI_OWNER_USER_ID||usuario?.id!==process.env.SAINTSAI_OWNER_USER_ID)throw Object.assign(Error('Acesso restrito ao dono.'),{status:403});
  const store=await checked(await db.from('lojas').select('dono_id').eq('id',lojaId).maybeSingle());if(store?.dono_id!==usuario.id)throw Object.assign(Error('Escolha uma loja da sua conta.'),{status:403});

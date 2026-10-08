@@ -65,20 +65,6 @@ if(!s.includes('function normalizarComparacao')){
 "  const r=compactarResposta(resposta);",
 "  if(!r) return null;",
 "  const saidas=await saidasRecentes(lojaId,contato);",
-"  const ultima=saidas[0];",
-"  if(ultima&&ultima.criado_em){",
-"    const ms=Date.now()-new Date(ultima.criado_em).getTime();",
-"    if(Number.isFinite(ms)&&ms>=0&&ms<6000){",
-"      console.log('[salesSeller] antiflood_intervalo',contato);",
-"      return null;",
-"    }",
-"  }",
-"  for(const ant of saidas.slice(0,3)){",
-"    if(similaridade(r,ant.texto)>=0.72){",
-"      console.log('[salesSeller] antirepeticao_bloqueada',contato);",
-"      return null;",
-"    }",
-"  }",
 "  return r;",
 "}",
 "",
@@ -125,6 +111,27 @@ const newReturn=[
 ].join('\n');
 if(s.includes(oldReturn)) s=s.replace(oldReturn,newReturn);
 else if(!s.includes('filtrarAntiFlood(lojaId,contato,respostaTexto)')) throw new Error('Retorno final do seller não encontrado');
+
+const intervalo=[
+"  const ultima=saidas[0];",
+"  if(ultima&&ultima.criado_em){",
+"    const ms=Date.now()-new Date(ultima.criado_em).getTime();",
+"    if(Number.isFinite(ms)&&ms>=0&&ms<6000){",
+"      console.log('[salesSeller] antiflood_intervalo',contato);",
+"      return null;",
+"    }",
+"  }"
+].join('\n');
+s=s.replace(intervalo,'');
+const repeticao=[
+"  for(const ant of saidas.slice(0,3)){",
+"    if(similaridade(r,ant.texto)>=0.72){",
+"      console.log('[salesSeller] antirepeticao_bloqueada',contato);",
+"      return null;",
+"    }",
+"  }"
+].join('\n');
+s=s.replace(repeticao,'');
 
 fs.writeFileSync(p,s);
 cp.execFileSync(process.execPath,['--check',p],{stdio:'inherit'});
