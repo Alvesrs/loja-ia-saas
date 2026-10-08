@@ -2,6 +2,22 @@ const fs=require('node:fs');
 function edit(p,fn){fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')))}
 function replace(s,a,b){if(!s.includes(a))throw Error('Patch anchor missing: '+a.slice(0,60));return s.replace(a,b)}
 fs.copyFileSync('patches/assets/owner-prospecting.service.js','src/services/ownerProspecting.service.js');
+// LID -> phone resolution in WAHA NOWEB requires the Store feature. Enable it
+// only on the SaintsAI owner's sessions; tenant sessions keep their current
+// configuration and webhook behavior.
+edit('src/services/wahaOnboarding.service.js',s=>{
+ const helper=`function webhookConfig(e,ownerStore=false){const config={webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]};if(ownerStore)config.noweb={store:{enabled:true,fullSync:false}};return config;}\nasync function isOwnerStore(lojaId){const owner=String(process.env.SAINTSAI_OWNER_USER_ID||'').trim();if(!owner||!lojaId)return false;const {data,error}=await supabase.from('lojas').select('dono_id').eq('id',lojaId).maybeSingle();if(error)throw new ErroWaha('Não foi possível validar a sessão WhatsApp.',500);return data?.dono_id===owner;}\n`;
+ if(!s.includes('function webhookConfig(e,ownerStore=false)')){
+  const anchor='async function iniciarPareamento(lojaId,phoneNumber){';
+  if(!s.includes(anchor))throw Error('Patch anchor missing: '+anchor);
+  s=s.replace(anchor,helper+anchor);
+ }
+ s=s.replace("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]}","config:webhookConfig(e,await isOwnerStore(lojaId))");
+ s=s.replace(".select('identificador_externo')\n    .eq('provedor','waha')", ".select('identificador_externo,loja_id')\n    .eq('provedor','waha')");
+ s=s.replace("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]}","config:webhookConfig(e,await isOwnerStore(cfg.loja_id))");
+ if(s.includes("config:{webhooks:[{url:e.publicBase+'/api/webhooks/waha'"))throw Error('WAHA session config anchor was not fully replaced');
+ return s;
+});
 for(const name of ['client-notifications','owner-prospecting'])fs.copyFileSync('patches/assets/'+name+'.js','public/js/'+name+'.js');
 edit('src/routes/admin.routes.js',s=>replace(s,"router.post('/lojas/:lojaId/notificacao-teste'",`router.get('/prospeccao/minhas-lojas',exigirAdmin,async(req,res)=>{try{res.json({lojas:await require('../services/ownerProspecting.service').minhasLojas(req.usuario)});}catch(e){res.status(e.status||503).json({erro:e.status?e.message:'Não foi possível carregar suas lojas.'});}});
 router.post('/prospeccao/autorizar',exigirAdmin,async(req,res)=>{try{res.json(await require('../services/ownerProspecting.service').autorizar(req.usuario,req.body||{}));}catch(e){res.status(e.status||503).json({erro:e.status?e.message:'Não foi possível autorizar este contato.'});}});
