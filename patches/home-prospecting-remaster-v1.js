@@ -2,17 +2,21 @@ const fs=require('node:fs');
 const edit=(p,fn)=>fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));
 
 edit('public/admin-mobile.html',html=>{
-  const start=html.indexOf('<div class="metricGrid',html.indexOf('id="view-home"'));
-  if(start<0)throw Error('Indicadores da tela inicial não encontrados.');
-  if(!html.slice(start,html.indexOf('</div>',start)).includes('data-profit-first')){
-    const grid2=html.indexOf('<div class="grid2">',start),close=html.lastIndexOf('</div>',grid2);
-    if(grid2<0||close<0)throw Error('Estrutura dos indicadores inválida.');
-    let metrics=html.slice(start,close+6);
-    if(!metrics.includes('Lucro hoje')||!metrics.includes('Lucro mês'))throw Error('Indicadores de lucro não encontrados.');
-    const cards=metrics.match(/<div class="metric"><small>[^<]*<\/small><strong[^>]*>[^<]*<\/strong><\/div>/g)||[];
-    const first=[cards.find(x=>x.includes('Lucro hoje')),cards.find(x=>x.includes('Lucro mês')),...cards.filter(x=>!x.includes('Lucro hoje')&&!x.includes('Lucro mês'))].filter(Boolean);
-    metrics='<div class="metricGrid" data-profit-first="true">'+first.join('')+'</div>';
-    html=html.slice(0,start)+metrics+html.slice(close+6);
+  const home=html.indexOf('id="view-home"'),start=html.indexOf('<div class="metricGrid',home);
+  if(home<0||start<0)throw Error('Indicadores da tela inicial não encontrados.');
+  if(!html.slice(start,start+100).includes('data-profit-first')){
+    const tags=/<\/?div\b[^>]*>/gi;tags.lastIndex=start;let depth=0,end=-1,m;
+    while((m=tags.exec(html))){depth+=m[0].startsWith('</')?-1:1;if(depth===0){end=tags.lastIndex;break;}}
+    if(end<0)throw Error('Estrutura dos indicadores inválida.');
+    const grid=html.slice(start,end),cards=grid.match(/<div class="metric">[\s\S]*?<\/div>/g)||[];
+    const today=cards.find(x=>x.includes('mLucroHoje'));
+    const monthCard=cards.find(x=>x.includes('mLucroMes'));
+    const monthLine=html.match(/<div class="homeLine"><span>Lucro(?: no)? mês<\/span><strong id="mLucroMes"([^>]*)>([\s\S]*?)<\/strong><\/div>/i);
+    const month=monthCard||(monthLine?`<div class="metric"><small>Lucro mês</small><strong id="mLucroMes"${monthLine[1]}>${monthLine[2]}</strong></div>`:null);
+    if(!today||!month)throw Error('Indicadores de lucro não encontrados.');
+    const ordered=[today,month,...cards.filter(x=>x!==today&&x!==monthCard)];
+    html=html.slice(0,start)+'<div class="metricGrid" data-profit-first="true">'+ordered.join('')+'</div>'+html.slice(end);
+    if(monthLine)html=html.replace(monthLine[0],'');
   }
   if(!html.includes('id="home-prospecting"')){
     const section=`<section id="home-prospecting" class="home-prospecting card"><div class="home-prospect-head"><div><span class="home-prospect-kicker">OPORTUNIDADES</span><h2>Prospecção</h2><p class="sub">Deslize para ver os negócios. Marque quem já foi contatado para não aparecer novamente.</p></div><button id="homeProsRefresh" class="btn secondary" type="button">↻ Atualizar opções</button></div><div class="home-prospect-filters"><label>Estado<select id="homeProsUf"><option value="PR">PR</option><option value="SP">SP</option><option value="SC">SC</option><option value="RS">RS</option><option value="MG">MG</option><option value="RJ">RJ</option><option value="ES">ES</option><option value="BA">BA</option><option value="GO">GO</option><option value="DF">DF</option><option value="MS">MS</option><option value="MT">MT</option><option value="PE">PE</option><option value="CE">CE</option><option value="PA">PA</option><option value="AM">AM</option><option value="MA">MA</option><option value="PB">PB</option><option value="RN">RN</option><option value="AL">AL</option><option value="SE">SE</option><option value="PI">PI</option><option value="RO">RO</option><option value="AC">AC</option><option value="AP">AP</option><option value="RR">RR</option><option value="TO">TO</option></select></label><label>Cidade<select id="homeProsCity"><option value="">Selecione a cidade</option></select></label><label>Categoria<select id="homeProsCategory"><option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="tatuagem">Tatuagem</option><option value="restaurante">Restaurante</option><option value="clinica">Clínica</option><option value="oficina">Oficina</option><option value="petshop">Pet shop</option><option value="academia">Academia</option></select></label><label>Loja conectada<select id="homeProsStore"><option value="">Carregando lojas…</option></select></label></div><p id="homeProsStatus" class="home-prospect-status" role="status">Escolha a cidade e a categoria.</p><div id="homeProsCards" class="home-prospect-strip" aria-live="polite"><div class="home-prospect-empty">Escolha uma cidade e toque em “Buscar oportunidades”.</div></div><button id="homeProsSearch" class="btn primary" type="button">Buscar oportunidades</button></section>`;
