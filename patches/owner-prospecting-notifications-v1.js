@@ -6,6 +6,7 @@ fs.copyFileSync('patches/assets/owner-prospecting.service.js','src/services/owne
 // only on the SaintsAI owner's sessions; tenant sessions keep their current
 // configuration and webhook behavior.
 edit('src/services/wahaOnboarding.service.js',s=>{
+ if(!s.includes("const supabase=require('../config/supabase')"))s=s.replace("const configuracoes=require('./whatsappConfiguracao.service');","const configuracoes=require('./whatsappConfiguracao.service');\nconst supabase=require('../config/supabase');");
  const helper=`function webhookConfig(e,ownerStore=false){const config={webhooks:[{url:e.publicBase+'/api/webhooks/waha',events:['message.any'],hmac:{key:e.hmac}}]};if(ownerStore)config.noweb={store:{enabled:true,fullSync:false}};return config;}\nasync function isOwnerStore(lojaId){const owner=String(process.env.SAINTSAI_OWNER_USER_ID||'').trim();if(!owner||!lojaId)return false;const {data,error}=await supabase.from('lojas').select('dono_id').eq('id',lojaId).maybeSingle();if(error)throw new ErroWaha('Não foi possível validar a sessão WhatsApp.',500);return data?.dono_id===owner;}\n`;
  if(!s.includes('function webhookConfig(e,ownerStore=false)')){
   const anchor='async function iniciarPareamento(lojaId,phoneNumber){';
