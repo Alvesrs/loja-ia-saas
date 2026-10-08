@@ -1,6 +1,7 @@
 const fs=require('node:fs');
 const edit=(p,fn)=>fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));
 
+// Keep both real profit values above the prospecting strip on the home screen.
 edit('public/admin-mobile.html',html=>{
   const home=html.indexOf('id="view-home"'),start=html.indexOf('<div class="metricGrid',home);
   if(home<0||start<0)throw Error('Indicadores da tela inicial não encontrados.');
