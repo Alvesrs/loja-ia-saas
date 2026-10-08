@@ -451,12 +451,16 @@ const homeMarkup = String.raw`<section id="home-prospecting" class="card">
 for(const p of ['public/admin-mobile.html']){
  if(!fs.existsSync(p))continue;
  let h=read(p);
- h=h.replace(/<a[^>]+href="admin-prospeccao\.html"[^>]*>[\s\S]*?<\/a>/g,'');
+
  if(!h.includes('id="home-prospecting"')){
   h=h.replace('<div id="home-prospecting-mount"></div>',homeMarkup);
   if(h.includes('home-prospecting-mount'))throw Error('Não foi possível posicionar a prospecção abaixo das métricas.');
-  h=h.replace('</head>','<style>.hp-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.hp-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.hp-filters label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.hp-filters select{width:100%;min-height:44px;padding:8px;border-radius:10px;background:#0d0d16;color:var(--text,#fff);border:1px solid var(--line)}.hp-actions{display:flex;gap:8px;flex-wrap:wrap}.hp-actions button{flex:1;min-width:145px}.hp-lead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.hp-lead-main{min-width:0}.hp-lead-main strong,.hp-lead-main small{display:block;overflow-wrap:anywhere}.hp-lead-main small{color:var(--muted);margin-top:4px}.hp-lead-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.hp-lead-actions button{min-height:34px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#17151d;color:inherit}.hp-empty{padding:18px 8px;color:var(--muted);text-align:center}.hp-heading h2{margin-bottom:2px}@media(max-width:620px){.hp-filters{grid-template-columns:1fr}.hp-lead{grid-template-columns:1fr}.hp-lead-actions{justify-content:flex-start}.hp-lead-actions button{flex:1}}</style></head>');
+  h=h.replace('</head>','<style>a[href="admin-prospeccao.html"]{display:none!important}.hp-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.hp-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.hp-filters label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.hp-filters select{width:100%;min-height:44px;padding:8px;border-radius:10px;background:#0d0d16;color:var(--text,#fff);border:1px solid var(--line)}.hp-actions{display:flex;gap:8px;flex-wrap:wrap}.hp-actions button{flex:1;min-width:145px}.hp-lead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.hp-lead-main{min-width:0}.hp-lead-main strong,.hp-lead-main small{display:block;overflow-wrap:anywhere}.hp-lead-main small{color:var(--muted);margin-top:4px}.hp-lead-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.hp-lead-actions button{min-height:34px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#17151d;color:inherit}.hp-empty{padding:18px 8px;color:var(--muted);text-align:center}.hp-heading h2{margin-bottom:2px}@media(max-width:620px){.hp-filters{grid-template-columns:1fr}.hp-lead{grid-template-columns:1fr}.hp-lead-actions{justify-content:flex-start}.hp-lead-actions button{flex:1}}</style></head>');
   h=h.replace('</body>','<script src="js/municipios-br.js?v=2026.10.08.6"></script><script src="js/admin-home-prospecting.js?v=2026.10.08.7"></script></body>');
+ }
+ if(!h.includes('<a href="admin-prospeccao.html">')){
+  if(h.includes('</nav>'))h=h.replace('</nav>','<a href="admin-prospeccao.html">🎯 Prospecção</a>\n</nav>');
+  else h=h.replace('</body>','<a href="admin-prospeccao.html">🎯 Prospecção</a></body>');
  }
  write(p,h);
 }
