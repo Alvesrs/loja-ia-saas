@@ -68,4 +68,13 @@ public class ExternalLinksTest {
    });
   }
  }
+ @Test public void downloadedApkOpensAndroidInstallerWithReadPermission(){
+  Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   intending(allOf(hasAction(Intent.ACTION_VIEW),hasType("application/vnd.android.package-archive"))).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_CANCELED,null));
+   Uri apk=Uri.parse("content://downloads/my_downloads/42");
+   scenario.onActivity(a->a.launchUpdateInstaller(apk));
+   intended(allOf(hasAction(Intent.ACTION_VIEW),hasData(apk),hasType("application/vnd.android.package-archive"),hasFlag(Intent.FLAG_GRANT_READ_URI_PERMISSION)));
+  }finally{Intents.release();}
+ }
+
 }

@@ -39,17 +39,52 @@ public class MainActivity extends Activity {
             if(phone==null||!phone.matches("55[0-9]{10,11}"))return;
             runOnUiThread(() -> openExternal(Uri.parse("https://wa.me/"+phone)));
         }
-        @JavascriptInterface public void installLatest(){runOnUiThread(() -> {
-            try{
-                android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
-                android.app.DownloadManager.Request req=new android.app.DownloadManager.Request(Uri.parse("https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"));
-                req.setTitle("Atualização Agente SaintsAI");req.setMimeType("application/vnd.android.package-archive");
-                req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS,"Agente-SaintsAI-"+System.currentTimeMillis()+".apk");
-                dm.enqueue(req);
-                new android.app.AlertDialog.Builder(MainActivity.this).setTitle("Atualização iniciada").setMessage("Quando o download terminar, toque na notificação para instalar a nova versão. Sua conta será mantida.").setPositiveButton("OK",null).show();
-            }catch(Exception e){Toast.makeText(MainActivity.this,"Não foi possível baixar a atualização. Confira a conexão e tente novamente.",Toast.LENGTH_LONG).show();}
-        });}
+        @JavascriptInterface public void installLatest(){runOnUiThread(() -> downloadUpdate());}
+
+    }
+    private long updateDownloadId = -1;
+    private boolean installerOpened = false;
+    private boolean waitingForInstallPermission = false;
+    private final android.content.BroadcastReceiver updateReceiver = new android.content.BroadcastReceiver(){
+        @Override public void onReceive(android.content.Context context,Intent intent){
+            if(intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID,-1)==updateDownloadId)installDownloadedUpdate();
+        }
+    };
+    private void downloadUpdate(){
+        try{
+            android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+            if(updateDownloadId>0){
+                try(android.database.Cursor c=dm.query(new android.app.DownloadManager.Query().setFilterById(updateDownloadId))){
+                    if(c.moveToFirst()&&c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS))!=android.app.DownloadManager.STATUS_FAILED){installerOpened=false;installDownloadedUpdate();Toast.makeText(this,"Atualização já baixando ou pronta para instalar.",Toast.LENGTH_LONG).show();return;}
+                }
+            }
+            android.app.DownloadManager.Request req=new android.app.DownloadManager.Request(Uri.parse("https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"));
+            req.setTitle("Atualização Agente SaintsAI");req.setMimeType("application/vnd.android.package-archive");
+            req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS,"Agente-SaintsAI-"+System.currentTimeMillis()+".apk");
+            updateDownloadId=dm.enqueue(req);installerOpened=false;
+            getPreferences(MODE_PRIVATE).edit().putLong("updateDownloadId",updateDownloadId).putInt("updateFromVersion",BuildConfig.VERSION_CODE).apply();
+            new android.app.AlertDialog.Builder(this).setTitle("Atualização iniciada").setMessage("O APK está sendo baixado. Ao concluir, o Android abrirá a instalação. Confirme Atualizar para instalar por cima e manter sua conta.").setPositiveButton("OK",null).show();
+        }catch(Exception e){Toast.makeText(this,"Não foi possível baixar a atualização. Confira a conexão e tente novamente.",Toast.LENGTH_LONG).show();}
+    }
+    private void installDownloadedUpdate(){
+        if(updateDownloadId<0||installerOpened)return;
+        android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
+        try(android.database.Cursor c=dm.query(new android.app.DownloadManager.Query().setFilterById(updateDownloadId))){
+            if(!c.moveToFirst()||c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS))!=android.app.DownloadManager.STATUS_SUCCESSFUL)return;
+            String path=c.getString(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_LOCAL_URI));
+            android.content.pm.PackageInfo downloaded=path==null?null:getPackageManager().getPackageArchiveInfo(Uri.parse(path).getPath(),0);
+            if(downloaded!=null&&downloaded.versionCode<=BuildConfig.VERSION_CODE){updateDownloadId=-1;getPreferences(MODE_PRIVATE).edit().remove("updateDownloadId").apply();return;}
+            Uri apk=dm.getUriForDownloadedFile(updateDownloadId);if(apk==null)return;
+            if(android.os.Build.VERSION.SDK_INT>=26&&!getPackageManager().canRequestPackageInstalls()){
+                installerOpened=true;waitingForInstallPermission=true;
+                new android.app.AlertDialog.Builder(this).setTitle("Permitir atualização do app").setMessage("Ative Permitir desta fonte para o SaintsAI. Ao voltar, a instalação será aberta.").setPositiveButton("Permitir",(d,w)->startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName())))).setNegativeButton("Depois",(d,w)->{installerOpened=false;waitingForInstallPermission=false;}).show();return;
+            }
+            launchUpdateInstaller(apk);installerOpened=true;
+        }catch(Exception e){installerOpened=false;Toast.makeText(this,"Abra o APK pela notificação de download para instalar.",Toast.LENGTH_LONG).show();}
+    }
+    void launchUpdateInstaller(Uri apk){
+        startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(apk,"application/vnd.android.package-archive").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
     }
     private WebView webView;
     private SaintsSecurity security;
@@ -60,6 +95,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        updateDownloadId=getPreferences(MODE_PRIVATE).getLong("updateDownloadId",-1);
+        if(BuildConfig.VERSION_CODE>getPreferences(MODE_PRIVATE).getInt("updateFromVersion",BuildConfig.VERSION_CODE)){updateDownloadId=-1;getPreferences(MODE_PRIVATE).edit().remove("updateDownloadId").remove("updateFromVersion").apply();}
+        android.content.IntentFilter updates=new android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if(android.os.Build.VERSION.SDK_INT>=33)registerReceiver(updateReceiver,updates,RECEIVER_EXPORTED);else registerReceiver(updateReceiver,updates);
         getWindow().setStatusBarColor(Color.rgb(10,10,15));
         getWindow().setNavigationBarColor(Color.rgb(10,10,15));
 
@@ -260,7 +299,7 @@ public class MainActivity extends Activity {
         loadingHtmlManually = false;
     }
 
-    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();}
+    @Override protected void onResume(){super.onResume();if(security!=null)security.resume();if(waitingForInstallPermission&&android.os.Build.VERSION.SDK_INT>=26&&getPackageManager().canRequestPackageInstalls()){waitingForInstallPermission=false;installerOpened=false;}installDownloadedUpdate();}
     @Override protected void onPause(){if(security!=null)security.pause();super.onPause();}
 
     @Override
@@ -271,7 +310,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onActivityResult(int code,int result,android.content.Intent data){if(security!=null&&security.result(code,result))return;super.onActivityResult(code,result,data);}
-    @Override protected void onDestroy(){if(security!=null)security.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
+    @Override protected void onDestroy(){unregisterReceiver(updateReceiver);if(security!=null)security.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
 
     private LinearLayout makeMessage(String msg) {
         LinearLayout box = new LinearLayout(this);

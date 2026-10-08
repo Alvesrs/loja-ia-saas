@@ -81,16 +81,27 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock'"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-label:'SaintsAI Cliente'"
 
+      - name: Validate signed agent update
+        run: |
+          set -e
+          APK="adminapp/build/outputs/apk/release/adminapp-release.apk"
+          SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$SIGNER" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.admin' versionCode='25' versionName='1.0.24'"
+          "$SIGNER" verify --print-certs "$APK" | grep 'certificate SHA-256 digest' > /tmp/new-agent-cert
+          "$SIGNER" verify --print-certs ../downloads/Agente-SaintsAI.apk | grep 'certificate SHA-256 digest' > /tmp/old-agent-cert
+          cmp /tmp/old-agent-cert /tmp/new-agent-cert
+
       - name: Package APKs
         run: |
-          cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.23.apk
+          cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.24.apk
           cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.14.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.23
-          path: android-app/Agente-SaintsAI-v1.0.23.apk
+          name: Agente-SaintsAI-APK-v1.0.24
+          path: android-app/Agente-SaintsAI-v1.0.24.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Cliente
@@ -168,12 +179,12 @@ jobs:
           fi
           mkdir -p ../downloads
           cp SaintsAI-Cliente-v1.2.14.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.23.apk ../downloads/Agente-SaintsAI.apk
+          cp Agente-SaintsAI-v1.0.24.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
           {"versionCode":29,"versionName":"1.2.14","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cat > ../downloads/saintsai-agente.json <<'EOF'
-          {"versionCode":24,"versionName":"1.0.23","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
+          {"versionCode":25,"versionName":"1.0.24","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"

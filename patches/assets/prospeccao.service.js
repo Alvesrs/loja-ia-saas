@@ -1,5 +1,6 @@
 
 const CATEGORIAS = Object.freeze({
+  padaria: {label:'Padaria',base:76,motivo:'Dúvidas sobre produtos, encomendas e horários.',filtros:[['shop','bakery']]},
   barbearia: {
     label:'Barbearia',
     base:76,

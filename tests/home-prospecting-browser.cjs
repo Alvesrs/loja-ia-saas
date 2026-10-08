@@ -1,0 +1,39 @@
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{
+ const root=path.resolve(process.env.PANEL_PUBLIC||'public');
+ const server=http.createServer((req,res)=>{const file=path.join(root,new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return}try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file))}catch{res.writeHead(404).end()}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||undefined,args:['--no-sandbox']});
+ try{
+ const context=await browser.newContext({viewport:{width:393,height:852}}),page=await context.newPage(),errors=[],calls=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{localStorage.setItem('lojaia_sessao',JSON.stringify({token:'test',usuario:{id:'owner',papel:'admin'}}));window.updateCalls=0;window.AndroidAgent={installLatest(){window.updateCalls++},getVersionName(){return'1.0.24'}};});
+ await page.route('**/api/**',async route=>{
+ const url=new URL(route.request().url());let data={};
+ if(url.pathname.endsWith('/admin/central-saas'))data={resumo:{},clientes:[],recebimentos:[],total_paginas:1,total:0};
+ else if(url.pathname.endsWith('/admin/vendas/resumo'))data={hoje:{vendas:3,lucro:123,clientes:2,faturamento:300},mes:{lucro:456,faturamento:900,ticket_medio:100},clientes:{ativos:7},estoque:{baixo:0,zerado:0},recentes:[]};
+ else if(url.pathname.endsWith('/minhas-lojas'))data={lojas:[{id:'store',nome:'Minha loja'}]};
+ else if(url.pathname.endsWith('/prospeccao/buscar')){calls.push(url.search);const offset=Number(url.searchParams.get('offset'));data={leads:[{id:'a',nome:'Padaria A'},{id:offset?'c':'b',nome:offset?'Padaria C':'Padaria B'}],nextOffset:offset+2,hasMore:true};}
+ else if(/clientes-gerenciados|historico|planos/.test(url.pathname))data=[];
+ else if(url.pathname.endsWith('/admin/me'))data={papel:'admin',id:'owner'};
+ await route.fulfill({json:data});
+ });
+ await page.goto('http://127.0.0.1:'+server.address().port+'/admin-mobile.html');
+ await page.waitForFunction(()=>document.querySelector('#saas-central #home-prospecting')&&document.querySelector('#mLucroHoje').textContent.includes('123'));
+ assert(await page.locator('#home-prospecting').isVisible(),'prospecção deve estar visível no painel montado');
+ assert.equal(await page.locator('#saas-central>.metricGrid>.metric').count(),4);
+ assert.deepEqual(await page.locator('#saas-central>.metricGrid strong').evaluateAll(xs=>xs.map(x=>x.id)),['mLucroHoje','mLucroMes','mClientesHoje','mClientesAtivos']);
+ const positions=await page.locator('#saas-central').evaluate(p=>[p.querySelector('.metricGrid').getBoundingClientRect().bottom,p.querySelector('#home-prospecting').getBoundingClientRect().top]);assert(positions[0]<=positions[1]);
+ const cities=await page.locator('#homeProsCity option').allTextContents();assert(cities.length>300);assert.deepEqual(cities.slice(1),cities.slice(1).sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'})));
+ await page.selectOption('#homeProsCity','Londrina');await page.click('#homeProsSearch');await page.waitForSelector('[data-id="a"]');
+ await page.click('[data-id="a"] [data-action="contatado"]');assert.equal(await page.locator('[data-id="a"]').count(),0);
+ await page.click('#homeProsRefresh');await page.waitForSelector('[data-id="c"]');assert(calls[1].includes('offset=2'));assert.equal(await page.locator('[data-id="a"]').count(),0);
+ assert(await page.locator('#homeProsCards').evaluate(x=>getComputedStyle(x).display==='flex'&&x.scrollWidth>x.clientWidth));
+ await page.locator('#rm-interface-update').click();assert.equal(await page.evaluate(()=>window.updateCalls),1);
+ await page.screenshot({path:process.env.PANEL_SCREENSHOT||'/tmp/saints-panel-phone.png',fullPage:true});
+ await page.reload();await page.waitForSelector('#saas-central #home-prospecting');await page.selectOption('#homeProsCity','Londrina');await page.click('#homeProsSearch');await page.waitForSelector('[data-id="b"]');assert.equal(await page.locator('[data-id="a"]').count(),0,'contatado continua excluído após reabrir');
+ await page.getByRole('button',{name:'Clientes',exact:true}).last().click();assert(await page.locator('#view-clientes').isVisible());
+ assert.deepEqual(errors,[],'sem erros de JavaScript na tela');console.log('PASS: Home visível, lucro real, cidades ordenadas, faixa horizontal, próximo lote, contato persistido, botão APK, clientes.');
+ }finally{await browser.close();server.close();}
+})().catch(e=>{console.error(e);process.exit(1)});
