@@ -55,4 +55,5 @@ for(const text of ['Olá! Sou a Ana, posso ajudar?','Não temos atendimento auto
 for(const text of ['não atende bem','mais ou menos','funciona','não muito'])if(!automationTest.respostaCurtaAtendimento(text))throw Error('Resposta curta da pergunta comercial não reconhecida.');
 if(automationTest.respostaCurtaAtendimento('Qual a previsão do tempo?'))throw Error('Assunto alheio classificado como resposta comercial.');
 
-console.log('Primeiro acesso e vendedor de contratações instalados.');
+if(automationTest.respostaAutomatica('Não temos atendimento automático, prefiro conversar.'))throw Error('Negação de automação confundida com resposta automática.');
+console.log('Primeiro acesso, vendedor de contratações e proteção contra loops automáticos instalados.');
