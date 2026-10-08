@@ -53,6 +53,14 @@ async function paid(row){
  const sub=await subscriptions.buscarAssinaturaAtual(row.customer_store_id);
  return /^(PAYMENT_RECEIVED|PAYMENT_CONFIRMED|PAID)$/i.test(charge?.status_provider||'')&&sub?.status==='ativo';
 }
+function usageHelp(input){
+ if(/whatsapp|qr|conectar.*número|conectar.*numero/.test(input))return 'No SaintsAI Cliente, abra WhatsApp e escolha conectar por QR. No celular do número que atenderá seus clientes, abra WhatsApp > Aparelhos conectados > Conectar aparelho e leia o QR. Se o QR estiver no mesmo celular, exiba-o em outra tela. Depois confira se aparece conectado.';
+ if(/pagamento|receber|asaas|pix/.test(input))return 'Para receber as vendas do seu negócio, abra Pagamentos no SaintsAI Cliente e conecte sua própria conta Asaas. Configure também se aceita pagar no local. Sua mensalidade SaintsAI é separada dos pagamentos dos seus clientes. Nunca envie sua chave ou senha por aqui.';
+ if(/foto|vídeo|video|galeria|imagem/.test(input))return 'Abra Galeria no SaintsAI Cliente, adicione suas fotos ou vídeos e descreva o que cada arquivo mostra. Assim o agente consegue relacionar a mídia ao pedido do cliente. Você pode começar com poucos arquivos e completar depois.';
+ if(/serviço|servico|agenda|horário|horario|profissional/.test(input))return 'Cadastre seus serviços com preço e duração, os profissionais e os horários disponíveis no SaintsAI Cliente. Depois faça um agendamento de teste antes de divulgar. O agente precisa desses dados para oferecer horários corretos.';
+ if(/como.*usar|começar|comecar|primeiros passos|ajuda|configurar/.test(input))return 'Primeiro entre no SaintsAI Cliente e troque o e-mail e a senha temporários. Depois conecte o WhatsApp e revise os dados do seu negócio. Configure serviços, agenda e pagamentos conforme precisar. Qual dessas etapas você quer fazer agora?';
+ return null;
+}
 async function handle(args){
  const c=await conversation(args.lojaId,args.contato);if(!c)return {handled:false};
  const input=text(args.pergunta).toLowerCase();let row=await get(c.id);
@@ -74,7 +82,7 @@ async function handle(args){
   if(await paid(row)){await change(row,'active');response='Pagamento confirmado pelo Asaas. Seu plano está ativo!\n'+await access(row)+'\nAgora conecte seu WhatsApp, o recebimento das suas vendas e sua galeria. Seu agente já está configurado com as informações que você passou.';}
   else if(row.due_at&&Date.parse(row.due_at)<Date.now())response='O prazo deste link terminou e ainda não há confirmação de pagamento. O responsável vai conferir a cobrança antes de emitir outra.';
   else response='Ainda aguardamos a confirmação do Asaas.\n'+paymentText(row)+'\n\n'+await access(row);
- }else if(row.phase==='active')response='Seu plano já está ativo.\n'+await access(row);
+ }else if(row.phase==='active')response=usageHelp(input)||('Seu plano já está ativo.\n'+await access(row));
  else if(row.phase==='needs_owner')response='Sua contratação está em revisão pelo responsável. Não vou repetir o cadastro nem a cobrança.';
  else response='Sua contratação está sendo preparada. Aguarde um instante.';
  return {handled:true,response};
