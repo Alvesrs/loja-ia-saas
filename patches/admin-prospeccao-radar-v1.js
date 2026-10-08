@@ -8,6 +8,12 @@ ensureDir('src/services');
 
 const service = String.raw`
 const CATEGORIAS = Object.freeze({
+  padaria: {
+    label:'Padaria',
+    base:79,
+    motivo:'Comércio com pedidos recorrentes, horários e dúvidas sobre produtos.',
+    filtros:[['shop','bakery']]
+  },
   barbearia: {
     label:'Barbearia',
     base:76,
@@ -202,7 +208,7 @@ async function buscarProspeccao({uf,cidade,categoria}){
     .map(x=>normalizarLead(x,categoria))
     .filter(x=>x&&x.whatsapp)
     .sort((a,b)=>b.score-a.score||a.nome.localeCompare(b.nome,'pt-BR'))
-    .slice(0,50);
+    .slice(0,200);
 
   return {
     origem:'OpenStreetMap/Overpass',
@@ -293,7 +299,7 @@ button{min-height:44px;border:0;border-radius:6px;padding:0 15px;font:inherit;fo
     <label class="city">Cidade<input id="cidade" placeholder="Ex.: Londrina" autocomplete="address-level2"></label>
     <label>Categoria
       <select id="categoria">
-        <option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="tatuagem">Tatuagem</option><option value="restaurante">Restaurante</option><option value="clinica">Clínica</option><option value="oficina">Oficina</option><option value="petshop">Pet shop</option><option value="academia">Academia</option>
+        <option value="padaria">Padaria</option><option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="tatuagem">Tatuagem</option><option value="restaurante">Restaurante</option><option value="clinica">Clínica</option><option value="oficina">Oficina</option><option value="petshop">Pet shop</option><option value="academia">Academia</option>
       </select>
     </label>
     <button id="buscar" class="primary">Buscar clientes</button>
@@ -312,7 +318,7 @@ function salvarEstado(v){localStorage.setItem(key,JSON.stringify(v))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function render(){
  const st=estado();
- const lista=ultimo.filter(x=>!soSalvos||st[x.id]==='salvo');
+ const lista=ultimo.filter(x=>st[x.id]!=='contatado'&&st[x.id]!=='descartado'&&(!soSalvos||st[x.id]==='salvo'));
  const recomendados=ultimo.slice(0,3);
  const topIds=new Set(recomendados.map(x=>x.id));
  $('cards').innerHTML=lista.length?lista.map(x=>{
@@ -336,7 +342,7 @@ async function buscar(){
  try{
    const q=new URLSearchParams({uf,cidade,categoria});
    const r=await apiFetch('/admin/prospeccao/buscar?'+q.toString());
-   ultimo=(r.leads||[]).filter(x=>estado()[x.id]!=='descartado');
+   ultimo=(r.leads||[]).filter(x=>!['descartado','contatado'].includes(estado()[x.id]));
    soSalvos=false;$('verSalvos').textContent='☆ Só salvos';
    $('status').textContent=ultimo.length?ultimo.length+' contatos com WhatsApp · '+Math.min(3,ultimo.length)+' melhores destacados · '+(r.categoria||'')+' · '+(r.local||cidade):'Nenhum contato com WhatsApp público encontrado em '+(r.local||cidade)+'.';
    render();
@@ -350,16 +356,109 @@ $('verSalvos').onclick=()=>{soSalvos=!soSalvos;$('verSalvos').textContent=soSalv
 </body></html>`;
 write('public/admin-prospeccao.html',page);
 
-for(const p of ['public/admin-mobile.html','public/admin.html']){
-  if(!fs.existsSync(p)) continue;
-  let h=read(p);
-  if(h.includes('admin-prospeccao.html')) continue;
-  if(h.includes('</nav>')){
-    h=h.replace('</nav>','  <a href="admin-prospeccao.html">🎯 Prospecção</a>\\n</nav>');
-  }else if(h.includes('</body>')){
-    h=h.replace('</body>','<a href="admin-prospeccao.html" style="position:fixed;right:14px;bottom:14px;z-index:80;padding:12px 14px;border-radius:8px;background:#18131f;color:#d8c7f5;text-decoration:none;border:1px solid #4a3c5c">🎯 Prospecção</a></body>');
+
+const dashboardProspecting = String.raw`(()=>{
+ const root=document.getElementById('home-prospecting');
+ if(!root)return;
+ const q=s=>root.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const stateKey='saintsai-prospeccao-v1',storeKey='saintsai-owner-seller-store';
+ let leads=[],shown=10,nextOffset=0,nextPageToken='',hasMore=false,busy=false;
+ const saved=()=>{try{return JSON.parse(localStorage.getItem(stateKey)||'{}')}catch(_){return {}}};
+ const persist=v=>localStorage.setItem(stateKey,JSON.stringify(v));
+ function fillCities(){
+  const uf=q('#hp-uf').value,sel=q('#hp-city'),current=sel.value;
+  const names=(window.SAINTSAI_MUNICIPIOS||[]).filter(x=>x[0]===uf).map(x=>x[1]).sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+  sel.innerHTML='<option value="">Selecione a cidade</option>'+names.map(n=>'<option>'+esc(n)+'</option>').join('');
+  if(names.includes(current))sel.value=current;
+ }
+ function render(){
+  const st=saved(),visible=leads.filter(x=>!['contatado','descartado'].includes(st[x.id])),display=visible.slice(0,shown);
+  q('#hp-count').textContent=leads.length?display.length+' de '+visible.length+' contatos disponíveis':'';
+  q('#hp-cards').innerHTML=display.length?display.map(x=>'<article class="hp-lead"><div class="hp-lead-main"><strong>'+esc(x.nome)+'</strong><small>'+esc(x.endereco||x.telefone_exibicao||x.telefone||'')+' · potencial '+esc(x.score)+'</small></div><div class="hp-lead-actions"><button type="button" data-hp-wa="'+esc(x.id)+'">WhatsApp</button><button type="button" data-hp-state="contatado" data-id="'+esc(x.id)+'">Contatado</button><button type="button" data-hp-state="salvo" data-id="'+esc(x.id)+'">'+(st[x.id]==='salvo'?'Salvo ✓':'Salvar')+'</button><button type="button" data-hp-state="descartado" data-id="'+esc(x.id)+'">Descartar</button></div></article>').join(''):'<div class="hp-empty">'+(leads.length?'Todos os contatos desta leva já foram contatados ou descartados. Atualize para carregar outros.':'Escolha estado, cidade e categoria para começar.')+'</div>';
+  root.querySelectorAll('[data-hp-state]').forEach(b=>b.onclick=()=>{const st=saved();st[b.dataset.id]=b.dataset.hpState;persist(st);render()});
+  const more=visible.length>shown||hasMore;
+  q('#hp-more').hidden=!more;
+  q('#hp-more').disabled=busy;
+  q('#hp-more').textContent=visible.length>shown?'Mostrar mais opções':'Atualizar opções';
+  root.querySelectorAll('[data-hp-state]').forEach(b=>b.onclick=()=>{const s=saved();s[b.dataset.id]=b.dataset.hpState;persist(s);render()});
+ }
+ async function loadStores(){
+  const select=q('#hp-store');
+  try{
+   const r=await apiFetch('/admin/prospeccao/minhas-lojas');
+   const stores=Array.isArray(r.lojas)?r.lojas:[];
+   select.innerHTML='<option value="">Selecione seu WhatsApp vendedor</option>'+stores.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.nome)+(l.conexoes?.length?' · '+esc(l.conexoes[0].numero_whatsapp||'WhatsApp conectado'):' · Conecte seu WhatsApp')+'</option>').join('');
+   const chosen=localStorage.getItem(storeKey);
+   if(stores.some(l=>l.id===chosen))select.value=chosen;else if(stores.length===1)select.value=stores[0].id;
+   select.onchange=()=>localStorage.setItem(storeKey,select.value);
+  }catch(e){select.innerHTML='<option value="">Não foi possível carregar</option>';q('#hp-status').textContent=e.message||'Não foi possível carregar seu WhatsApp vendedor.'}
+ }
+ async function fetchBatch(){
+  const store=q('#hp-store').value;
+  if(!store){q('#hp-status').textContent='Selecione seu WhatsApp vendedor conectado para buscar contatos.';q('#hp-store').focus();return false}
+  const params=new URLSearchParams({uf:q('#hp-uf').value,cidade:q('#hp-city').value,categoria:q('#hp-category').value,lojaId:store});
+  if(nextPageToken)params.set('pageToken',nextPageToken);else params.set('offset',String(nextOffset));
+  busy=true;q('#hp-search').disabled=true;q('#hp-more').disabled=true;q('#hp-status').textContent='Buscando contatos e confirmando WhatsApps…';
+  try{
+   const r=await apiFetch('/admin/prospeccao/buscar?'+params.toString());
+   const seen=new Set(leads.map(x=>x.id));
+   for(const item of r.leads||[])if(!seen.has(item.id)){leads.push(item);seen.add(item.id)}
+   nextOffset=Number(r.nextOffset)||0;nextPageToken=r.nextPageToken||'';hasMore=Boolean(r.hasMore||nextPageToken);
+   const s=saved();leads=leads.filter(x=>!['contatado','descartado'].includes(s[x.id]));
+   q('#hp-status').textContent=(r.origem||'Contatos públicos')+' · '+(r.categoria||'')+' · '+(r.local||q('#hp-city').value)+(r.aviso?' · '+r.aviso:'');
+   render();return true;
+  }catch(e){q('#hp-status').textContent=e.message||'Não foi possível buscar contatos agora.';render();return false}
+  finally{busy=false;q('#hp-search').disabled=false;q('#hp-more').disabled=false;render()}
+ }
+ async function search(){
+  if(!q('#hp-city').value){q('#hp-city').focus();return}
+  leads=[];shown=10;nextOffset=0;nextPageToken='';hasMore=false;await fetchBatch();
+ }
+ async function more(){
+  if(busy)return;
+  const visible=leads.filter(x=>!['contatado','descartado'].includes(saved()[x.id]));
+  if(visible.length>shown){shown+=10;render();return}
+  if(!hasMore)return;
+  const ok=await fetchBatch();if(ok)shown+=10;render();
+ }
+ root.addEventListener('click',async e=>{
+  const a=e.target.closest('[data-hp-wa]');
+  if(a){
+   const lead=leads.find(x=>x.id===a.dataset.hpWa);if(!lead)return;
+   const phone=String(lead.telefone||'').replace(/\D/g,'');if(!/^55\d{10,11}$/.test(phone)){q('#hp-status').textContent='Este contato não tem um WhatsApp válido.';return}
+   a.disabled=true;q('#hp-status').textContent='Autorizando este contato…';
+   try{await apiFetch('/admin/prospeccao/autorizar',{method:'POST',body:JSON.stringify({lojaId:q('#hp-store').value,telefone:phone,prospect:{nome:lead.nome,categoria:q('#hp-category').value,cidade:q('#hp-city').value}})});if(window.AndroidAgent&&typeof AndroidAgent.openWhatsApp==='function')AndroidAgent.openWhatsApp(phone);else location.href='https://api.whatsapp.com/send?phone='+phone;}
+   catch(err){q('#hp-status').textContent=err.message||'Não foi possível abrir o WhatsApp.'}
+   finally{a.disabled=false}return;
   }
-  write(p,h);
+ });
+ q('#hp-uf').onchange=()=>{fillCities();leads=[];shown=10;nextOffset=0;nextPageToken='';hasMore=false;render()};
+ q('#hp-search').onclick=search;q('#hp-more').onclick=more;
+ fillCities();loadStores();render();
+})();`;
+fs.writeFileSync('public/js/admin-home-prospecting.js',dashboardProspecting);
+const homeMarkup = String.raw`<section id="home-prospecting" class="card">
+ <div class="hp-heading"><div><h2>Prospecção</h2><p class="sub">Escolha a região, carregue os contatos e marque quem já foi abordado.</p></div><span id="hp-count" class="sub"></span></div>
+ <div class="hp-filters">
+  <label>Estado<select id="hp-uf"><option value="PR">PR</option><option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option></select></label>
+  <label>Cidade<select id="hp-city"><option value="">Selecione a cidade</option></select></label>
+  <label>Categoria<select id="hp-category"><option value="padaria">Padaria</option><option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="tatuagem">Tatuagem</option><option value="restaurante">Restaurante</option><option value="clinica">Clínica</option><option value="oficina">Oficina</option><option value="petshop">Pet shop</option><option value="academia">Academia</option></select></label>
+  <label>WhatsApp vendedor<select id="hp-store"><option value="">Carregando…</option></select></label>
+ </div>
+ <div class="hp-actions"><button id="hp-search" class="btn primary" type="button">Buscar comércios</button><button id="hp-more" class="btn" type="button" hidden>Atualizar opções</button></div>
+ <p id="hp-status" class="sub" role="status" aria-live="polite">Selecione estado, cidade, categoria e WhatsApp vendedor.</p><div id="hp-cards"></div>
+</section>`;
+for(const p of ['public/admin-mobile.html']){
+ if(!fs.existsSync(p))continue;
+ let h=read(p);
+ h=h.replace(/<a[^>]+href="admin-prospeccao\.html"[^>]*>[\s\S]*?<\/a>/g,'');
+ if(!h.includes('id="home-prospecting"')){
+  h=h.replace('<div id="home-prospecting-mount"></div>',homeMarkup);
+  if(h.includes('home-prospecting-mount'))throw Error('Não foi possível posicionar a prospecção abaixo das métricas.');
+  h=h.replace('</head>','<style>.hp-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.hp-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.hp-filters label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.hp-filters select{width:100%;min-height:44px;padding:8px;border-radius:10px;background:#0d0d16;color:var(--text,#fff);border:1px solid var(--line)}.hp-actions{display:flex;gap:8px;flex-wrap:wrap}.hp-actions button{flex:1;min-width:145px}.hp-lead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.hp-lead-main{min-width:0}.hp-lead-main strong,.hp-lead-main small{display:block;overflow-wrap:anywhere}.hp-lead-main small{color:var(--muted);margin-top:4px}.hp-lead-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.hp-lead-actions button{min-height:34px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#17151d;color:inherit}.hp-empty{padding:18px 8px;color:var(--muted);text-align:center}.hp-heading h2{margin-bottom:2px}@media(max-width:620px){.hp-filters{grid-template-columns:1fr}.hp-lead{grid-template-columns:1fr}.hp-lead-actions{justify-content:flex-start}.hp-lead-actions button{flex:1}}</style></head>');
+  h=h.replace('</body>','<script src="js/municipios-br.js?v=2026.10.08.6"></script><script src="js/admin-home-prospecting.js?v=2026.10.08.7"></script></body>');
+ }
+ write(p,h);
 }
 
 require('node:child_process').execFileSync(process.execPath,['--check','src/services/prospeccao.service.js'],{stdio:'inherit'});
