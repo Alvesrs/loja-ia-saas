@@ -26,12 +26,12 @@ async function provision(row,c,plan){
  if(!locked)return 'Sua contratação já está sendo preparada. Aguarde um instante.';
  let userId=null;
  try{
-  const made=await db.auth.admin.createUser({email:email(row),password:credential(row),email_confirm:true,app_metadata:{saintsai_managed:true,saintsai_first_access:true,saintsai_sales_onboarding:row.id}});
+  const made=await db.auth.admin.createUser({email:email(row),password:credential(row),email_confirm:true,app_metadata:{saintsai_managed:true,saintsai_first_access:true,saintsai_sales_onboarding:row.id,saintsai_business_profile:require('./businessProfiles.service').forBriefing(c.briefing,row.prospect).codigo}});
   if(made.error||!made.data?.user?.id)throw Error('provision_user');
   userId=made.data.user.id;
   await checked(await db.from(TABLE).update({customer_user_id:userId,updated_at:now()}).eq('id',row.id));
   const id=randomUUID();
-  await checked(await db.rpc('saintsai_provision_sales_account',{p_onboarding:row.id,p_store:id,p_user:userId,p_name:text(c.briefing?.nome_empresa).slice(0,100)||'Minha empresa',p_prompt:String(c.prompt_rascunho||'').slice(0,20000)}));
+  await checked(await db.rpc('saintsai_provision_sales_account',{p_onboarding:row.id,p_store:id,p_user:userId,p_name:text(c.briefing?.nome_empresa).slice(0,100)||'Minha empresa',p_prompt:(String(c.prompt_rascunho||'')+require('./businessProfiles.service').prompt(c.briefing,row.prospect)).slice(0,20000)}));
   return 'Sua conta e seu agente foram preparados no plano '+plan.nome+'. Como deseja pagar? Responda PIX (mensal, sem renovação automática) ou CARTÃO (assinatura mensal recorrente). O serviço só será liberado após a confirmação do pagamento.';
  }catch(_){await db.from(TABLE).update({phase:'needs_owner',updated_at:now()}).eq('id',row.id);return 'Não foi possível concluir a preparação com segurança. O responsável vai revisar sua contratação antes de continuar. Nenhuma nova tentativa de cadastro ou cobrança será feita automaticamente.';}
 }
