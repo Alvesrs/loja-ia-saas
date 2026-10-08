@@ -48,7 +48,7 @@ edit('src/services/whatsappWorker.service.js',s=>{
  s=replace(s,'      await fila.marcarJobEnviado(job.id, resposta.resposta);\n      job = { ...job, status: fila.STATUS.ENVIADO, resposta_texto: resposta.resposta };',"      await fila.marcarJobEnviado(job.id, resposta.resposta);\n      if(resposta.prospectAutomation){try{await require('./ownerSalesAutomation.service').marcar({lojaId:mensagem.lojaId,contato:mensagem.contato});}catch(_){console.error('[salesSeller] falha_ao_marcar_atendimento_automatico');}}\n      job = { ...job, status: fila.STATUS.ENVIADO, resposta_texto: resposta.resposta };");
  return s;
 });
-const automationTest=require('./src/services/ownerSalesAutomation.service');
+const automationTest=require('../src/services/ownerSalesAutomation.service');
 const assert=require('node:assert/strict');
 for(const text of ['Esta é uma mensagem automática. Acesse nosso catálogo: https://exemplo.com','Olá, recebemos sua mensagem. Nosso atendimento é virtual.','Digite 1 para escolher uma opção.'])if(!automationTest.respostaAutomatica(text))throw Error('Automação de atendimento não reconhecida.');
 for(const text of ['Olá! Sou a Ana, posso ajudar?','Não temos atendimento automático, prefiro conversar.','Pode me explicar melhor?'])if(automationTest.respostaAutomatica(text))throw Error('Mensagem humana classificada como automação.');
