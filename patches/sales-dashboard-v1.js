@@ -10,19 +10,24 @@ const uuid = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[
 async function resumo(req,res){
   try{
     const lojaId=uuid(req.query.loja_id);
-    const agora=new Date(),inicioHoje=new Date(agora),inicioMes=new Date(agora.getFullYear(),agora.getMonth(),1);
-    inicioHoje.setHours(0,0,0,0);
+    const agora=new Date(),localAgora=new Date(agora.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'})),utcAgora=new Date(agora.toLocaleString('en-US',{timeZone:'UTC'})),deslocamento=localAgora.getTime()-utcAgora.getTime(),inicioHoje=new Date(localAgora);
+    inicioHoje.setHours(0,0,0,0);inicioHoje.setTime(inicioHoje.getTime()-deslocamento);const inicioMes=new Date(inicioHoje);inicioMes.setDate(1);
     let q=supabase.from('vendas').select('id,loja_id,subtotal,lucro_total,vendida_em').gte('vendida_em',inicioMes.toISOString()).order('vendida_em',{ascending:false});
     if(lojaId) q=q.eq('loja_id',lojaId);
     const {data,error}=await q;if(error)throw error;
     const mes=data||[],hoje=mes.filter(v=>new Date(v.vendida_em)>=inicioHoje);
+    let clientesHojeQ=supabase.from('lojas').select('id',{count:'exact',head:true}).gte('criado_em',inicioHoje.toISOString());
+    let clientesAtivosQ=supabase.from('lojas').select('id',{count:'exact',head:true}).eq('ativa',true);
+    if(lojaId){clientesHojeQ=clientesHojeQ.eq('id',lojaId);clientesAtivosQ=clientesAtivosQ.eq('id',lojaId);}
+    const [{count:clientesHoje,error:clientesHojeError},{count:clientesAtivos,error:clientesAtivosError}]=await Promise.all([clientesHojeQ,clientesAtivosQ]);
+    if(clientesHojeError)throw clientesHojeError;if(clientesAtivosError)throw clientesAtivosError;
     const soma=(a,k)=>moeda(a.reduce((n,x)=>n+Number(x[k]||0),0));
     let pq=supabase.from('produtos').select('id').eq('ativo',true);if(lojaId)pq=pq.eq('loja_id',lojaId);
     const {data:ps,error:pe}=await pq;if(pe)throw pe;
     let baixo=0,zerado=0;const ids=(ps||[]).map(x=>x.id);
     if(ids.length){const {data:es,error:ee}=await supabase.from('estoque').select('quantidade').in('produto_id',ids);if(ee)throw ee;baixo=(es||[]).filter(x=>Number(x.quantidade)>0&&Number(x.quantidade)<=2).length;zerado=(es||[]).filter(x=>Number(x.quantidade)<=0).length;}
     const fatMes=soma(mes,'subtotal');
-    res.json({hoje:{vendas:hoje.length,faturamento:soma(hoje,'subtotal'),lucro:soma(hoje,'lucro_total')},mes:{vendas:mes.length,faturamento:fatMes,lucro:soma(mes,'lucro_total'),ticket_medio:mes.length?moeda(fatMes/mes.length):0},estoque:{baixo,zerado},recentes:mes.slice(0,5)});
+    res.json({hoje:{vendas:hoje.length,faturamento:soma(hoje,'subtotal'),lucro:soma(hoje,'lucro_total'),clientes:clientesHoje||0},clientes:{ativos:clientesAtivos||0},mes:{vendas:mes.length,faturamento:fatMes,lucro:soma(mes,'lucro_total'),ticket_medio:mes.length?moeda(fatMes/mes.length):0},estoque:{baixo,zerado},recentes:mes.slice(0,5)});
   }catch(e){console.error('[vendas.resumo]',e?.message||e);res.status(500).json({erro:'Não foi possível carregar o resumo.'});}
 }
 
@@ -84,8 +89,9 @@ h=h.replace('<button data-view="registro" class="active">＋ REGISTRAR NOVO CLIE
 const bloco=`
 <section id="view-home" class="view">
  <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:end;flex-wrap:wrap"><div><h2>Visão geral</h2><p class="sub">Vendas, lucro, clientes e estoque.</p></div><select id="homeLoja"><option value="">Todas as lojas</option></select></div></div>
- <div class="metricGrid"><div class="metric"><small>Vendas hoje</small><strong id="mVendasHoje">0</strong></div><div class="metric"><small>Faturamento hoje</small><strong id="mFatHoje">R$ 0,00</strong></div><div class="metric"><small>Lucro hoje</small><strong id="mLucroHoje">R$ 0,00</strong></div><div class="metric"><small>Faturamento mês</small><strong id="mFatMes">R$ 0,00</strong></div><div class="metric"><small>Lucro mês</small><strong id="mLucroMes">R$ 0,00</strong></div><div class="metric"><small>Ticket médio</small><strong id="mTicket">R$ 0,00</strong></div></div>
- <div class="grid2"><div class="card"><h2>Clientes</h2><div class="homeLine"><span>Total</span><strong id="mClientes">0</strong></div><div class="homeLine"><span>Ativos</span><strong id="mClientesAtivos">0</strong></div></div><div class="card"><h2>Estoque</h2><div class="homeLine"><span>Baixo</span><strong id="mBaixo">0</strong></div><div class="homeLine"><span>Zerado</span><strong id="mZerado">0</strong></div></div></div>
+ <div class="metricGrid"><div class="metric"><small>Vendas hoje</small><strong id="mVendasHoje">0</strong></div><div class="metric"><small>Lucro hoje</small><strong id="mLucroHoje">R$ 0,00</strong></div><div class="metric"><small>Clientes de hoje</small><strong id="mClientesHoje">0</strong></div><div class="metric"><small>Clientes ativos</small><strong id="mClientesAtivos">0</strong></div></div>
+ <div id="home-prospecting-mount"></div>
+ <div class="grid2"><div class="card"><h2>Mais indicadores</h2><div class="homeLine"><span>Faturamento hoje</span><strong id="mFatHoje">R$ 0,00</strong></div><div class="homeLine"><span>Faturamento no mês</span><strong id="mFatMes">R$ 0,00</strong></div><div class="homeLine"><span>Lucro no mês</span><strong id="mLucroMes">R$ 0,00</strong></div><div class="homeLine"><span>Ticket médio</span><strong id="mTicket">R$ 0,00</strong></div></div><div class="card"><h2>Estoque</h2><div class="homeLine"><span>Baixo</span><strong id="mBaixo">0</strong></div><div class="homeLine"><span>Zerado</span><strong id="mZerado">0</strong></div></div></div>
  <div class="card"><h2>Últimas vendas</h2><div id="homeRecentes" class="salesList"><p class="sub">Nenhuma venda registrada.</p></div></div>
  <button class="btn primary" data-go="vendas">＋ Registrar venda</button>
 </section>
@@ -110,7 +116,7 @@ h=h.replace("const titles={clientes:", "const titles={home:['Início','Resumo do
 const js=`
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});let vendaProdutos=[];
 function fillStoreSelects(){const all='<option value="">Todas as lojas</option>'+clientesCache.map(c=>'<option value="'+c.loja_id+'">'+esc(c.nome)+'</option>').join('');$('homeLoja').innerHTML=all;$('vLoja').innerHTML='<option value="">Selecione a loja</option>'+clientesCache.map(c=>'<option value="'+c.loja_id+'">'+esc(c.nome)+'</option>').join('')}
-async function loadHome(){try{const id=$('homeLoja').value,q=id?'?loja_id='+encodeURIComponent(id):'',r=await apiFetch('/admin/vendas/resumo'+q);$('mVendasHoje').textContent=r.hoje.vendas;$('mFatHoje').textContent=brl(r.hoje.faturamento);$('mLucroHoje').textContent=brl(r.hoje.lucro);$('mFatMes').textContent=brl(r.mes.faturamento);$('mLucroMes').textContent=brl(r.mes.lucro);$('mTicket').textContent=brl(r.mes.ticket_medio);$('mBaixo').textContent=r.estoque.baixo;$('mZerado').textContent=r.estoque.zerado;$('mClientes').textContent=id?1:clientesCache.length;$('mClientesAtivos').textContent=id?(clientesCache.find(c=>c.loja_id===id)?.ativa?1:0):clientesCache.filter(c=>c.ativa).length;$('homeRecentes').innerHTML=(r.recentes||[]).length?r.recentes.map(v=>'<div class="saleRow"><div><strong>'+brl(v.subtotal)+'</strong><small>'+new Date(v.vendida_em).toLocaleString('pt-BR')+'</small></div><div><strong class="positive">'+brl(v.lucro_total)+'</strong><small>lucro</small></div></div>').join(''):'<p class="sub">Nenhuma venda registrada.</p>'}catch(e){console.warn(e)}}
+async function loadHome(){try{const id=$('homeLoja').value,q=id?'?loja_id='+encodeURIComponent(id):'',r=await apiFetch('/admin/vendas/resumo'+q);$('mVendasHoje').textContent=r.hoje.vendas;$('mLucroHoje').textContent=brl(r.hoje.lucro);$('mClientesHoje').textContent=r.hoje.clientes||0;$('mClientesAtivos').textContent=r.clientes.ativos||0;$('mFatHoje').textContent=brl(r.hoje.faturamento);$('mFatMes').textContent=brl(r.mes.faturamento);$('mLucroMes').textContent=brl(r.mes.lucro);$('mTicket').textContent=brl(r.mes.ticket_medio);$('mBaixo').textContent=r.estoque.baixo;$('mZerado').textContent=r.estoque.zerado;$('homeRecentes').innerHTML=(r.recentes||[]).length?r.recentes.map(v=>'<div class="saleRow"><div><strong>'+brl(v.subtotal)+'</strong><small>'+new Date(v.vendida_em).toLocaleString('pt-BR')+'</small></div><div><strong class="positive">'+brl(v.lucro_total)+'</strong><small>lucro</small></div></div>').join(''):'<p class="sub">Nenhuma venda registrada.</p>'}catch(e){console.warn(e)}}
 async function loadVendaProdutos(){const id=$('vLoja').value;vendaProdutos=[];if(!id){$('vProduto').innerHTML='<option value="">Selecione primeiro a loja</option>';return}vendaProdutos=await apiFetch('/admin/vendas/produtos?loja_id='+encodeURIComponent(id));$('vProduto').innerHTML='<option value="">Selecione o produto</option>'+vendaProdutos.map((p,i)=>'<option value="'+i+'" '+(p.quantidade<=0?'disabled':'')+'>'+esc(p.nome)+' · '+esc(p.tamanho)+' · '+esc(p.cor)+' · estoque '+p.quantidade+'</option>').join('');await loadHistorico()}
 function vendaPreview(){const q=Math.max(1,Number($('vQtd').value)||1),v=Number($('vValor').value)||0,c=Number($('vCusto').value)||0;$('vTotal').textContent=brl(v*q);$('vLucro').textContent=brl((v-c)*q)}
 function chooseVendaProduto(){const p=vendaProdutos[Number($('vProduto').value)];if(p){$('vValor').value=p.preco;$('vCusto').value=p.custo;$('vQtd').max=p.quantidade}vendaPreview()}
