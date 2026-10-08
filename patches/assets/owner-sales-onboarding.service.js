@@ -3,6 +3,7 @@ const {createHmac,randomUUID}=require('node:crypto');
 const plans=require('../config/planos');
 const billing=require('./asaas.service');
 const subscriptions=require('./assinaturas.service');
+const {recusou,RESPOSTA_RECUSA}=require('./ownerSalesPrompt');
 const TABLE='saintsai_sales_onboarding';
 const now=()=>new Date().toISOString();
 const text=v=>String(v||'').trim().slice(0,3000);
@@ -64,9 +65,9 @@ function usageHelp(input){
 async function handle(args){
  const c=await conversation(args.lojaId,args.contato);if(!c)return {handled:false};
  const input=text(args.pergunta).toLowerCase();let row=await get(c.id);
- if(/^(\/parar|parar|sair|cancelar|não quero|nao quero|não tenho interesse|nao tenho interesse)[.!\s]*$/.test(input)){
+ if(/^(\/parar|parar|sair|cancelar)$/.test(input)||recusou(input)){
   if(row)await change(row,'declined');await checked(await db.from('saintsai_sales_conversations').update({ativo:false,atualizado_em:now()}).eq('id',c.id));
-  return {handled:true,response:'Tudo bem. A abordagem foi encerrada. Se já houver um pagamento, o responsável confere o cancelamento; não vou alterar a cobrança automaticamente.'};
+  return {handled:true,response:RESPOSTA_RECUSA};
  }
  if(row?.phase==='briefing'){if(c.lead_status!=='prompt_pronta')return {handled:false};row=await change(row,'offer');}
  if(!row&&c.lead_status==='prompt_pronta')row=await ensure(c,args.lojaId);
