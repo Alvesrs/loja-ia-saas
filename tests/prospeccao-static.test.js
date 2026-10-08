@@ -15,3 +15,19 @@ test('prospecção tem página, rota e ranking',()=>{
   assert.ok(forte.score>fraco.score);
   assert.ok(forte.score<=97);
 });
+
+test('cidades da prospecção estão disponíveis por estado e em ordem alfabética',()=>{
+  const page=fs.readFileSync('public/admin-prospeccao.html','utf8');
+  assert.match(page,/id="cidade"[^>]*list="cidades-disponiveis"/);
+  assert.match(page,/js\/municipios-br\.js\?v=/);
+  const source=fs.readFileSync('public/js/municipios-br.js','utf8');
+  const serialized=source.match(/window\.SAINTSAI_MUNICIPIOS=(.*);/);
+  assert.ok(serialized,'lista de municípios gerada no build');
+  const cities=JSON.parse(serialized[1]);
+  const expected=require('../src/services/municipios-br');
+  assert.equal(cities.length,expected.length);
+  for(const uf of [...new Set(cities.map(x=>x[0]))]){
+    const names=cities.filter(x=>x[0]===uf).map(x=>x[1]);
+    for(let i=1;i<names.length;i++)assert.ok(names[i-1].localeCompare(names[i],'pt-BR',{sensitivity:'base'})<=0,`${uf}: ${names[i-1]} antes de ${names[i]}`);
+  }
+});
