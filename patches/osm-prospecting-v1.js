@@ -1,4 +1,5 @@
 const fs=require('node:fs');
+// Keep the candidate cursor, not the returned-lead count, so filtered rows cannot reappear on refresh.
 const edit=(p,fn)=>fs.writeFileSync(p,fn(fs.readFileSync(p,'utf8')));
 fs.copyFileSync('patches/assets/prospectos-verificados.js','src/services/prospectos-verificados.js');
 edit('patches/assets/prospeccao.service.js',s=>s.replace('.slice(0,50);','.slice(0,200);'));
