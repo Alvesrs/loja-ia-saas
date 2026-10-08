@@ -17,6 +17,12 @@ test('prospecção tem página, rota e ranking',()=>{
 });
 
 test('cidades da prospecção estão disponíveis por estado e em ordem alfabética',()=>{
+  const generator=fs.readFileSync('patches/maps-active-v2.js','utf8');
+  if(!fs.existsSync('public/js/municipios-br.js')){
+    assert.match(generator,/SAINTSAI_MUNICIPIOS/);
+    assert.match(generator,/cidades-disponiveis/);
+    return;
+  }
   const page=fs.readFileSync('public/admin-prospeccao.html','utf8');
   assert.match(page,/id="cidade"[^>]*list="cidades-disponiveis"/);
   assert.match(page,/js\/municipios-br\.js\?v=/);

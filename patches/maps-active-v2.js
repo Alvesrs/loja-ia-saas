@@ -1,6 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const municipios=require('../src/services/municipios-br');
+if(!Array.isArray(municipios)||municipios.length<5000)throw Error('Base de municípios brasileiros incompleta.');
 const cidades=municipios.map(([uf,nome])=>[uf,nome]).sort((a,b)=>a[0].localeCompare(b[0])||a[1].localeCompare(b[1],'pt-BR',{sensitivity:'base'}));
 fs.writeFileSync(path.join('public','js','municipios-br.js'),'// Municípios brasileiros; fonte: kelvins/municipios-brasileiros (MIT).\nwindow.SAINTSAI_MUNICIPIOS='+JSON.stringify(cidades)+';\n');
 const edit=(p,a,b)=>{let s=fs.readFileSync(p,'utf8');if(!s.includes(a)){if(s.includes(b))return;throw Error('Missing anchor '+p);}fs.writeFileSync(p,s.replace(a,b));};
