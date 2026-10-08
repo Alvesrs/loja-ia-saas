@@ -35,6 +35,10 @@ public class MainActivity extends Activity {
     public class AgentBridge {
         @JavascriptInterface public int getVersionCode(){return BuildConfig.VERSION_CODE;}
         @JavascriptInterface public String getVersionName(){return BuildConfig.VERSION_NAME;}
+        @JavascriptInterface public void openWhatsApp(String phone){
+            if(phone==null||!phone.matches("55[0-9]{10,11}"))return;
+            runOnUiThread(() -> openExternal(Uri.parse("https://wa.me/"+phone)));
+        }
         @JavascriptInterface public void installLatest(){runOnUiThread(() -> {
             try{
                 android.app.DownloadManager dm=(android.app.DownloadManager)getSystemService(DOWNLOAD_SERVICE);
@@ -88,12 +92,7 @@ public class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
-        webView.addJavascriptInterface(new AgentBridge(){
-            @JavascriptInterface public void openWhatsApp(String phone){
-                if(phone == null || !phone.matches("55[0-9]{10,11}")) return;
-                runOnUiThread(() -> openExternal(Uri.parse("https://wa.me/" + phone)));
-            }
-        },"AndroidAgent");
+        webView.addJavascriptInterface(new AgentBridge(),"AndroidAgent");
         webView.setWebChromeClient(new WebChromeClient(){
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean gesture, Message result){
                 if(!gesture) return false;
