@@ -12,13 +12,20 @@ edit('src/services/wahaOnboarding.service.js',s=>{
   if(!s.includes(anchor))throw Error('Patch anchor missing: '+anchor);
   s=s.replace(anchor,helper+anchor);
  }
- let configCount=0;
- s=s.replace(/config\s*:\s*\{\s*webhooks\s*:\s*\[\s*\{\s*url\s*:\s*e\.publicBase\s*\+\s*['"]\/api\/webhooks\/waha['"]\s*,\s*events\s*:\s*\[\s*['"]message\.any['"]\s*\]\s*,\s*hmac\s*:\s*\{\s*key\s*:\s*e\.hmac\s*\}\s*\}\s*\]\s*\}/g,()=>{
-  configCount++;
-  return configCount===1?'config:webhookConfig(e,await isOwnerStore(lojaId))':'config:webhookConfig(e,await isOwnerStore(cfg.loja_id))';
- });
- s=s.replace(/\.select\(\s*['"]identificador_externo['"]\s*\)/,".select('identificador_externo,loja_id')");
- if(configCount!==2)throw Error('Expected two WAHA session configs, found '+configCount);
+ function replaceConfig(block,expression){
+  const match=/\bconfig\s*:\s*\{/.exec(block);if(!match)throw Error('WAHA config missing from session function');
+  const open=match.index+match[0].lastIndexOf('{');let depth=0,quote='',escape=false,end=-1;
+  for(let i=open;i<block.length;i++){const ch=block[i];if(quote){if(escape)escape=false;else if(ch==='\\')escape=true;else if(ch===quote)quote='';continue;}if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}if(ch==='{')depth++;else if(ch==='}'&&--depth===0){end=i+1;break;}}
+  if(end<0)throw Error('WAHA config object is incomplete');
+  return block.slice(0,match.index)+'config:'+expression+block.slice(end);
+ }
+ const createAt=s.indexOf('async function iniciarPareamento('),ensureAt=s.indexOf('async function garantirWebhooksAtivos('),statusAt=s.indexOf('async function status(');
+ if(createAt<0||ensureAt<0||statusAt<0)throw Error('WAHA session functions missing');
+ const create=s.slice(createAt,ensureAt),ensure=s.slice(ensureAt,statusAt);
+ const patchedCreate=create.includes('config:webhookConfig(e,await isOwnerStore(lojaId))')?create:replaceConfig(create,'webhookConfig(e,await isOwnerStore(lojaId))');
+ let patchedEnsure=ensure.includes('config:webhookConfig(e,await isOwnerStore(cfg.loja_id))')?ensure:replaceConfig(ensure,'webhookConfig(e,await isOwnerStore(cfg.loja_id))');
+ patchedEnsure=patchedEnsure.replace(/\.select\(\s*['"]identificador_externo['"]\s*\)/,".select('identificador_externo,loja_id')");
+ s=s.slice(0,createAt)+patchedCreate+patchedEnsure+s.slice(statusAt);
  return s;
 });
 for(const name of ['client-notifications','owner-prospecting'])fs.copyFileSync('patches/assets/'+name+'.js','public/js/'+name+'.js');
