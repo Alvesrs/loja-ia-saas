@@ -12,8 +12,9 @@
  }
  Promise.all([apiFetch('/admin/vendedor-teste'),apiFetch('/admin/prospeccao/minhas-lojas')]).then(([info,r])=>{
   phone=normalize(info.telefone);
-  document.getElementById('number').textContent=info.exibicao;select.replaceChildren(new Option('Selecione sua loja',''));for(const l of r.lojas)select.add(new Option(l.nome,l.id));const saved=localStorage.getItem('saintsai-owner-seller-store');if(r.lojas.some(l=>l.id===saved))select.value=saved;else if(r.lojas.length===1)select.value=r.lojas[0].id;button.disabled=false;
+  document.getElementById('number').textContent=info.exibicao;select.replaceChildren(new Option('Selecione sua loja',''));for(const l of r.lojas)select.add(new Option(l.nome,l.id));const saved=localStorage.getItem('saintsai-owner-seller-store');if(r.lojas.some(l=>l.id===saved))select.value=saved;else if(r.lojas.length===1)select.value=r.lojas[0].id;button.disabled=false;document.getElementById("test-buttons").disabled=false;
  }).catch(e=>{status.textContent=e.message;});
+ document.getElementById('test-buttons').onclick=async()=>{const b=document.getElementById('test-buttons');if(!select.value){status.textContent='Selecione sua loja com WhatsApp conectado.';return;}b.disabled=true;button.disabled=true;status.textContent='Enviando menu experimental ao número de teste…';try{await apiFetch('/admin/vendedor-teste/reiniciar',{method:'POST',body:JSON.stringify({lojaId:select.value,requestId:crypto.randomUUID(),modo:'botoes'})});status.textContent='Envio aceito. Confira no WhatsApp se os botões chegaram e escolha um corte. Este teste não cria agendamentos nem cobranças.';}catch(e){status.textContent=e.message;}finally{b.disabled=false;button.disabled=false;}};
  button.onclick=async()=>{
   if(button.disabled)return;if(!select.value){status.textContent='Selecione sua loja com o WhatsApp conectado.';select.focus();return;}
   button.disabled=true;status.textContent='Reiniciando o agente. Aguarde a nova apresentação no WhatsApp…';
