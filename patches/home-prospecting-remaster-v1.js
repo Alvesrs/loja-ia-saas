@@ -45,3 +45,7 @@ fs.copyFileSync('patches/assets/municipios-br.js','src/services/municipios-br.js
 fs.copyFileSync('patches/assets/home-prospecting.js','public/js/home-prospecting.js');
 edit('public/admin-mobile.html',s=>s.replace('js/home-prospecting.js?v=2026.10.08.2','js/home-prospecting.js?v=2026.10.08.2'));
 console.log('Dashboard SaintsAI remasterizado com prospecção horizontal e atualização paginada.');
+
+// Preserve the complete legacy feed before excluding contacts, so its cache and
+// explicit discard-restoration control still work when accessed by an old link.
+if(fs.existsSync('public/admin-prospeccao.html'))edit('public/admin-prospeccao.html',s=>s.replace("ultimo=(r.leads||[]).slice(0,10).filter(x=>!['descartado','contatado'].includes(estado()[x.id]));","resultadoBusca=(r.leads||[]).filter(x=>/^55\\d{10,11}$/.test(String(x.telefone||'').replace(/\\D/g,''))).slice(0,10);ultimo=resultadoBusca.filter(x=>!['descartado','contatado'].includes(estado()[x.id]));"));
