@@ -1,13 +1,12 @@
-const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 (async()=>{
  const root=path.resolve(process.env.PANEL_PUBLIC||'public');
- const server=http.createServer((req,res)=>{const file=path.join(root,new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return}try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file))}catch{res.writeHead(404).end()}});
- await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||undefined,args:['--no-sandbox']});
  try{
- const context=await browser.newContext({viewport:{width:393,height:852}}),page=await context.newPage(),errors=[],calls=[];
+ const context=await browser.newContext({viewport:{width:Number(process.env.PANEL_WIDTH||393),height:852}}),page=await context.newPage(),errors=[],calls=[];
  page.on('pageerror',e=>errors.push(e.message));
+ await page.route('http://panel.test/**',async route=>{const file=path.join(root,new URL(route.request().url()).pathname);if(!file.startsWith(root+path.sep))return route.fulfill({status:403});try{await route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html'})}catch{await route.fulfill({status:404})}});
  await page.addInitScript(()=>{localStorage.setItem('lojaia_sessao',JSON.stringify({token:'test',usuario:{id:'owner',papel:'admin'}}));window.updateCalls=0;window.AndroidAgent={installLatest(){window.updateCalls++},getVersionName(){return'1.0.24'}};});
  await page.route('**/api/**',async route=>{
  const url=new URL(route.request().url());let data={};
@@ -19,8 +18,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  else if(url.pathname.endsWith('/admin/me'))data={papel:'admin',id:'owner'};
  await route.fulfill({json:data});
  });
- await page.goto('http://127.0.0.1:'+server.address().port+'/admin-mobile.html');
+ await page.goto('http://panel.test/admin-mobile.html');
  await page.waitForFunction(()=>document.querySelector('#saas-central #home-prospecting')&&document.querySelector('#mLucroHoje').textContent.includes('123'));
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'sem conteúdo cortado lateralmente');
  assert(await page.locator('#home-prospecting').isVisible(),'prospecção deve estar visível no painel montado');
  assert.equal(await page.locator('#saas-central>.metricGrid>.metric').count(),4);
  assert.deepEqual(await page.locator('#saas-central>.metricGrid strong').evaluateAll(xs=>xs.map(x=>x.id)),['mLucroHoje','mLucroMes','mClientesHoje','mClientesAtivos']);
@@ -31,9 +31,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  await page.click('#homeProsRefresh');await page.waitForSelector('[data-id="c"]');assert(calls[1].includes('offset=2'));assert.equal(await page.locator('[data-id="a"]').count(),0);
  assert(await page.locator('#homeProsCards').evaluate(x=>getComputedStyle(x).display==='flex'&&x.scrollWidth>x.clientWidth));
  await page.locator('#rm-interface-update').click();assert.equal(await page.evaluate(()=>window.updateCalls),1);
- await page.screenshot({path:process.env.PANEL_SCREENSHOT||'/tmp/saints-panel-phone.png',fullPage:true});
+ const screenshot=process.env.PANEL_SCREENSHOT||'/tmp/saints-panel-phone.png';fs.mkdirSync(path.dirname(screenshot),{recursive:true});await page.screenshot({path:screenshot,fullPage:true});
  await page.reload();await page.waitForSelector('#saas-central #home-prospecting');await page.selectOption('#homeProsCity','Londrina');await page.click('#homeProsSearch');await page.waitForSelector('[data-id="b"]');assert.equal(await page.locator('[data-id="a"]').count(),0,'contatado continua excluído após reabrir');
  await page.getByRole('button',{name:'Clientes',exact:true}).last().click();assert(await page.locator('#view-clientes').isVisible());
  assert.deepEqual(errors,[],'sem erros de JavaScript na tela');console.log('PASS: Home visível, lucro real, cidades ordenadas, faixa horizontal, próximo lote, contato persistido, botão APK, clientes.');
- }finally{await browser.close();server.close();}
+ }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
