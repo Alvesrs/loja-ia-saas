@@ -22,9 +22,11 @@ async function iniciar(usuario,{lojaId,telefone}={}){
  const nova=await idem.reservarEventoWhatsapp(chave);
  if(!nova){const {data,error}=await db.from('whatsapp_eventos_processados').select('status').eq('provedor',chave.provedor).eq('id_externo',chave.idExterno).maybeSingle();if(error)throw error;if(data?.status!=='concluido')throw erro('A abordagem está em andamento ou o envio não foi confirmado. Não será repetida automaticamente.');}
  try{
+  const {data:prior,error:priorError}=await db.from('saintsai_sales_conversations').select('ultimo_evento_id').eq('session_id',c.identificador_externo).eq('contato',contato).eq('loja_id',lojaId).maybeSingle();if(priorError)throw priorError;
+  const automationKnown=/:autoatendimento$/.test(prior?.ultimo_evento_id||'');
   await owner.autorizar(usuario,{lojaId,telefone});
   if(nova){const mensagem={canal:'whatsapp',lojaId,configuracaoId:c.id,contato,idExterno:chave.idExterno};const resultado=await envio.enviarRespostaWhatsapp(mensagem,{lojaId,contato,idExterno:chave.idExterno,resposta:INTRO},{provedor:'waha',destinatarioId:c.identificador_externo});if(resultado.status!=='enviado')throw Error('envio_nao_confirmado');}
-  const {error}=await db.from('saintsai_sales_conversations').update({ultimo_evento_id:'prospeccao:iniciado:'+Date.now(),atualizado_em:new Date().toISOString()}).eq('session_id',c.identificador_externo).eq('contato',contato).eq('loja_id',lojaId);if(error)throw error;
+  const {error}=await db.from('saintsai_sales_conversations').update({ultimo_evento_id:'prospeccao:iniciado:'+Date.now()+(automationKnown?':autoatendimento':''),atualizado_em:new Date().toISOString()}).eq('session_id',c.identificador_externo).eq('contato',contato).eq('loja_id',lojaId);if(error)throw error;
   if(nova)await idem.concluirEventoWhatsapp(chave);
   return{ok:true,status:nova?'enviada':'ja_enviada',telefone};
  }catch{
