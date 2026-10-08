@@ -14,6 +14,9 @@ test('prospecção tem página, rota e ranking',()=>{
   const fraco=service.scoreLead({},'barbearia');
   assert.ok(forte.score>fraco.score);
   assert.ok(forte.score<=97);
+  const source=fs.readFileSync('src/services/prospeccao.service.js','utf8');
+  assert.match(source,/\.slice\(0,200\)/);
+  assert.match(source,/padaria:\s*\{/);
 });
 
 test('cidades da prospecção estão disponíveis por estado e em ordem alfabética',()=>{
@@ -36,4 +39,22 @@ test('cidades da prospecção estão disponíveis por estado e em ordem alfabét
     const names=cities.filter(x=>x[0]===uf).map(x=>x[1]);
     for(let i=1;i<names.length;i++)assert.ok(names[i-1].localeCompare(names[i],'pt-BR',{sensitivity:'base'})<=0,`${uf}: ${names[i-1]} antes de ${names[i]}`);
   }
+});
+
+test('dashboard reúne quatro indicadores e prospecção com paginação persistente',()=>{
+  const home=fs.readFileSync('public/admin-mobile.html','utf8');
+  const inicio=home.indexOf('<section id="view-home"');
+  const fim=home.indexOf('<section id="view-vendas"',inicio);
+  assert.ok(inicio>=0&&fim>inicio);
+  const painel=home.slice(inicio,fim);
+  assert.equal((painel.match(/class="metric"/g)||[]).length,4);
+  assert.match(painel,/id="home-prospecting"/);
+  assert.doesNotMatch(home,/href="admin-prospeccao\.html"/);
+  const script=fs.readFileSync('public/js/admin-home-prospecting.js','utf8');
+  assert.match(script,/SAINTSAI_MUNICIPIOS/);
+  assert.match(script,/localeCompare\(b,'pt-BR'/);
+  assert.match(script,/data-hp-state/);
+  assert.match(script,/nextPageToken/);
+  assert.match(script,/nextOffset/);
+  assert.match(script,/\['contatado','descartado'\]/);
 });
