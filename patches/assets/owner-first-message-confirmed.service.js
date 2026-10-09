@@ -23,13 +23,14 @@ async function iniciar(usuario,{lojaId,telefone}={}){
  const existingDelivery=delivery.marker(prior?.ultimo_evento_id);if(existingDelivery?.estado==='failed')throw delivery.fail();
  let messageId=existingDelivery?.id||null,deliveryState=existingDelivery?.estado||'pending';
  const chave={provedor:'waha',idExterno:'prospeccao-abordagem:'+createHash('sha256').update(usuario.id+'|'+telefone).digest('hex')};
+ if(!existingDelivery)await delivery.restriction(c.identificador_externo,sess.me?.reachoutTimelock);
  const nova=await idem.reservarEventoWhatsapp(chave);
  if(!nova){const {data,error}=await db.from('whatsapp_eventos_processados').select('status').eq('provedor',chave.provedor).eq('id_externo',chave.idExterno).maybeSingle();if(error)throw error;if(data?.status!=='concluido')throw erro('A abordagem está em andamento ou o envio não foi confirmado. Não será repetida automaticamente.');}
  try{
   const automationKnown=/:autoatendimento$/.test(prior?.ultimo_evento_id||'');
   await owner.autorizar(usuario,{lojaId,telefone});
   if(nova){const mensagem={canal:'whatsapp',lojaId,configuracaoId:c.id,contato,idExterno:chave.idExterno};const resultado=await envio.enviarRespostaWhatsapp(mensagem,{lojaId,contato,idExterno:chave.idExterno,resposta:INTRO},{provedor:'waha',destinatarioId:c.identificador_externo,confirmarEntrega:true});if(resultado.status!=='enviado')throw Error('envio_nao_confirmado');messageId=resultado.idExternoProvider||null;}
-  if(deliveryState!=='delivered')deliveryState=await delivery.check(c.identificador_externo,messageId);
+  if(deliveryState!=='delivered')deliveryState=await delivery.check(c.identificador_externo,messageId,{chatId:contato});
 
   const {error}=await db.from('saintsai_sales_conversations').update({ultimo_evento_id:'prospeccao:iniciado:'+Date.now()+delivery.encode(messageId,deliveryState)+(automationKnown?':autoatendimento':''),atualizado_em:new Date().toISOString()}).eq('session_id',c.identificador_externo).eq('contato',contato).eq('loja_id',lojaId);if(error)throw error;
   if(deliveryState==='failed')throw delivery.fail();
