@@ -1,3 +1,4 @@
+// Versioned assets also refresh inside the existing Android WebViews.
 const fs=require('node:fs');
 const version='2026.10.10.1';
 for(const ext of ['css','js'])fs.copyFileSync(`patches/assets/saintsai-neon-v6.${ext}`,`public/${ext}/saintsai-neon-v6.${ext}`);
