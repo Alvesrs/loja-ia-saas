@@ -41,3 +41,9 @@ html body.sa-client-v5.sa-client-v5 .login-brand:before{content:'S'!important;di
 html body.sa-client-v5.sa-client-v5 .sa-menu-update{background:#30213f!important;color:#eadbff!important;border:1px solid #684682!important;padding:12px!important}
 html[data-theme=light] body.sa-client-v5.sa-client-v5 .sa-menu-update{background:#eee5fa!important;color:#613396!important;border-color:#cbb4e8!important}
 html[data-theme=light] body.sa-client-v5.sa-client-v5 .sa-menu-logout{color:#9b2550!important;background:#fff4f7!important;border-color:#dea0b5!important}
+html body.sa-client-v5.sa-client-v5 .top,html body.sa-client-v5.sa-client-v5 .cliente-top{background:var(--rm-bg)!important;color:var(--rm-ink)!important}
+html body.sa-client-v5.sa-client-v5 .top .brand,html body.sa-client-v5.sa-client-v5 .top h1,html body.sa-client-v5.sa-client-v5 .head-card h1,html body.sa-client-v5.sa-client-v5 .head-card h2{color:var(--rm-ink)!important}
+html body.sa-client-v5.sa-client-v5 .head-card p,html body.sa-client-v5.sa-client-v5 .muted,html body.sa-client-v5.sa-client-v5 .panel p{color:var(--rm-muted)!important}
+html body.sa-client-v5.sa-client-v5 .tab{background:var(--rm-surface)!important;color:var(--rm-muted)!important;border:1px solid var(--rm-line)!important}
+html body.sa-client-v5.sa-client-v5 .tab.on{background:#563780!important;color:#fff!important;border-color:#936bc5!important}
+html body.sa-client-v5.sa-client-v5 .notice{color:var(--rm-muted)!important;background:var(--rm-surface)!important;border-color:var(--rm-line)!important}
