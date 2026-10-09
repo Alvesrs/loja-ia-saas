@@ -59,6 +59,9 @@ edit('src/services/whatsappWorker.service.js',s=>{
  s=replace(s,'      await fila.marcarJobEnviado(job.id, resposta.resposta);\n      job = { ...job, status: fila.STATUS.ENVIADO, resposta_texto: resposta.resposta };',"      await fila.marcarJobEnviado(job.id, resposta.resposta);\n      job = { ...job, status: fila.STATUS.ENVIADO, resposta_texto: resposta.resposta };");
  return s;
 });
+// Pure-function build checks do not need production Supabase credentials.
+const supabaseTestPath=require.resolve('../src/config/supabase');
+require.cache[supabaseTestPath]={id:supabaseTestPath,filename:supabaseTestPath,loaded:true,exports:{}};
 const automationTest=require('../src/services/ownerSalesAutomation.service');
 const atendenteSource=fs.readFileSync('src/services/whatsappAtendente.service.js','utf8');
 if(atendenteSource.indexOf("ownerSalesAutomation.service').analisar")<0||atendenteSource.indexOf("ownerSalesAutomation.service').analisar")>atendenteSource.indexOf("agendaWhatsapp.tentarResponder(mensagem)"))throw Error('Detector de automações precisa rodar antes do fluxo de agenda.');
