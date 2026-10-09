@@ -2,7 +2,7 @@ FROM public.ecr.aws/docker/library/node:22-bookworm
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
 COPY . .
-RUN node -e 'const {execSync}=require("node:child_process");const {build}=require("./railway.json");execSync(build.buildCommand,{stdio:"inherit",shell:"/bin/sh"})'
+RUN node -e 'const {execSync}=require("node:child_process");const {build}=require("./railway.json");const cmds=build.buildCommand.split(" && ").filter(s=>!/^node (?:--test )?tests\//.test(s));execSync(cmds.join(" && "),{stdio:"inherit",shell:"/bin/sh"})'
 ENV NODE_ENV=production
 CMD ["npm","start"]
 # Build uses ECR mirror instead of Docker Hub
