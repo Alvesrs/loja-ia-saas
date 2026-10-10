@@ -12,9 +12,11 @@ async function handle(args,c){
  const store=await checked(await db.from('lojas').select('dono_id').eq('id',args.lojaId).maybeSingle());if(!process.env.SAINTSAI_OWNER_USER_ID||store?.dono_id!==process.env.SAINTSAI_OWNER_USER_ID)return null;
  const flow=require('./ownerSalesOnboarding.service'),t=norm(args.pergunta);let row=await checked(await db.from('saintsai_sales_onboarding').select('*').eq('conversa_id',c.id).eq('owner_store_id',args.lojaId).maybeSingle());
  const paymentRequest=/\bpix\b|\bpagamento\b|(?:[123]|um|dois|tres) centavo|0[,.]0[123]/.test(t);
+ const retryRequest=/(?:manda|mande|envia|envie|mostra|mostre|gera|gerar|reenvia|reenviar).{0,45}(?:de novo|novamente|outra vez|pix|planos?|valores?|precos?)|(?:de novo|novamente|reenvia|reenviar|tenta novamente)|(?:preco|valor).{0,25}(?:teste|centavo)/.test(t);
  const start=/contrat.*teste|cliente.*teste|atualiz.*plano|mudar.*plano|trocar.*plano|\bcomprar\b|\bcontratar\b/.test(t),b=c.briefing;
  const requested=plans(flow).find(p=>t==='testeplano:'+p.codigo||t===p.codigo||t===norm(p.nome)||t==='plano '+p.codigo);
- if(!start&&!requested&&!paymentRequest&&!b.__lab_subscription_select&&!/^(pix|gerar pix|paguei|pagamento|meu plano|acesso|baixar|baixar app)$/.test(t))return null;
+ if(!start&&!requested&&!paymentRequest&&!retryRequest&&!b.__lab_subscription_select&&!/^(pix|gerar pix|paguei|pagamento|meu plano|acesso|baixar|baixar app)$/.test(t))return null;
+ if(retryRequest&&(!row||row.phase==='offer'||row.phase==='active'))return reply('Planos exclusivos do teste autorizado: Básico R$ 0,01, Pro R$ 0,02 e Ilimitado R$ 0,03. Escolha o plano para continuar.',menu(flow));
  if(row?.phase==='awaiting_payment'){
   if(await flow.paid(row)){row=await checked(await db.from('saintsai_sales_onboarding').update({phase:'active',updated_at:new Date().toISOString()}).eq('id',row.id).eq('phase','awaiting_payment').select('*').maybeSingle())||row;}
   else if(t==='cancelar pix'){
