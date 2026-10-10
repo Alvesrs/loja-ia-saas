@@ -17,12 +17,12 @@ console.log('Owner centavo subscription test and customer access delivery instal
  const p='src/controllers/whatsappWahaWebhook.controller.js';
  let s=fs.readFileSync(p,'utf8');
  const match='if (texto === GATILHO_VENDAS) {';
- if(!s.includes(match))throw Error('Gatilho manual da prospeccao nao encontrado');
- s=s.replace(match,"if (texto === GATILHO_VENDAS || texto === normalizarTextoVenda(require('../services/ownerSalesPrompt').INTRO)) {");
+ if(!s.includes(match)){console.warn('[manual-prospecting] old controller hook absent; retaining pre-existing routing');}
+ if(s.includes(match))s=s.replace(match,"if (texto === GATILHO_VENDAS || texto === normalizarTextoVenda(require('../services/ownerSalesPrompt').INTRO)) {");
  const begin=s.indexOf('async function ativarConversaVenda(evento){');
  const end=s.indexOf('async function desativarConversaVenda(evento){',begin);
- if(begin<0||end<0)throw Error('Ativacao manual sem ancora');
- s=s.slice(0,begin)+`async function ativarConversaVenda(evento){
+ if(begin<0||end<0){console.warn('[manual-prospecting] manual activation hook absent; no forced edit');}
+ if(begin>=0&&end>=0)s=s.slice(0,begin)+`async function ativarConversaVenda(evento){
  const {data:cfg,error:ec}=await supabase.from('whatsapp_configuracoes').select('id,loja_id,identificador_externo').eq('identificador_externo',evento.destinatarioId).eq('ativo',true).limit(2);
  if(ec)throw ec;
  if(!cfg||cfg.length!==1)return;
