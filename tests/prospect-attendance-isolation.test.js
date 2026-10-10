@@ -21,7 +21,7 @@ function fixture({owner=true,active=true,marker='prospeccao:iniciado:1',model='O
   './ownerSellerTest.service':{isTest:()=>false,since:async()=>null},
   './asaas.service':{},'./assinaturas.service':{},
   './galeriaAtendimento.service':{async tentar(){calls.media++;return null;}},'./videoAtendimento.service':{async tentarVideo(){calls.media++;return null;}},'./atendimentoHibrido.service':{async tentarFoto(){calls.media++;return null;}},
-  './acoesWhatsapp.service':{async daAgenda(){return null;}}
+  './acoesWhatsapp.service':{escolhas(){return null;},async daAgenda(){return null;}}
  };
  function load(name){if(cache[name])return cache[name];const m={exports:{}};cache[name]=m.exports;const filename=path.join(__dirname,'../src/services',name+'.service.js');const real=fs.existsSync(filename)?filename:path.join(__dirname,'../src/services',name+'.js');vm.runInNewContext(fs.readFileSync(real,'utf8'),{module:m,exports:m.exports,require:n=>deps[n]||(/^\.\//.test(n)?load(n.slice(2).replace(/\.service$/,'')):require(n)),process:{env:{SAINTSAI_OWNER_USER_ID:'owner',SUPABASE_SERVICE_ROLE_KEY:'isolated-dummy-key'}},Buffer,Date,Intl,console:{log(){},error(){}},fetch(){calls.external++;throw Error('NETWORK FORBIDDEN IN ISOLATED TEST');}},{filename:real});cache[name]=m.exports;return m.exports;}
  const respond=texto=>load('whatsappAtendente').responderMensagemWhatsapp({canal:'whatsapp',lojaId:STORE,configuracaoId:CFG,contato:CONTACT,idExterno:'isolated-'+Math.random(),texto});

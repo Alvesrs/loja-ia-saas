@@ -15,7 +15,7 @@ async function checked(result){if(result.error)throw result.error;return result.
 async function conversation(lojaId,contato){
  const store=await checked(await db.from('lojas').select('id,dono_id').eq('id',lojaId).maybeSingle());
  if(!process.env.SAINTSAI_OWNER_USER_ID||store?.dono_id!==process.env.SAINTSAI_OWNER_USER_ID)return null;
- const c=await checked(await db.from('saintsai_sales_conversations').select('id,ativo,ultimo_evento_id,briefing,prompt_rascunho,lead_status').eq('loja_id',lojaId).eq('contato',contato).eq('ativo',true).limit(1).maybeSingle());
+ const c=await checked(await db.from('saintsai_sales_conversations').select('id,ativo,ultimo_evento_id,briefing,prompt_rascunho,lead_status,briefing_step').eq('loja_id',lojaId).eq('contato',contato).eq('ativo',true).limit(1).maybeSingle());
  return c&&/^prospeccao:(aberto|iniciado):/.test(c.ultimo_evento_id||'')?c:null;
 }
 async function get(id){return checked(await db.from(TABLE).select('*').eq('conversa_id',id).maybeSingle());}
@@ -65,6 +65,7 @@ function usageHelp(input){
 }
 async function handle(args){
  const c=await conversation(args.lojaId,args.contato);if(!c)return {handled:false};
+ if(require('./ownerSellerTest.service').isTest(c))return require('./ownerSellerTest.service').handle(args,c);
  const input=text(args.pergunta).toLowerCase();let row=await get(c.id);
  if(/^(\/parar|parar|sair|cancelar)$/.test(input)||recusou(input)){
   if(row)await change(row,'declined');await checked(await db.from('saintsai_sales_conversations').update({ativo:false,atualizado_em:now()}).eq('id',c.id));
@@ -72,7 +73,7 @@ async function handle(args){
  }
  const planoValido=available().some(p=>input===p.codigo.toLowerCase()||input===p.nome.toLowerCase()||input==='plano '+p.codigo.toLowerCase()||input==='quero '+p.codigo.toLowerCase());
  const pagamentoValido=row?.phase==='payment_method'&&/^(pix|quero pix|cart[aã]o|cart[aã]o de cr[eé]dito|quero cart[aã]o)$/.test(input);
- if(!relacionadaAoSaintsai(input)&&!planoValido&&!pagamentoValido)return {handled:true,response:null};
+ if(require('./ownerSalesPolicy').foraDoEscopo(input)||(!args.contextoComercial&&!require('./ownerSalesPolicy').respostaBriefingValida(args.pergunta,c)&&!relacionadaAoSaintsai(input)&&!planoValido&&!pagamentoValido))return {handled:true,response:null};
  if(row?.phase==='briefing'){if(c.lead_status!=='prompt_pronta')return {handled:false};row=await change(row,'offer');}
  if(!row&&c.lead_status==='prompt_pronta')row=await ensure(c,args.lojaId);
  if(!row)return {handled:false};
@@ -92,7 +93,7 @@ async function handle(args){
  else response='Sua contratação está sendo preparada. Aguarde um instante.';
  return {handled:true,response};
 }
-async function after(args,response){if(response===null||response===undefined||String(response).trim()==='')return response;const c=await conversation(args.lojaId,args.contato);if(c?.lead_status==='prompt_pronta'){const row=await ensure(c,args.lojaId);if(row?.phase==='briefing')await change(row,'offer');return offer();}return response;}
+async function after(args,response){if(response===null||response===undefined||String(response).trim()==='')return response;const c=await conversation(args.lojaId,args.contato);if(require('./ownerSellerTest.service').isTest(c))return c.lead_status==='prompt_pronta'?require('./ownerSellerTest.service').offer():response;if(c?.lead_status==='prompt_pronta'){const row=await ensure(c,args.lojaId);if(row?.phase==='briefing')await change(row,'offer');return offer();}return response;}
 async function list(usuario,lojaId){
  if(!process.env.SAINTSAI_OWNER_USER_ID||usuario?.id!==process.env.SAINTSAI_OWNER_USER_ID)throw Object.assign(Error('Acesso restrito ao dono.'),{status:403});
  const store=await checked(await db.from('lojas').select('dono_id').eq('id',lojaId).maybeSingle());if(store?.dono_id!==usuario.id)throw Object.assign(Error('Escolha uma loja da sua conta.'),{status:403});
