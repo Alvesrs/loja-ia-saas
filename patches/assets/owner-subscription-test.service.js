@@ -11,6 +11,8 @@ async function handle(args,c){
  if(!phones.has(args.contato)||c.briefing?.__lab_subscription_test!==true)return null;
  const store=await checked(await db.from('lojas').select('dono_id').eq('id',args.lojaId).maybeSingle());if(!process.env.SAINTSAI_OWNER_USER_ID||store?.dono_id!==process.env.SAINTSAI_OWNER_USER_ID)return null;
  const flow=require('./ownerSalesOnboarding.service'),t=norm(args.pergunta);let row=await checked(await db.from('saintsai_sales_onboarding').select('*').eq('conversa_id',c.id).eq('owner_store_id',args.lojaId).maybeSingle());
+ const menuRequest=/(?:planos?|pre[cç]os?|valores?|op[cç][oõ]es)/.test(t)&&/(?:mostra|mostrar|manda|mande|envia|envie|quero|qual|ver|lista|teste|centavo|novamente|de novo)/.test(t);
+ if(menuRequest)return reply('Planos de TESTE autorizados para este número:\nBásico R$ 0,01\nPro R$ 0,02\nIlimitado R$ 0,03\nEsses valores não são os preços comerciais. Se houver um Pix pendente, ele não será duplicado.',menu(flow));
  const paymentRequest=/\bpix\b|\bpagamento\b|(?:[123]|um|dois|tres) centavo|0[,.]0[123]/.test(t);
  const retryRequest=/(?:manda|mande|envia|envie|mostra|mostre|gera|gerar|reenvia|reenviar).{0,45}(?:de novo|novamente|outra vez|pix|planos?|valores?|precos?)|(?:de novo|novamente|reenvia|reenviar|tenta novamente)|(?:preco|valor).{0,25}(?:teste|centavo)/.test(t);
  const start=/contrat.*teste|cliente.*teste|atualiz.*plano|mudar.*plano|trocar.*plano|\bcomprar\b|\bcontratar\b/.test(t),b=c.briefing;
