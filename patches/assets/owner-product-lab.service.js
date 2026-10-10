@@ -11,6 +11,7 @@ const reply=response=>({handled:true,response});
 async function handle(args,c){
  if(!await trusted(args,c))return {handled:false};
  const input=norm(args.pergunta),b=c.briefing||{};
+ if(/pix/.test(input)&&/real|banco|reconhec/.test(input)&&/teste|testar|verificar|conferir/.test(input)){const pix=await require('./ownerRealPixTest.service').handle(args,c);if(pix)return pix;}
  if(/segredo|api.?key|token|senha.*(dono|admin)|ignora.*(regra|instruc)|cobranca real|conta real|agendamento real|acesso.*outr/.test(input))return reply('O laboratório demonstra funções do produto com dados fictícios. Não acessa segredos, dados de outras contas nem executa ações reais.');
  if(/^(sair|parar|\/parar|cancelar)$/.test(input)){await save(c,{...b,__lab_phase:null,__test_phase:null,__lab_free:false,__lab_history:[],__lab_instructions:null});return reply('Demonstração encerrada. Continuo como seu assistente de testes. Qual função você quer testar agora?');}
  if(/foto|imagem|video/.test(input)&&/manda|mande|envia|envie|enviar|mostra|mostre|quero ver/.test(input)){const gallery=await require('./ownerLabGallery.service').tentar(args,c);if(gallery)return gallery;}
@@ -41,5 +42,5 @@ async function handle(args,c){
  if(/cancelar.*agenda/.test(input))return reply('🧪 Na demonstração o agente identifica o agendamento, pede confirmação e então cancela. Nenhuma reserva real foi alterada.');
  return reply('Sou seu assistente de testes do SaintsAI. Posso demonstrar venda, planos, pagamento, agendamento, atendentes, galeria, WhatsApp e botões. Diga qual função quer testar ou o comportamento que quer conferir.');
 }
-async function tryHandle(args){const {data,error}=await db.from('saintsai_sales_conversations').select('id,ativo,ultimo_evento_id,briefing').eq('loja_id',args.lojaId).eq('contato',args.contato).eq('ativo',true).limit(1).maybeSingle();if(error)throw error;return handle(args,data);}
+async function tryHandle(args){const {data,error}=await db.from('saintsai_sales_conversations').select('id,ativo,ultimo_evento_id,briefing,atualizado_em').eq('loja_id',args.lojaId).eq('contato',args.contato).eq('ativo',true).limit(1).maybeSingle();if(error)throw error;return handle(args,data);}
 module.exports={INTRO,signature,trusted,handle,tryHandle};
