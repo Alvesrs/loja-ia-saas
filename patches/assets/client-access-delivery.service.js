@@ -1,5 +1,5 @@
 const db=require('../config/supabase');
-const base='https://backend-prod-production-f338.up.railway.app';
+const base=String(process.env.PUBLIC_BASE_URL||'https://saintsai-cliente.up.railway.app').replace(/\\/$/,'');
 function links(){return 'Acesso ao SaintsAI Cliente: '+base+'/cliente-login.html\nComo acessar e baixar para Android: '+base+'/cliente-acesso.html';}
 async function notify(payload){if(!['PAYMENT_RECEIVED','PAYMENT_CONFIRMED','CHECKOUT_PAID'].includes(payload?.event))return;
  const qr=payload?.payment?.pixQrCodeId,checkout=payload?.checkout?.id||payload?.payment?.checkoutSession;if(!qr&&!checkout)return;
