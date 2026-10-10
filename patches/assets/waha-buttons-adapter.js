@@ -51,9 +51,9 @@ function criarAdaptadorWaha(opcoes = {}) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        if(pedido.interativo?.type==='button'){
-          const options=pedido.interativo.action.buttons;
-          const buttons=await fetchFn(baseUrl+'/api/sendList',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/json','X-Api-Key':apiKey},body:JSON.stringify({session,chatId,message:{title:'Escolha uma opção',description:pedido.texto,button:'Escolher opção',sections:[{title:'Opções',rows:options.map(b=>({title:b.reply.title,rowId:require('../../mensagemInterativa.service').lerId(b.reply.id)||b.reply.title,description:null}))}]}}),signal:controller.signal});
+        if(['button','list'].includes(pedido.interativo?.type)){
+          const options=pedido.interativo.type==='button'?pedido.interativo.action.buttons.map(b=>({title:b.reply.title,id:b.reply.id})):pedido.interativo.action.sections[0].rows;
+          const buttons=await fetchFn(baseUrl+'/api/sendList',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/json','X-Api-Key':apiKey},body:JSON.stringify({session,chatId,message:{title:'Escolha uma opção',description:pedido.texto,button:'Escolher opção',sections:[{title:'Opções',rows:options.map(b=>({title:b.title,rowId:require('../../mensagemInterativa.service').lerId(b.id),description:b.description||null}))}]}}),signal:controller.signal});
           let receipt=null;try{receipt=await buttons.json();}catch{}
           if(buttons.ok)return criarResultadoEnvio({provedor:NOME_DO_ADAPTADOR,status:STATUS_ENVIO.enviado,idExterno:extrairId(receipt)});
           // Only a definite unsupported/rejected format permits a text menu fallback.

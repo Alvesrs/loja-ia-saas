@@ -1,0 +1,12 @@
+const fs=require('node:fs');
+for(const [asset,target] of [['owner-sales-onboarding.service.js','ownerSalesOnboarding.service.js'],['acoesWhatsapp.service.js','acoesWhatsapp.service.js'],['commerce-catalog.service.js','commerceCatalog.service.js']])fs.copyFileSync('patches/assets/'+asset,'src/services/'+target);
+fs.copyFileSync('patches/assets/waha-buttons-adapter.js','src/services/providers/whatsapp/adaptadorWaha.js');
+let s=fs.readFileSync('src/services/whatsappAtendente.service.js','utf8');
+const anchor='  const respostaAgenda = vendaAtiva ? null : await agendaWhatsapp.tentarResponder(mensagem);';
+if(!s.includes(anchor))throw Error('Catalog routing anchor missing');
+s=s.replace(anchor,"  if(!vendaAtiva){const catalog=await require('./commerceCatalog.service').tentar(mensagem);if(catalog)return Object.freeze({lojaId,contato,idExterno,pergunta:texto,...catalog});}\n"+anchor);
+const result='return Object.freeze({ lojaId, contato, idExterno, pergunta: texto, resposta, ...(vendaAtiva';
+if(!s.includes(result))throw Error('Seller menu anchor missing');
+s=s.replace(result,"return Object.freeze({ lojaId, contato, idExterno, pergunta: texto, resposta, ...(vendaAtiva?{interativo:await require('./ownerSalesOnboarding.service').menu({lojaId,contato,pergunta:texto},resposta)}:{}), ...(vendaAtiva");
+fs.writeFileSync('src/services/whatsappAtendente.service.js',s);
+console.log('Menus de catálogo, planos com franquia e pagamento habilitados.');

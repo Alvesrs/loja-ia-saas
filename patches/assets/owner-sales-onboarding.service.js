@@ -9,7 +9,8 @@ const now=()=>new Date().toISOString();
 const text=v=>String(v||'').trim().slice(0,3000);
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v/100);
 function available(){return plans.listarPlanos().filter(p=>p.vendavel&&Number.isInteger(p.precoMensalCentavos)&&p.precoMensalCentavos>0);}
-function offer(){const p=available();return p.length?'Seu agente está preparado. Escolha o plano mensal:\n'+p.map(x=>x.nome+' ('+x.codigo+'): '+money(x.precoMensalCentavos)+'/mês · '+x.descricao).join('\n')+'\nResponda com o nome do plano para confirmar a contratação. Depois você escolhe Pix ou cartão.':'Seu agente está preparado. O responsável precisa confirmar os preços dos planos antes da contratação. Não será gerada nenhuma cobrança agora.';}
+function quota(p){return p.limiteMensagensMes===null?'Respostas ilimitadas, sujeitas à política de uso justo':new Intl.NumberFormat('pt-BR').format(p.limiteMensagensMes)+' respostas mensais';}
+function offer(){const p=available();return p.length?'Seu agente está preparado. Escolha o plano mensal:\n'+p.map(x=>x.nome+' ('+x.codigo+'): '+money(x.precoMensalCentavos)+'/mês · '+quota(x)+' · '+x.descricao).join('\n')+'\nResponda com o nome do plano para confirmar a contratação. Depois você escolhe Pix ou cartão.':'Seu agente está preparado. O responsável precisa confirmar os preços dos planos antes da contratação. Não será gerada nenhuma cobrança agora.';}
 async function checked(result){if(result.error)throw result.error;return result.data;}
 async function conversation(lojaId,contato){
  const store=await checked(await db.from('lojas').select('id,dono_id').eq('id',lojaId).maybeSingle());
@@ -100,4 +101,12 @@ async function list(usuario,lojaId){
  return {vendas:rows||[],planos:available().map(p=>({codigo:p.codigo,nome:p.nome,valor_centavos:p.precoMensalCentavos})),pagamento_pronto:billing.configurado()&&billing.webhookConfigurado()&&billing.ambiente()==='production'};
 }
 async function remember(usuario,{lojaId,telefone,prospect}={}){if(!prospect||usuario?.id!==process.env.SAINTSAI_OWNER_USER_ID)return;const owner=require('./ownerProspecting.service');const stores=await owner.minhasLojas(usuario);const store=stores.find(x=>x.id===lojaId);if(!store)return;const cfg=await checked(await db.from('whatsapp_configuracoes').select('identificador_externo').eq('loja_id',lojaId).eq('ativo',true).limit(1).maybeSingle());if(!cfg)return;const contato=await owner.chatPorTelefone(cfg.identificador_externo,telefone);const c=await conversation(lojaId,contato);if(!c)return;const safe={nome:text(prospect.nome).slice(0,120),categoria:text(prospect.categoria).slice(0,80),cidade:text(prospect.cidade).slice(0,100)};const existing=await get(c.id);if(existing)return;const saved=await db.from(TABLE).insert({conversa_id:c.id,owner_store_id:lojaId,phase:'briefing',prospect:safe});if(saved.error&&saved.error.code!=='23505')throw saved.error;}
-module.exports={remember,handle,after,list,available,offer,conversation,provision,charge,paid};
+async function menu(args,response){
+ if(typeof response!=='string')return null;
+ const choices=require('./acoesWhatsapp.service').escolhas;
+ if(response===offer()&&available().length)return choices(available().map(p=>({value:p.codigo,title:p.nome,description:money(p.precoMensalCentavos)+'/mês · '+quota(p),forceList:true})));
+ const c=await conversation(args.lojaId,args.contato);if(!c||c.briefing?.__saintsai_test)return null;
+ const row=await get(c.id);if(row?.phase==='payment_method'&&/Como deseja pagar|Responda PIX/.test(response))return choices([{value:'pix',title:'Gerar Pix',description:'Pagar 1 mês, sem renovação automática',forceList:true},{value:'cartão',title:'Cartão',description:'Assinatura mensal recorrente',forceList:true}]);
+ return null;
+}
+module.exports={remember,handle,after,list,available,offer,conversation,provision,charge,paid,menu,quota};
