@@ -31,7 +31,7 @@ async function analisar({lojaId,contato,pergunta}){
   const marcador='prospeccao:iniciado:'+Date.now()+':autoatendimento';
   const {data:claim,error:claimError}=await supabase.from('saintsai_sales_conversations').update({ultimo_evento_id:marcador,atualizado_em:new Date().toISOString()}).eq('id',data.id).eq('ultimo_evento_id',data.ultimo_evento_id).eq('ativo',true).select('id').maybeSingle();
   if(claimError)throw claimError;if(!claim)return {silencio:true};
-  return {resposta:'Vi que vocês já têm atendimento automático. Ele resolve bem as dúvidas dos clientes? O SaintsAI pode continuar a conversa com os dados do negócio, além de enviar um link.',prospectAutomation:true};
+  return {resposta:'O SaintsAI pode continuar o atendimento enquanto vocês estão ocupados: responde com os dados do negócio e, com a agenda configurada, pode concluir um agendamento no WhatsApp. Posso mostrar um exemplo para o responsável?',prospectAutomation:true};
  }
  return null;
 }
