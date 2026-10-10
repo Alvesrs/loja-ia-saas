@@ -5,11 +5,18 @@ async function save(c,b){const {error}=await db.from('saintsai_sales_conversatio
 function start(input){const t=norm(input);return /simula|fictici|encena|faz de conta/.test(t)&&/cliente|compr|atendimento|agente|estabelecimento|do zero|abordagem/.test(t)||/\b(comecar|comece|comeca|reiniciar|reinicie).*(do zero|simulacao|atendimento)/.test(t);}
 async function handle(args,c){const b=c.briefing||{},input=String(args.pergunta||'').slice(0,6000);
  if(start(input)){
-  const next={...b,__lab_free:true,__lab_mode:'free',__lab_phase:null,__test_phase:null,__lab_instructions:input,__lab_history:[]};
+  const next={...b,__lab_free:true,__lab_mode:'free',__lab_choice:null,__lab_phase:null,__test_phase:null,__lab_instructions:input,__lab_history:[]};
   if(/prospeccao|abordagem|primeira mensagem/.test(norm(input))){const response=require('./ownerSalesPrompt').INTRO;next.__lab_history=[{role:'assistant',content:response}];await save(c,next);return{handled:true,response};}
   await save(c,next);return respond(args,c,next,input);
  }
  if(!b.__lab_free)return null;
+ const flow=require('./ownerSalesOnboarding.service'),choices=require('./acoesWhatsapp.service').escolhas;
+ if(b.__lab_choice==='plan'){
+  const p=flow.available().find(p=>[norm(p.codigo),norm(p.nome),'plano '+norm(p.codigo)].includes(norm(input)));
+  if(p){const response='🧪 Plano '+p.nome+' selecionado na simulação. Escolha como deseja pagar. Nenhuma conta ou cobrança real será criada.';await save(c,{...b,__lab_choice:'payment',__lab_plan:p.codigo});return{handled:true,response,interativo:choices([{value:'pix',title:'Gerar Pix',description:'Pagamento fictício de 1 mês',forceList:true},{value:'cartão',title:'Cartão',description:'Assinatura fictícia mensal',forceList:true}])};}
+ }
+ if(b.__lab_choice==='payment'&&/^(pix|cartao|gerar pix)$/.test(norm(input))){const response='🧪 '+(/pix/.test(norm(input))?'Pix':'Cartão')+' escolhido. Pagamento e ativação simulados no plano '+b.__lab_plan+'. Nenhuma cobrança real ou código Pix pagável foi gerado.';await save(c,{...b,__lab_choice:null,__lab_history:[...(b.__lab_history||[]),{role:'user',content:input},{role:'assistant',content:response}].slice(-16)});return{handled:true,response};}
+
  if(/foto|imagem|video/.test(norm(input))&&/consegue|pode|possivel|funciona|capacidade/.test(norm(input))){
   const response='Sim! O SaintsAI consegue enviar fotos e vídeos já cadastrados na Galeria da sua loja pelo WhatsApp. Você adiciona os arquivos com descrição e etiquetas, como “camisas oversized”, e o agente busca o material correspondente ao pedido do cliente. Ele envia arquivos existentes; não cria vídeos novos. Nesta conversa estamos simulando, sem enviar arquivos de outras empresas. Você já tem fotos ou vídeos dessas camisas?';
   await save(c,{...b,__lab_history:[...(b.__lab_history||[]),{role:'user',content:input.slice(0,2000)},{role:'assistant',content:response}].slice(-16)});return{handled:true,response};
@@ -19,7 +26,13 @@ async function handle(args,c){const b=c.briefing||{},input=String(args.pergunta|
 async function respond(args,c,b,input){const llm=require('./llm.service');if(!llm.estaConfigurado())return{handled:true,response:'A IA de simulação está indisponível neste momento. Tente novamente; o cenário continua salvo e nenhuma ação real foi executada.'};
  let response;try{response=await llm.gerarResposta({systemPrompt:SYSTEM,contexto:{cenario:b.__lab_instructions,planos:require('./ownerSalesOnboarding.service').offer()},historico:(b.__lab_history||[]).slice(-16),pergunta:input});}catch{return{handled:true,response:'Não consegui responder à simulação agora. Tente novamente; nenhuma ação real foi executada.'};}
  if(typeof response!=='string'||!response.trim()||/^\[[A-Z_ ]+\]$/.test(response.trim()))return{handled:true,response:'Pode me orientar sobre o próximo passo da simulação ou pedir para começar do zero.'};
- response=response.trim().slice(0,3000);await save(c,{...b,__lab_history:[...(b.__lab_history||[]),{role:'user',content:input.slice(0,2000)},{role:'assistant',content:response}].slice(-16)});
- return{handled:true,response,...(/(?:manda|mande|envia|envie|quero).{0,45}(?:audio|voz)/.test(norm(input))?{voiceRequested:true}:{})};
+ response=response.trim().slice(0,3000);let interativo=null,choice=b.__lab_choice;
+ const flow=require('./ownerSalesOnboarding.service'),plans=flow.available();
+ if(plans.length&&/escolh|selecion|qual.*plano/i.test(response)&&plans.every(p=>norm(response).includes(norm(p.nome)))){
+  response='🧪 '+flow.offer().replace('Responda com o nome do plano para confirmar a contratação. Depois você escolhe Pix ou cartão.','Toque em Escolher opção e selecione o plano. Depois você escolhe Pix ou cartão. Tudo é fictício.');
+  interativo=require('./acoesWhatsapp.service').escolhas(plans.map(p=>({value:p.codigo,title:p.nome,description:new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(p.precoMensalCentavos/100)+'/mês · '+flow.quota(p),forceList:true})));choice='plan';
+ }else{const rows=[...response.matchAll(/^\s*(\d{1,2})[.)]\s+(.+)$/gm)];if(rows.length>=2&&rows.length<=10){interativo=require('./acoesWhatsapp.service').escolhas(rows.map(r=>({value:r[2].replace(/\*+/g,'').slice(0,120),title:r[2].replace(/\*+/g,'').slice(0,24),forceList:true})));}}
+ await save(c,{...b,__lab_choice:choice,__lab_history:[...(b.__lab_history||[]),{role:'user',content:input.slice(0,2000)},{role:'assistant',content:response}].slice(-16)});
+ return{handled:true,response,...(interativo?{interativo}:{}),...(/(?:manda|mande|envia|envie|quero).{0,45}(?:audio|voz)/.test(norm(input))?{voiceRequested:true}:{})};
 }
 module.exports={handle,start,SYSTEM};
