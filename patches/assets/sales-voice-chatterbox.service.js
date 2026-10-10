@@ -61,7 +61,7 @@ async function enviarWaha(session,contato,data){
     throw new Error('waha_voice_http_'+r.status+(detalhe?('_'+detalhe):''));
   }
   const receipt=await r.json();
-  if(!receipt?.id)throw Error('waha_voice_envio_nao_confirmado');
+  if(!require('./providers/whatsapp/adaptadorWaha').extrairId(receipt))throw Error('waha_voice_envio_nao_confirmado');
   return true;
 }
 
