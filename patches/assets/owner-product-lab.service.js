@@ -11,7 +11,7 @@ const reply=response=>({handled:true,response});
 async function handle(args,c){
  if(!await trusted(args,c))return {handled:false};
  const input=norm(args.pergunta),b=c.briefing||{};
- if(/pix/.test(input)&&/real|banco|reconhec/.test(input)&&/teste|testar|verificar|conferir/.test(input)){const pix=await require('./ownerRealPixTest.service').handle(args,c);if(pix)return pix;}
+ if(require('./ownerRealPixTest.service').requested(input)){const pix=await require('./ownerRealPixTest.service').handle(args,c);if(pix)return pix;}
  if(/segredo|api.?key|token|senha.*(dono|admin)|ignora.*(regra|instruc)|cobranca real|conta real|agendamento real|acesso.*outr/.test(input))return reply('O laboratório demonstra funções do produto com dados fictícios. Não acessa segredos, dados de outras contas nem executa ações reais.');
  if(/^(sair|parar|\/parar|cancelar)$/.test(input)){await save(c,{...b,__lab_phase:null,__test_phase:null,__lab_free:false,__lab_booking_phase:null,__lab_history:[],__lab_instructions:null});return reply('Demonstração encerrada. Continuo como seu assistente de testes. Qual função você quer testar agora?');}
  if((/simul|testar|teste|demonstr|fictici/.test(input)&&/agend|barbearia|horario/.test(input))||b.__lab_booking_phase){const booking=await require('./ownerBookingDemo.service').tentar(args,c);if(booking)return booking;}
