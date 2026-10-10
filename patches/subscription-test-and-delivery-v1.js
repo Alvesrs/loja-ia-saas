@@ -41,3 +41,51 @@ console.log('Owner centavo subscription test and customer access delivery instal
  require('node:child_process').execFileSync(process.execPath,['--check',p]);
  console.log('[manual-prospecting] abordagem atual e antiga ativam atendimento sem envio automatizado');
 }
+
+{
+ const fs=require('node:fs'),cp=require('node:child_process');
+ const p='src/controllers/whatsappWahaWebhook.controller.js';
+ let c=fs.readFileSync(p,'utf8');
+ const opening='  if (evento.fromMe === true) {';
+ const close="  const chaveId={provedor:'waha',idExterno:evento.idExterno};";
+ const a=c.indexOf(opening),z=c.indexOf(close,a);
+ if(a<0||z<0)throw Error('Gatilho WAHA fromMe ausente; verificar webhook');
+ const replacement=`  if (evento.fromMe === true) {
+    try {
+      // Mensagens enviadas pela API nao podem ativar ou pausar o agente.
+      if(String(evento.source||'').toLowerCase()==='api')return res.status(200).json({status:'saida_api_ignorada'});
+      const normal=t=>String(t||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/\\s+/g,' ').trim();
+      const {INTRO}=require('../services/ownerSalesPrompt');
+      const abordagem=normal(evento.texto)===normal(INTRO)||normal(evento.texto)===normal(GATILHO_VENDAS);
+      const db=require('../config/supabase');
+      const {data:configs,error:ce}=await db.from('whatsapp_configuracoes').select('id,loja_id').eq('identificador_externo',evento.destinatarioId).eq('ativo',true).limit(2);
+      if(ce)throw ce;
+      if(!configs||configs.length!==1)return res.status(200).json({status:'sessao_nao_unica'});
+      const {data:loja,error:le}=await db.from('lojas').select('dono_id').eq('id',configs[0].loja_id).maybeSingle();
+      if(le)throw le;
+      if(!process.env.SAINTSAI_OWNER_USER_ID||loja?.dono_id!==process.env.SAINTSAI_OWNER_USER_ID)return res.status(200).json({status:'fora_da_loja_do_dono'});
+      if(abordagem){
+        const now=new Date().toISOString();
+        const record={session_id:evento.destinatarioId,contato:evento.contato,loja_id:configs[0].loja_id,ativo:true,ultimo_evento_id:'prospeccao:iniciado:'+Date.now(),atualizado_em:now};
+        const {error}=await db.from('saintsai_sales_conversations').upsert(record,{onConflict:'session_id,contato'});
+        if(error)throw error;
+        console.log('[waha.sales] ativado_por_abordagem_manual');
+        return res.status(200).json({status:'ativado_por_abordagem_manual'});
+      }
+      // Qualquer outra mensagem manual pausa a conversa do vendedor, inclusive /parar.
+      const {error}=await db.from('saintsai_sales_conversations').update({ativo:false,atualizado_em:new Date().toISOString()}).eq('session_id',evento.destinatarioId).eq('contato',evento.contato);
+      if(error)throw error;
+      console.log('[waha.sales] pausado_por_mensagem_manual');
+      return res.status(200).json({status:'pausado_por_mensagem_manual'});
+    }catch(err){
+      console.error('[waha.sales] erro_controle_manual',err?.message||err);
+      return res.status(500).json({erro:'Nao foi possivel atualizar o atendimento manual'});
+    }
+  }
+
+`;
+ c=c.slice(0,a)+replacement+c.slice(z);
+ fs.writeFileSync(p,c);
+ cp.execFileSync(process.execPath,['--check',p]);
+ console.log('[manual-prospecting] qualquer contato, ativacao por abordagem, pausa por intervencao manual');
+}
