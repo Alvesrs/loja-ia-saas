@@ -1,0 +1,3 @@
+function crc16(s){let crc=0xffff;for(const b of Buffer.from(s,'utf8')){crc^=b<<8;for(let i=0;i<8;i++)crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;crc&=0xffff;}return crc.toString(16).toUpperCase().padStart(4,'0');}
+function clean(response){if(typeof response?.resposta!=='string')return response;const lines=response.resposta.split(/\r?\n/);for(const line of lines){const p=line.trim();if(p.startsWith('000201')&&p.length>=40&&p.length<=2048&&/6304[0-9A-Fa-f]{4}$/.test(p)&&crc16(p.slice(0,-4))===p.slice(-4).toUpperCase())return Object.freeze({...response,resposta:p,voiceRequested:false});}return response;}
+module.exports={clean,crc16};

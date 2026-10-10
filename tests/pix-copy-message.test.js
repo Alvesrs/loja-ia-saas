@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {clean,crc16}=require('../patches/assets/pix-copy-message.service');
+const base='00020126360014br.gov.bcb.pix0114test-key-value5204000053039865406199.005802BR5905TESTE6009SAO PAULO6304',code=base+crc16(base);
+test('valid Pix is sent as the complete code alone, preserving destination metadata',()=>{const r=clean({lojaId:'own',contato:'owner',resposta:'Plano Pro R$199\nCopie e cole:\n'+code+'\nOutras instruções',voiceRequested:true});assert.equal(r.resposta,code);assert.equal(r.contato,'owner');assert.equal(r.voiceRequested,false);});
+test('ordinary messages and fake or truncated Pix remain unchanged',()=>{for(const text of ['Escolha um plano','Código de teste\n000201fake','Copie:\n'+code.slice(0,-1),'Copie:\n'+code.slice(0,-4)+'0000']){const input={resposta:text};assert.equal(clean(input),input);}});
+test('existing standalone valid Pix remains one standalone message',()=>{assert.equal(clean({resposta:code}).resposta,code);});
