@@ -28,7 +28,7 @@ async function handle(args,c){
  if(menuRequest)return reply('Planos de TESTE autorizados para este número:\nBásico R$ 0,01\nPro R$ 0,02\nIlimitado R$ 0,03\nEsses valores não são os preços comerciais. Se houver um Pix pendente, ele não será duplicado.',menu(flow));
  const paymentRequest=/\bpix\b|\bpagamento\b|(?:[123]|um|dois|tres) centavo|0[,.]0[123]/.test(t);
  const retryRequest=/(?:manda|mande|envia|envie|mostra|mostre|gera|gerar|reenvia|reenviar).{0,45}(?:de novo|novamente|outra vez|pix|planos?|valores?|precos?)|(?:de novo|novamente|reenvia|reenviar|tenta novamente)|(?:preco|valor).{0,25}(?:teste|centavo)/.test(t);
- const start=/contrat.*teste|cliente.*teste|atualiz.*plano|mudar.*plano|trocar.*plano|\bcomprar\b|\bcontratar\b/.test(t),b=c.briefing;
+ const start=/contrat.*teste|cliente.*teste|atualiz.*plano|mudar.*plano|trocar.*plano|\bcomprar\b|\bcontratar\b/.test(t);
  const requested=plans(flow).find(p=>t==='testeplano:'+p.codigo||t===p.codigo||t===norm(p.nome)||t==='plano '+p.codigo);
  if(!start&&!requested&&!paymentRequest&&!retryRequest&&!b.__lab_subscription_select&&!/^(pix|gerar pix|paguei|pagamento|meu plano|acesso|baixar|baixar app)$/.test(t))return null;
  if(retryRequest&&(!row||row.phase==='offer'||row.phase==='active'))return reply('Planos exclusivos do teste autorizado: Básico R$ 0,01, Pro R$ 0,02 e Ilimitado R$ 0,03. Escolha o plano para continuar.',menu(flow));
