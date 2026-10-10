@@ -95,7 +95,7 @@ writeLines('src/services/asaasAgendamentoPix.service.js',[
 "}",
 "async function criarPixParaAgendamento(ag,servico){",
 "  const apiKey=await sub.obterApiKeyLoja(ag.loja_id),key=await chavePix(apiKey),min=Math.max(5,Math.min(120,Number(process.env.ASAAS_PIX_EXPIRATION_MINUTES||15)));",
-"  const body=await sub.req('/v3/pix/qrCodes/static',{method:'POST',body:{addressKey:key,description:('SaintsAI - '+String(servico.nome||'Agendamento')).slice(0,140),value:Number(Number(ag.valor||0).toFixed(2)),format:'ALL',expirationSeconds:min*60,allowsMultiplePayments:false,externalReference:ext(ag.loja_id,ag.id)}},apiKey);",
+"  const body=await sub.req('/v3/pix/qrCodes/static',{method:'POST',body:{addressKey:key,description:'SaintsAI agendamento',value:Number(Number(ag.valor||0).toFixed(2)),format:'ALL',expirationSeconds:min*60,allowsMultiplePayments:false,externalReference:ext(ag.loja_id,ag.id)}},apiKey);",
 "  if(!body?.id||!body?.payload)throw new Error('asaas_pix_resposta_invalida');const exp=body.expirationDate||new Date(Date.now()+min*60000).toISOString();const qrUrl=body.encodedImage?('data:image/png;base64,'+String(body.encodedImage)):null;",
 "  const {error}=await supabase.from('saintsai_agendamentos').update({pagamento_referencia:String(body.id),pagamento_charge_id:String(body.id),pagamento_qr_text:String(body.payload),pagamento_qr_url:qrUrl,pagamento_expira_em:exp,pagamento_provider_status:'PIX_AGUARDANDO',pagamento_status:'aguardando',status:'pendente',atualizado_em:new Date().toISOString()}).eq('id',ag.id).eq('loja_id',ag.loja_id);if(error)throw error;",
 "  return {qrText:String(body.payload),qrUrl,expiraEm:exp};",
