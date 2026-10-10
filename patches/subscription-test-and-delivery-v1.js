@@ -89,3 +89,37 @@ console.log('Owner centavo subscription test and customer access delivery instal
  cp.execFileSync(process.execPath,['--check',p]);
  console.log('[manual-prospecting] qualquer contato, ativacao por abordagem, pausa por intervencao manual');
 }
+
+{
+ const fs=require('node:fs'),cp=require('node:child_process');
+ const file='src/routes/admin.routes.js';
+ let s=fs.readFileSync(file,'utf8');
+ const original="(process.env.GOOGLE_MAPS_API_KEY?require('../services/mapsProspecting.service'):require('../services/osmProspecting.service')).buscarProspeccao";
+ const fallback="require('../services/prospeccaoFallback.service').buscarProspeccao";
+ if(s.includes(original))s=s.replace(original,fallback);
+ else if(!s.includes(fallback))throw Error('Busca de prospeccao nao localizada para aplicar fallback');
+ fs.writeFileSync(file,s);
+ const service=`const google=require('./mapsProspecting.service');
+ const osm=require('./osmProspecting.service');
+ async function buscarProspeccao(args){
+  if(process.env.GOOGLE_MAPS_API_KEY){
+   try {
+    const result=await google.buscarProspeccao(args);
+    if(Array.isArray(result.leads)&&result.leads.length)return result;
+    const other=await osm.buscarProspeccao(args);
+    return Array.isArray(other.leads)&&other.leads.length?{...other,aviso:'Busca complementar por contatos públicos. '+(other.aviso||'')}:result;
+   }catch(error){
+    if(error?.status===403||error?.status===400)throw error;
+    console.warn('[prospeccao] maps_indisponivel_fallback_osm',error?.message||'indisponivel');
+    try{return await osm.buscarProspeccao(args);}
+    catch(second){console.error('[prospeccao] fallback_indisponivel',second?.message||'erro');throw Object.assign(new Error('As fontes de mapas estão temporariamente indisponíveis. Tente novamente em instantes.'),{status:503});}
+   }
+  }
+  return osm.buscarProspeccao(args);
+ }
+ module.exports={buscarProspeccao};`;
+ fs.writeFileSync('src/services/prospeccaoFallback.service.js',service);
+ cp.execFileSync(process.execPath,['--check',file]);
+ cp.execFileSync(process.execPath,['--check','src/services/prospeccaoFallback.service.js']);
+ console.log('[prospeccao] fallback Google Maps -> OpenStreetMap habilitado');
+}
