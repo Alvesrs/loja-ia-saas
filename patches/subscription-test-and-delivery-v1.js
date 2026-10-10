@@ -123,3 +123,21 @@ console.log('Owner centavo subscription test and customer access delivery instal
  cp.execFileSync(process.execPath,['--check','src/services/prospeccaoFallback.service.js']);
  console.log('[prospeccao] fallback Google Maps -> OpenStreetMap habilitado');
 }
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+let p='src/services/mapsProspecting.service.js',s=fs.readFileSync(p,'utf8');
+const a=s.indexOf(' for(let i=0;i<candidatos.length&&leads.length<10;i+=4){'),b=s.indexOf(' if(unavailable)throw fail(',a);
+if(a<0||b<0)throw Error('Google Maps leads routing not found');
+const block=" for(let i=0;i<candidatos.length&&leads.length<10;i+=4){const batch=await Promise.all(candidatos.slice(i,i+4).map(async lead=>{try{await owner.chatPorTelefone(cfg[0].identificador_externo,lead.telefone);return {...lead,whatsapp_status:'Confirmado na conexão'};}catch(e){if(e.status!==400)unavailable=true;return {...lead,whatsapp_status:'Número público; WhatsApp não confirmado'};}}));leads.push(...batch.filter(Boolean));}\n";
+s=s.slice(0,a)+block+s.slice(b);
+s=s.replace("if(unavailable)throw fail('Não foi possível confirmar os WhatsApps agora. Confira a conexão por QR e tente novamente.');","if(unavailable)console.warn('[prospeccao] WhatsApp não confirmado; contatos públicos mantidos');");
+s=s.replace('Até 10 contatos com WhatsApp confirmado, em ordem de potencial estimado por atividade e avaliações.','Até 10 telefones públicos de estabelecimentos, alguns sem WhatsApp confirmado.');
+fs.writeFileSync(p,s);
+p='src/services/osmProspecting.service.js';s=fs.readFileSync(p,'utf8');
+s=s.replace("if(!session)return lead.whatsapp_publicado||lead.fonte?{...lead,whatsapp_status:'Publicado pela empresa'}:null;","if(!session)return {...lead,whatsapp_status:'Número público; WhatsApp não confirmado'};");
+s=s.replace("if(e.status!==400){unavailable=true;if(lead.whatsapp_publicado||lead.fonte)return{...lead,whatsapp_status:'Publicado; confirmação indisponível agora'};}return null","if(e.status!==400)unavailable=true;return{...lead,whatsapp_status:'Número público; WhatsApp não confirmado'}");
+fs.writeFileSync(p,s);
+for(const file of ['src/services/mapsProspecting.service.js',p])cp.execFileSync(process.execPath,['--check',file]);
+console.log('[prospeccao] telefones públicos preservados mesmo sem confirmação WAHA');
+}
