@@ -14,16 +14,29 @@ async function handle(args,c){
  const b=c.briefing||{};
  const demoPhase=String(b.__owner_sales_demo_phase||'');
  const saveDemo=async(fields)=>{const {error}=await db.from('saintsai_sales_conversations').update({briefing:{...b,...fields},atualizado_em:new Date().toISOString()}).eq('id',c.id);if(error)throw error;};
- const demoStart=/(?:demonstr|simular|simulacao|como funciona|me mostra funcionando|testar atendimento|teste da barbearia)/.test(t);
+ const demoStart=/(?:demonstr|simular|simulacao|como funciona|me mostra funcionando|testar atendimento|teste da barbearia|exemplo de atendimento)/.test(t);
  const accept=/(?:quero contratar|vou contratar|pode contratar|aceito|gostei.*quero|quero comprar|pode mandar os planos|vamos contratar)/.test(t);
- if(demoStart){await saveDemo({__owner_sales_demo_phase:'ask_business'});return reply('Claro! Vou mostrar uma demonstração de atendimento automático para barbearia. Qual o nome da barbearia? Nenhum agendamento ou pagamento real será criado nesta demonstração.');}
- if(demoPhase==='ask_business'){
-   const name=String(args.pergunta||'').trim().slice(0,70);
-   if(!name||name.length<2)return reply('Qual o nome da barbearia para a demonstração?');
-   await saveDemo({__owner_sales_demo_phase:'showcase',__owner_sales_demo_name:name});
-   return reply('Demonstração da '+name+':\\n\\nCliente: Olá, quero cortar o cabelo.\\nAgente: Olá! Bem-vindo à '+name+'. Temos corte social R$ 30, degradê R$ 35 e corte com barba R$ 50 (valores fictícios para esta demonstração). Qual prefere?\\nCliente: Degradê.\\nAgente: Perfeito! Você prefere Ana ou Bruno? E qual horário deseja: 09h, 10h ou 14h?\\nCliente: Bruno às 14h.\\nAgente: Ótimo! Confirma o agendamento? Você pode escolher Pix ou pagamento no local.\\n\\nÉ assim que o SaintsAI atende e organiza pedidos. Gostou da demonstração e quer contratar? Responda \"quero contratar\" para ver os planos de teste exclusivos.');}
- if(accept&&demoPhase==='showcase'){await saveDemo({__owner_sales_demo_phase:'offered',__lab_subscription_select:true});return reply('Ótimo! Para este teste autorizado, os planos são: Básico R$ 0,01, Pro R$ 0,02 e Ilimitado R$ 0,03. Escolha seu plano. Valores normais não se aplicam a esta conversa de teste.',menu(flow));}
- if(demoPhase==='showcase'&&!/(?:pix|pagamento|plano|preco|valor|centavo)/.test(t))return reply('Gostou da demonstração da '+String(b.__owner_sales_demo_name||'barbearia')+'? Responda \"quero contratar\" para ver os planos de teste de R$ 0,01, R$ 0,02 e R$ 0,03.');
+ const yes=/^(?:sim|s|quero|pode|pode sim|claro|ok|pode mostrar|me mostra|mostra|quero ver|manda|envia|pode enviar|com certeza)$/i.test(t);
+ if(demoStart){
+   await saveDemo({__owner_sales_demo_phase:'confirm_image',__owner_sales_demo_name:null});
+   return reply('Quer que eu te mostre como seria um atendimento de exemplo para uma barbearia?');
+ }
+ if(demoPhase==='confirm_image'){
+   if(yes){
+     const media=require('./galeriaMedia.service');
+     const {data,error}=await db.from('saintsai_galeria').select('id,loja_id,tipo,descricao,etiquetas,ativo,storage_bucket,arquivo_path,criado_em').eq('loja_id',args.lojaId).eq('ativo',true).eq('tipo','foto').order('criado_em',{ascending:false}).limit(500);
+     if(error)throw error;
+     const normal=v=>norm(v).replace(/[^a-z0-9 ]+/g,' ').replace(/\\s+/g,' ').trim();
+     const item=(data||[]).find(m=>normal(m.descricao)==='imagem de demonstracao'&&media.seguro(m,args.lojaId));
+     if(!item)return reply('A imagem de demonstração ainda não está cadastrada nesta loja. Cadastre na Galeria uma foto com a descrição exata "Imagem de demonstração". Não vou enviar outra foto no lugar.');
+     await saveDemo({__owner_sales_demo_phase:'showcase'});
+     return {...reply('Esta imagem mostra como um cliente seria atendido pelo WhatsApp. Depois de ver, responda "quero contratar" para escolher um plano.'),midias:[{id:item.id,tipo:item.tipo,url:media.url(item,args.lojaId),descricao:item.descricao}]};
+   }
+   if(/^(?:nao|não|agora nao|depois)$/.test(t)){await saveDemo({__owner_sales_demo_phase:null});return reply('Tudo bem. Quando quiser, peça uma demonstração.');}
+   return reply('Quer ver a imagem de demonstração de atendimento para uma barbearia? Responda sim ou não.');
+ }
+ if(accept&&demoPhase==='showcase'){await saveDemo({__owner_sales_demo_phase:'offered',__lab_subscription_select:true});return reply('Os planos exclusivos deste teste são: Básico R$ 0,01, Pro R$ 0,02 e Ilimitado R$ 0,03. Escolha o plano; pagamentos existentes não serão duplicados.',menu(flow));}
+ if(demoPhase==='showcase'&&!/(?:pix|pagamento|plano|preco|valor|centavo)/.test(t))return reply('Gostou do exemplo de atendimento? Responda "quero contratar" para ver os planos de teste exclusivos.');
  const menuRequest=/(?:planos?|pre[cç]os?|valores?|op[cç][oõ]es)/.test(t)&&/(?:mostra|mostrar|manda|mande|envia|envie|quero|qual|ver|lista|teste|centavo|novamente|de novo)/.test(t);
  if(menuRequest)return reply('Planos de TESTE autorizados para este número:\nBásico R$ 0,01\nPro R$ 0,02\nIlimitado R$ 0,03\nEsses valores não são os preços comerciais. Se houver um Pix pendente, ele não será duplicado.',menu(flow));
  const paymentRequest=/\bpix\b|\bpagamento\b|(?:[123]|um|dois|tres) centavo|0[,.]0[123]/.test(t);
