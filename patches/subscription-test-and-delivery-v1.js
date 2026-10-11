@@ -616,3 +616,19 @@ fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);
 const h='public/cliente-copiloto.html';let html=fs.readFileSync(h,'utf8');html=html.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c6"');fs.writeFileSync(h,html);
 console.log('[copiloto] token bearer enviado para API no mesmo dominio');
 }
+
+// Copiloto usa a mesma sessão e renovação das demais páginas do cliente.
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='public/js/cliente-copiloto.js';let s=fs.readFileSync(p,'utf8');
+const begin=s.indexOf('async function copRequest('),end=s.indexOf('async function getStore(){',begin);
+if(begin<0||end<0)throw Error('Copiloto session helper missing');
+s=s.slice(0,begin)+'async function copRequest(path,options){return apiFetch(path,options); }'+s.slice(end);
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);
+const h='public/cliente-copiloto.html';let html=fs.readFileSync(h,'utf8');
+html=html.replace('<script src="js/auth.js"></script>','<script>window.API_BASE="/api";</script><script src="js/auth.js"></script>');
+html=html.replace('<script>if(typeof renovarSessao==="undefined"){window.renovarSessao=async function(){return false;}}</script>','');
+html=html.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c7"');
+fs.writeFileSync(h,html);
+console.log('[copiloto] sessão lojaia_sessao e renovação via apiFetch');
+}
