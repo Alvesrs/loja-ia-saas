@@ -20,7 +20,6 @@ public class ClientMessagingService extends FirebaseMessagingService {
         if (body == null || body.isBlank()) body = "Você tem uma nova atualização.";
 
         boolean sale="venda_recebida".equals(message.getData().get("tipo"))||"pagamento_confirmado".equals(message.getData().get("tipo"));
-        if(sale){try{double amount=Double.parseDouble(message.getData().get("valor"));if(amount>0){String value=java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("pt","BR")).format(amount);String custom=getSharedPreferences("saintsai_client_push",MODE_PRIVATE).getString("sale_message","Venda concluída! Você recebeu {valor}.");if(!custom.isBlank())body=custom.contains("{valor}")?custom.replace("{valor}",value):custom+" · "+value;}}catch(Exception ignored){}}
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(
@@ -29,7 +28,7 @@ public class ClientMessagingService extends FirebaseMessagingService {
         );
 
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, sale?"saintsai_sales_v1":MainActivity.CHANNEL_CLIENT)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(sale?R.drawable.ic_notification_money:android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
