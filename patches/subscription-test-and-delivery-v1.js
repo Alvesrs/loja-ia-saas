@@ -574,3 +574,18 @@ c=c.replace("const $=id=>document.getElementById(id);let loja;","const $=id=>doc
 c=c.replace("e.message}}$('suggest').onclick","(e.message||'Falha ao consultar loja')+' · Atualize a página e entre novamente se necessário.'}}$('suggest').onclick");
 fs.writeFileSync(src,c);cp.execFileSync(process.execPath,['--check',src]);console.log('[copiloto] bust cache, autenticação carregada e diagnóstico visível');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='public/cliente-copiloto.html';let h=fs.readFileSync(p,'utf8');
+const target='<script src="js/auth.js"></script><script src="js/api.js"></script>';
+if(!h.includes(target))throw Error('Copilot scripts auth anchor not found');
+h=h.replace(target,'<script src="js/auth.js"></script><script>if(typeof renovarSessao==="undefined"){window.renovarSessao=async function(){return false;}}</script><script src="js/api.js"></script>');
+h=h.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c4"');
+fs.writeFileSync(p,h);
+const js='public/js/cliente-copiloto.js';let j=fs.readFileSync(js,'utf8');
+j=j.replace("if(!loja){const data=await apiFetch('/lojas/copiloto/contexto');","if(!loja){const data=await apiFetch('/lojas/copiloto/contexto');");
+j=j.replace("}catch(e){$('message').textContent=e.message}}$('suggest').onclick","}catch(e){$('message').textContent='Falha ao consultar Copiloto: '+(e?.message||String(e))}}$('suggest').onclick");
+fs.writeFileSync(js,j);cp.execFileSync(process.execPath,['--check',js]);console.log('[copiloto] helper de sessão garantido antes do apiFetch e JS recarregado');
+}
