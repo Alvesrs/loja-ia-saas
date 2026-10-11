@@ -236,3 +236,31 @@ fs.writeFileSync(path,s);
 for(const file of ['src/services/entregaWhatsapp.service.js',path])cp.execFileSync(process.execPath,['--check',file]);
 console.log('[entrega] fluxo de endereço no WhatsApp integrado sem confirmar pagamento');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const content=[
+"const db=require('../config/supabase'),sub=require('./asaasSubconta.service');",
+"const {timingSafeEqual}=require('node:crypto');",
+"const safe=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&timingSafeEqual(x,y)};",
+"const ref=(loja,id)=>'saintsai_entrega:'+loja+':'+id;",
+"async function gerar(loja,id){const q=await db.from('saintsai_delivery_orders').select('*').eq('loja_id',loja).eq('id',id).maybeSingle();if(q.error)throw q.error;const row=q.data;if(!row)throw Error('pedido_nao_encontrado');if(row.modalidade!=='entrega')throw Error('somente_entrega');if(row.pagamento_status==='confirmado')return {status:'pago'};if(!Number.isInteger(row.valor_centavos)||row.valor_centavos<100)throw Error('valor_final_nao_definido');if(row.pagamento_referencia)throw Error('pix_ja_gerado');const api=await sub.obterApiKeyLoja(loja);const keys=await sub.req('/v3/pix/addressKeys?status=ACTIVE&limit=20',{method:'GET'},api),key=(keys.data||[]).find(x=>x.status==='ACTIVE'&&x.key)?.key;if(!key)throw Error('chave_pix_ativa_ausente');const pix=await sub.req('/v3/pix/qrCodes/static',{method:'POST',body:{addressKey:key,description:'SaintsAI entrega',value:row.valor_centavos/100,format:'ALL',expirationSeconds:3600,allowsMultiplePayments:false,externalReference:ref(loja,id)}},api);if(!pix.id||!pix.payload)throw Error('pix_invalido');const result=await db.from('saintsai_delivery_orders').update({pagamento_referencia:pix.id,atualizado_em:new Date().toISOString()}).eq('loja_id',loja).eq('id',id).is('pagamento_referencia',null).select('id').maybeSingle();if(result.error)throw result.error;if(!result.data)throw Error('pix_concorrente');return {status:'aguardando_pagamento',pix_copia_cola:pix.payload,valor_centavos:row.valor_centavos};}",
+"async function webhook(payload,token){const p=payload?.payment||{},reference=String(p.externalReference||''),m=/^saintsai_entrega:([0-9a-f-]{36}):([0-9a-f-]{36})$/.exec(reference);if(!m)return false;const [_,loja,id]=m;if(!safe(token,sub.tokenWebhook(loja)))throw Error('webhook_nao_autorizado');const order=await db.from('saintsai_delivery_orders').select('*').eq('loja_id',loja).eq('id',id).maybeSingle();if(order.error)throw order.error;const row=order.data;if(!row)return true;if(row.pagamento_referencia&&p.pixQrCodeId&&row.pagamento_referencia!==p.pixQrCodeId)throw Error('pix_reference_mismatch');if(!['PAYMENT_CONFIRMED','PAYMENT_RECEIVED'].includes(payload.event))return true;if(!row.pagamento_referencia||!p.pixQrCodeId||row.pagamento_referencia!==p.pixQrCodeId)return true;const result=await db.from('saintsai_delivery_orders').update({pagamento_status:'confirmado',status:row.status==='aguardando_pagamento'?'confirmado':row.status,atualizado_em:new Date().toISOString()}).eq('loja_id',loja).eq('id',id).eq('pagamento_referencia',p.pixQrCodeId).neq('status','cancelado');if(result.error)throw result.error;console.log('[entrega] pagamento_confirmado');return true;}",
+"module.exports={gerar,webhook};"
+].join('\n');
+fs.writeFileSync('src/services/entregaPix.service.js',content);
+let file='src/routes/saintsaiEntrega.routes.js',r=fs.readFileSync(file,'utf8'),anchor="r.get('/pedidos',async(req,res)=>";
+if(!r.includes(anchor))throw Error('delivery Pix route insertion anchor missing');
+const endpoint="r.post('/pedidos/:id/pix',async(req,res)=>{try{const out=await require('../services/entregaPix.service').gerar(req.params.lojaId,req.params.id);res.json(out);}catch(e){console.error('[entrega] pix',e?.message);res.status(409).json({erro:'Não foi possível emitir Pix: '+String(e?.message||'indisponível')});}});\n";
+r=r.replace(anchor,endpoint+anchor);fs.writeFileSync(file,r);
+file='src/controllers/asaasSubcontaWebhook.controller.js';let w=fs.readFileSync(file,'utf8'),wanchor="async function webhook(req,res){try{";
+if(!w.includes(wanchor))throw Error('Asaas webhook anchor missing');
+w=w.replace(wanchor,wanchor+"const handled=await require('../services/entregaPix.service').webhook(req.body||{},req.get('asaas-access-token'));if(handled)return res.status(200).json({ok:true,entrega:true});");
+fs.writeFileSync(file,w);
+file='public/js/cliente-pedidos-entrega.js';let ui=fs.readFileSync(file,'utf8');const uiAnchor="if(x.pagamento_status==='confirmado'";
+if(!ui.includes(uiAnchor))throw Error('Pix UI anchor missing');
+const action="if(x.modalidade==='entrega'&&x.pagamento_status!=='confirmado'){const b=document.createElement('button');b.textContent='Gerar Pix Asaas';b.onclick=async()=>{try{const v=await apiFetch('/lojas/'+l.id+'/entrega-config/pedidos/'+x.id+'/pix',{method:'POST',body:'{}'});if(v.pix_copia_cola){const box=document.createElement('textarea');box.value=v.pix_copia_cola;box.readOnly=true;box.style.cssText='width:100%;height:120px';card.append(box);g('order-feedback').textContent='Pix emitido. Envie a cobrança ao cliente e aguarde a confirmação do Asaas.'}}catch(err){g('order-feedback').textContent=err.message;}};card.append(b);} ";
+ui=ui.replace(uiAnchor,action+uiAnchor);fs.writeFileSync(file,ui);
+for(const p of ['src/services/entregaPix.service.js','src/routes/saintsaiEntrega.routes.js','src/controllers/asaasSubcontaWebhook.controller.js',file])cp.execFileSync(process.execPath,['--check',p]);console.log('[entrega] Pix Asaas para entregas com confirmação webhook autenticada');
+}
