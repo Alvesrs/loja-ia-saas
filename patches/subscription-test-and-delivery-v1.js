@@ -603,3 +603,16 @@ fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);
 const h='public/cliente-copiloto.html';let html=fs.readFileSync(h,'utf8');html=html.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c5"');fs.writeFileSync(h,html);
 console.log('[copiloto] requisição same-origin com código HTTP e cache atualizado');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process'),p='public/js/cliente-copiloto.js';
+let s=fs.readFileSync(p,'utf8');
+const before="const r=await fetch('/api'+path,{credentials:'include',...options,headers:{'Content-Type':'application/json',...(options?.headers||{})}});";
+if(!s.includes(before))throw Error('Copiloto API request anchor missing');
+const replacement="const findToken=()=>{for(const storage of [localStorage,sessionStorage]){for(const key of ['saintsai_token','access_token','token','auth_token','saintsai_access_token','supabase.auth.token']){let value=storage.getItem(key);if(!value)continue;try{const v=JSON.parse(value);value=v?.access_token||v?.token||v?.currentSession?.access_token||v?.session?.access_token||value;}catch(_){}if(typeof value==='string'&&value.split('.').length===3)return value;}}return null;};const token=findToken();const r=await fetch('/api'+path,{credentials:'include',...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(options?.headers||{})}});";
+s=s.replace(before,replacement);
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);
+const h='public/cliente-copiloto.html';let html=fs.readFileSync(h,'utf8');html=html.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c6"');fs.writeFileSync(h,html);
+console.log('[copiloto] token bearer enviado para API no mesmo dominio');
+}
