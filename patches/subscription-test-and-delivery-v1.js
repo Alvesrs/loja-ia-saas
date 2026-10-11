@@ -422,3 +422,36 @@ if(!s.includes(before))throw Error('Activation state hook not found');
 s=s.replace(before,"loja_id:configs[0].loja_id,ativo:true,pausa_humana:false,ultima_atividade_humana_em:null,ultimo_evento_id:'prospeccao:iniciado:'+Date.now()");
 fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[waha.sales] novo início manual limpa pausa antiga');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process'),p='src/controllers/whatsappWahaWebhook.controller.js';
+let s=fs.readFileSync(p,'utf8');const marker='  if (evento.fromMe === true) {';
+if(!s.includes(marker))throw Error('WAHA owner message hook missing');
+const middleware=[
+"  // Pausa de 10 minutos para todas as lojas conectadas por WAHA.",
+"  try{",
+"    const db=require('../config/supabase');",
+"    const {data:cfg,error:ce}=await db.from('whatsapp_configuracoes').select('loja_id').eq('identificador_externo',evento.destinatarioId).eq('ativo',true).limit(2);",
+"    if(ce)throw ce;",
+"    if(cfg?.length===1){",
+"      const lojaId=cfg[0].loja_id;",
+"      if(evento.fromMe===true && String(evento.source||'').toLowerCase()!=='api'){",
+"        const text=String(evento.texto||'').trim();",
+"        const intro=require('../services/ownerSalesPrompt').INTRO;",
+"        const isActivation=text===intro||text===GATILHO_VENDAS;",
+"        if(!isActivation){const {error}=await db.from('saintsai_human_handoff').upsert({loja_id:lojaId,contato:evento.contato,session_id:evento.destinatarioId,ultima_atividade_em:new Date().toISOString(),atualizado_em:new Date().toISOString()},{onConflict:'loja_id,contato'});if(error)throw error;}",
+"      }else if(evento.fromMe!==true){",
+"        const {data:pause,error:pe}=await db.from('saintsai_human_handoff').select('ultima_atividade_em').eq('loja_id',lojaId).eq('contato',evento.contato).maybeSingle();",
+"        if(pe)throw pe;",
+"        if(pause){const elapsed=Date.now()-new Date(pause.ultima_atividade_em).getTime();",
+"          if(elapsed>=600000){const {error:e}=await db.from('saintsai_human_handoff').delete().eq('loja_id',lojaId).eq('contato',evento.contato).eq('ultima_atividade_em',pause.ultima_atividade_em);if(e)throw e;}",
+"          else{const now=new Date().toISOString();const {error:e}=await db.from('saintsai_human_handoff').update({ultima_atividade_em:now,atualizado_em:now}).eq('loja_id',lojaId).eq('contato',evento.contato);if(e)throw e;return res.status(200).json({status:'em_atendimento_humano'});}",
+"        }",
+"      }",
+"    }",
+"  }catch(e){console.error('[waha] human_handoff',e?.message||e);return res.status(500).json({erro:'Falha ao verificar atendimento humano'});}",
+""].join('\n');
+s=s.replace(marker,middleware+marker);
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[waha] pausa de 10 minutos implementada para todas as lojas');
+}
