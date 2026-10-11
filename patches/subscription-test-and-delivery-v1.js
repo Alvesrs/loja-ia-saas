@@ -490,3 +490,26 @@ const capture=[
 s=s.replace(anchor,capture+anchor);
 fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[copiloto] sugestao de demo criada em conversa humana, sem envio automatico');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const pix='src/services/entregaPix.service.js';let s=fs.readFileSync(pix,'utf8');
+const validation="if(!row.pagamento_referencia||!p.pixQrCodeId||row.pagamento_referencia!==p.pixQrCodeId)return true;";
+if(!s.includes(validation))throw Error('Asaas validation expected');
+s=s.replace(validation,"if(!row.pagamento_referencia||!p.pixQrCodeId||row.pagamento_referencia!==p.pixQrCodeId)return true;");
+fs.writeFileSync(pix,s);
+const order='src/routes/saintsaiEntrega.routes.js';let r=fs.readFileSync(order,'utf8');
+const get="r.get('/pedidos',async(req,res)=>";
+if(!r.includes(get))throw Error('Delivery orders endpoint absent');
+r=r.replace(get,"r.get('/resumo',async(req,res)=>{try{const cfg=await db.from('saintsai_delivery_preferences').select('entrega_ativa,prazo_texto').eq('loja_id',req.params.lojaId).maybeSingle();if(cfg.error)throw cfg.error;const q=await db.from('saintsai_delivery_orders').select('id,status,pagamento_status,modalidade').eq('loja_id',req.params.lojaId).limit(200);if(q.error)throw q.error;const pedidos=q.data||[];res.json({ativo:!!cfg.data?.entrega_ativa,prazo:cfg.data?.prazo_texto||null,total:pedidos.length,aguardando_pagamento:pedidos.filter(x=>x.pagamento_status==='pendente').length,em_preparo:pedidos.filter(x=>x.status==='preparando').length,em_rota:pedidos.filter(x=>x.status==='em_rota').length});}catch(e){res.status(503).json({erro:'Não foi possível carregar o resumo de entregas.'});}});\n"+get);
+fs.writeFileSync(order,r);
+const html='public/cliente-entregas.html';let h=fs.readFileSync(html,'utf8');if(!h.includes('id="delivery-summary"'))h=h.replace('<section class="panel" style="margin-top:20px">','<section class="panel" id="delivery-summary" style="margin-top:20px"><h2>Visão geral de entregas</h2><p id="delivery-numbers">Carregando pedidos...</p></section><section class="panel" style="margin-top:20px">');
+fs.writeFileSync(html,h);
+const ui='public/js/cliente-pedidos-entrega.js';let u=fs.readFileSync(ui,'utf8');const insert="const l=await store(),r=await apiFetch('/lojas/'+l.id+'/entrega-config/pedidos');";
+if(!u.includes(insert))throw Error('Delivery dashboard list anchor absent');
+u=u.replace(insert,insert+"const summary=await apiFetch('/lojas/'+l.id+'/entrega-config/resumo');g('delivery-numbers').textContent=(summary.ativo?'Entregas ativadas':'Entregas desativadas')+' · '+summary.total+' pedidos · '+summary.aguardando_pagamento+' aguardando pagamento · '+summary.em_preparo+' em preparo · '+summary.em_rota+' em rota';");
+fs.writeFileSync(ui,u);
+for(const p of [pix,order,ui])cp.execFileSync(process.execPath,['--check',p]);
+console.log('[entrega] visao geral do acompanhamento operacional e preferencia salva');
+}
