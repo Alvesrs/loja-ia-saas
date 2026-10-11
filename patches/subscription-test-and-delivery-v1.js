@@ -485,7 +485,6 @@ const capture=[
 "          if(!existing.data?.length&&/^55\\d{10,11}$/.test(phone)){const q=await db.from('saintsai_copilot_actions').insert({loja_id:lojaId,contato:phone,tipo:'demo_menu',estado:'pendente'});if(q.error)throw q.error;}",
 "        }}",
 "      }",
-"    }",
 "  }catch(e){console.error('[copiloto] sugestao_falhou',e?.message||e);}}",
 ""].join('\n');
 s=s.replace(anchor,capture+anchor);
