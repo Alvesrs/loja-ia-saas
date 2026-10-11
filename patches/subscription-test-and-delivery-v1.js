@@ -465,3 +465,29 @@ let page=fs.readFileSync('public/cliente-central.html','utf8');if(!page.includes
 for(const p of ['src/routes/saintsaiCopiloto.routes.js','public/js/cliente-copiloto.js'])cp.execFileSync(process.execPath,['--check',p]);console.log('[copiloto] aprovação humana antes de qualquer menu demonstrativo');}
 
 {const fs=require('node:fs');const p='public/cliente-central.html';let s=fs.readFileSync(p,'utf8');s=s.replace('style="position:fixed;bottom:80px;right:12px;background:#6628ac;color:#fff;padding:12px;border-radius:12px;text-decoration:none;font:700 14px system-ui"','style="display:inline-flex;margin:14px;padding:13px 18px;background:#6628ac;color:#fff;border-radius:12px;text-decoration:none;font:700 14px system-ui"');fs.writeFileSync(p,s);console.log('[copiloto] acesso sem botão flutuante');}
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');const p='src/controllers/whatsappWahaWebhook.controller.js';let s=fs.readFileSync(p,'utf8');const anchor="  // Pausa de 10 minutos para todas as lojas conectadas por WAHA.";
+if(!s.includes(anchor))throw Error('WAHA copilot suggestion hook missing');
+const capture=[
+"  // Copiloto: observa interesse expresso enquanto atendimento humano está ativo.",
+"  if(evento.fromMe!==true){try{",
+"    const phrase=String(evento.texto||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+"    if(/(?:quero ver|pode mostrar|me mostra|mostra os botoes|quero uma demonstracao|como funciona o agendamento|me manda as opcoes)/.test(phrase)){",
+"      const db=require('../config/supabase');",
+"      const cfg=await db.from('whatsapp_configuracoes').select('loja_id').eq('identificador_externo',evento.destinatarioId).eq('ativo',true).limit(2);",
+"      if(cfg.error)throw cfg.error;",
+"      if(cfg.data?.length===1){const lojaId=cfg.data[0].loja_id;",
+"        const h=await db.from('saintsai_human_handoff').select('contato').eq('loja_id',lojaId).eq('contato',evento.contato).maybeSingle();if(h.error)throw h.error;",
+"        if(h.data){const phone=String(evento.contato||'').replace(/\\D/g,'');",
+"          const existing=await db.from('saintsai_copilot_actions').select('id').eq('loja_id',lojaId).eq('contato',phone).eq('estado','pendente').limit(1);if(existing.error)throw existing.error;",
+"          if(!existing.data?.length&&/^55\\d{10,11}$/.test(phone)){const q=await db.from('saintsai_copilot_actions').insert({loja_id:lojaId,contato:phone,tipo:'demo_menu',estado:'pendente'});if(q.error)throw q.error;}",
+"        }}",
+"      }",
+"    }",
+"  }catch(e){console.error('[copiloto] sugestao_falhou',e?.message||e);}}",
+""].join('\n');
+s=s.replace(anchor,capture+anchor);
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[copiloto] sugestao de demo criada em conversa humana, sem envio automatico');
+}
