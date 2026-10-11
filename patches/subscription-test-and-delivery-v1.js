@@ -528,3 +528,18 @@ if(!s.includes(result))throw Error('Copilot send acknowledgment anchor missing')
 s=s.replace(result,"if(result?.status==='falhou'||result?.status==='erro'||result?.erro||result?.ok===false)throw Error('O WhatsApp recusou o envio.');"+result);
 fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[copiloto] menu conforme servicos cadastrados e verificacao de falhas de envio');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const nav='public/js/cliente-dashboard-v2.js';let s=fs.readFileSync(nav,'utf8');
+const cop="['sparkles','Copiloto','cliente-copiloto.html']";
+const delivery="['truck','Entregas','cliente-entregas.html']";
+if(!s.includes(cop)){const anchor="['gallery','Galeria','cliente-galeria.html']";if(!s.includes(anchor))throw Error('Menu do cliente não localizado');s=s.replace(anchor,anchor+','+cop);}
+if(!s.includes(delivery)){const anchor="['gallery','Galeria','cliente-galeria.html']";if(!s.includes(anchor))throw Error('Menu para entregas não localizado');s=s.replace(anchor,anchor+','+delivery);}
+fs.writeFileSync(nav,s);
+const home='public/cliente-central.html';let h=fs.readFileSync(home,'utf8');h=h.replace(/<a href="cliente-(?:entregas|copiloto)\.html" style="position:fixed;[^"]*"[^>]*>[^<]*<\/a>/g,'');
+fs.writeFileSync(home,h);
+cp.execFileSync(process.execPath,['--check',nav]);
+console.log('[cliente] Copiloto e Entregas adicionados ao menu interno do app, sem atalhos sobrepostos');
+}
