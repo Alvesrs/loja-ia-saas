@@ -205,3 +205,34 @@ const js="(()=>{'use strict';const g=id=>document.getElementById(id);let loja;as
 fs.writeFileSync('public/js/cliente-pedidos-entrega.js',js);
 for(const p of [route,'public/js/cliente-pedidos-entrega.js'])cp.execFileSync(process.execPath,['--check',p]);console.log('[entregas] painel pedidos e mapa criado');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const service=[
+"const db=require('../config/supabase');",
+"const norm=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();",
+"const answer=resposta=>({resposta});",
+"async function tentar(m){const {lojaId,contato}=m,texto=String(m.texto||'').trim(),t=norm(texto);if(!contato||!texto)return null;",
+"const {data:cfg,error:ce}=await db.from('saintsai_delivery_preferences').select('entrega_ativa,prazo_texto,prazo_minutos').eq('loja_id',lojaId).maybeSingle();if(ce)throw ce;if(!cfg?.entrega_ativa)return null;",
+"const {data:session,error:se}=await db.from('saintsai_delivery_sessions').select('*').eq('loja_id',lojaId).eq('contato',contato).maybeSingle();if(se)throw se;",
+"const start=/\\b(quero entrega|entregar em casa|receber em casa|delivery|fazer entrega|pedido para entrega)\\b/.test(t);",
+"if(!session&&!start)return null;",
+"const save=async fields=>{const {error}=await db.from('saintsai_delivery_sessions').upsert({loja_id:lojaId,contato,...(session||{}),...fields,atualizado_em:new Date().toISOString()},{onConflict:'loja_id,contato'});if(error)throw error;};",
+"if(/^(cancelar pedido|cancelar entrega|parar entrega)$/.test(t)){await db.from('saintsai_delivery_sessions').delete().eq('loja_id',lojaId).eq('contato',contato);return answer('Tudo bem, encerrei o cadastro da entrega.');}",
+"if(!session||start){await save({fase:'itens',itens_resumo:null,endereco:null,modalidade:'entrega'});return answer('Trabalhamos com entregas. '+(cfg.prazo_texto||'Prazo estimado de '+cfg.prazo_minutos+' minutos após a confirmação do pedido.')+' O que você deseja pedir?');}",
+"if(session.fase==='itens'){if(texto.length<3)return answer('Diga quais produtos ou serviços deseja receber.');await save({fase:'endereco',itens_resumo:texto});return answer('Certo! Envie seu endereço completo com rua, número, bairro, cidade e estado.');}",
+"if(session.fase==='endereco'){if(texto.length<12)return answer('Preciso do endereço completo: rua, número, bairro, cidade e estado.');await save({fase:'confirmar',endereco:texto});return answer('Confirma este pedido para entrega? Itens: '+session.itens_resumo+'. Endereço: '+texto+'. '+(cfg.prazo_texto||'Prazo estimado informado pela loja.')+' Responda SIM para registrar ou CANCELAR ENTREGA. O pedido ainda não está pago.');}",
+"if(session.fase==='confirmar'){if(!/^(sim|confirmo|confirmar)$/.test(t))return answer('Responda SIM para registrar ou CANCELAR ENTREGA.');const {data,error}=await db.from('saintsai_delivery_orders').insert({loja_id:lojaId,contato,itens_resumo:session.itens_resumo,endereco:session.endereco,modalidade:'entrega',prazo_minutos:cfg.prazo_minutos,status:'aguardando_pagamento',pagamento_status:'pendente'}).select('id').single();if(error)throw error;await db.from('saintsai_delivery_sessions').delete().eq('loja_id',lojaId).eq('contato',contato);return answer('Pedido registrado sob referência '+data.id.slice(0,8)+'. A loja vai conferir disponibilidade, frete e valor final antes de cobrar. A entrega só será liberada após confirmação real do pagamento.');}",
+"return null;}",
+"module.exports={tentar};"
+].join('\n');
+fs.writeFileSync('src/services/entregaWhatsapp.service.js',service);
+const path='src/services/whatsappAtendente.service.js';let s=fs.readFileSync(path,'utf8');
+const anchor='  const respostaAgenda = vendaAtiva ? null : await agendaWhatsapp.tentarResponder(mensagem);';
+if(!s.includes(anchor))throw Error('Delivery WhatsApp hook not found');
+s=s.replace(anchor,"  if(!vendaAtiva){const entrega=await require('./entregaWhatsapp.service').tentar(mensagem);if(entrega)return Object.freeze({lojaId,contato,idExterno,pergunta:texto,...entrega});}\n"+anchor);
+fs.writeFileSync(path,s);
+for(const file of ['src/services/entregaWhatsapp.service.js',path])cp.execFileSync(process.execPath,['--check',file]);
+console.log('[entrega] fluxo de endereço no WhatsApp integrado sem confirmar pagamento');
+}
