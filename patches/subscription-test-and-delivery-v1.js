@@ -376,3 +376,40 @@ html=html.replace('</body>',nav+'</body>');
 fs.writeFileSync(path,html);
 console.log('[admin] atalhos Status e Radar movidos para secao própria, sem sobreposição');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const path='src/controllers/whatsappWahaWebhook.controller.js';
+let s=fs.readFileSync(path,'utf8');
+const human="update({ativo:false,atualizado_em:new Date().toISOString()})";
+if(!s.includes(human))throw Error('Manual intervention update anchor missing');
+s=s.replace(human,"update({ativo:false,pausa_humana:true,ultima_atividade_humana_em:new Date().toISOString(),atualizado_em:new Date().toISOString()})");
+const point="  const chaveId={provedor:'waha',idExterno:evento.idExterno};";
+if(!s.includes(point))throw Error('Incoming WAHA entry point missing');
+const guard=[
+"  // Pausa automatica por intervencao humana; volta somente apos 10 minutos de silencio.",
+"  try {",
+"    const db=require('../config/supabase');",
+"    const {data:pause,error:pe}=await db.from('saintsai_sales_conversations').select('id,pausa_humana,ultima_atividade_humana_em').eq('session_id',evento.destinatarioId).eq('contato',evento.contato).eq('pausa_humana',true).maybeSingle();",
+"    if(pe)throw pe;",
+"    if(pause){",
+"      const elapsed=Date.now()-new Date(pause.ultima_atividade_humana_em||0).getTime();",
+"      if(Number.isFinite(elapsed)&&elapsed>=600000){",
+"        const {error:re}=await db.from('saintsai_sales_conversations').update({ativo:true,pausa_humana:false,atualizado_em:new Date().toISOString()}).eq('id',pause.id).eq('pausa_humana',true).eq('ultima_atividade_humana_em',pause.ultima_atividade_humana_em);",
+"        if(re)throw re;",
+"        console.log('[waha.sales] retomada_apos_10min_silencio');",
+"      }else{",
+"        const now=new Date().toISOString();",
+"        const {error:ue}=await db.from('saintsai_sales_conversations').update({ultima_atividade_humana_em:now,atualizado_em:now}).eq('id',pause.id).eq('pausa_humana',true);",
+"        if(ue)throw ue;",
+"        console.log('[waha.sales] pausa_humana_atividade_cliente');",
+"        return res.status(200).json({status:'pausa_humana_ativa'});",
+"      }",
+"    }",
+"  }catch(e){console.error('[waha.sales] controle_pausa_humana',e?.message||e);return res.status(500).json({erro:'Falha no controle da pausa humana'});}",
+""].join('\n');
+s=s.replace(point,guard+point);
+fs.writeFileSync(path,s);cp.execFileSync(process.execPath,['--check',path]);
+console.log('[waha.sales] vendedor assume, IA silencia e retoma apos 10 min sem atividade');
+}
