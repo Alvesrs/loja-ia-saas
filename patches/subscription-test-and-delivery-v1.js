@@ -702,3 +702,25 @@ const v='public/cliente-versao.json';const version=JSON.parse(fs.readFileSync(v)
 for(const p of ['src/services/ownerBookingDemo.service.js',lab])cp.execFileSync(process.execPath,['--check',p]);
 console.log('[owner.lab] fluxo determinístico e dois menus por execução privada');
 }
+// Contratação pendente não intercepta a demonstração privada oferecida pelo vendedor.
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='src/services/ownerProductLab.service.js';let s=fs.readFileSync(p,'utf8');
+const old=" const subscription=await require('./ownerSubscriptionTest.service').handle(args,c);if(subscription)return subscription;";
+if(!s.includes(old))throw Error('Subscription interception hook missing');
+s=s.replace(old," if(!b.__lab_booking_phase&&!b.__lab_demo_offer&&/plano|pix|pagamento|centavo|contratar|comprar|assinatura|acesso|baixar/.test(input)&&!/agend|horario|botao|botoes|demonstr/.test(input)){const subscription=await require('./ownerSubscriptionTest.service').handle(args,c);if(subscription)return subscription;}");
+const anchor=" if(require('./ownerRealPixTest.service').requested(input))";
+if(!s.includes(anchor))throw Error('Demo accept hook missing');
+s=s.replace(anchor," if(b.__lab_demo_offer&&/^(sim|s|ok|claro|pode|pode sim|quero|quero ver|pode mostrar|me mostra|mostra|manda)$/.test(input)){const demoC={...c,briefing:{...b,__lab_demo_offer:null,__lab_subscription_select:false,__lab_booking_phase:null}};return await require('./ownerBookingDemo.service').tentar({...args,pergunta:'testar agendamento'},demoC);}\n"+anchor);
+fs.writeFileSync(p,s);
+const service='src/services/ownerLabConversation.service.js';let l=fs.readFileSync(service,'utf8');
+l=l.replace("if(evento.fromMe===true||!evento.idExterno||!evento.texto)return false;","if(!evento.idExterno||!evento.texto)return false;if(evento.fromMe===true&&String(evento.source||'').toLowerCase()==='api')return false;");
+const trusted=" if(!await lab.trusted(args,q.data))return false;";
+if(!l.includes(trusted))throw Error('Private seller offer hook missing');
+l=l.replace(trusted,trusted+"\n if(evento.fromMe===true){const t=texto.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();if(/testar agendamento|(?:testar|ver|mostrar|mostra|demonstr|funcionamento).{0,55}botoes|botoes.{0,40}(?:funcionamento|testar|demonstr)/.test(t)){const {error}=await db.from('saintsai_sales_conversations').update({briefing:{...q.data.briefing,__lab_demo_offer:'agendamento'},atualizado_em:new Date().toISOString()}).eq('id',q.data.id);if(error)throw error;}return false;}\n");
+fs.writeFileSync(service,l);
+const controller='src/controllers/whatsappWahaWebhook.controller.js';let c=fs.readFileSync(controller,'utf8');c=c.replace("  if(evento.fromMe!==true){try{if(await require('../services/ownerLabConversation.service').tentar(evento))", "  {try{if(await require('../services/ownerLabConversation.service').tentar(evento))");fs.writeFileSync(controller,c);
+const v='public/cliente-versao.json';const version=JSON.parse(fs.readFileSync(v));version.versao='2026.10.11.12';version.novidades=['Aceitação de demonstração não retoma Pix pendente','Oferta manual de botões inicia agendamento fictício'];fs.writeFileSync(v,JSON.stringify(version,null,2));
+for(const path of [p,service,controller])cp.execFileSync(process.execPath,['--check',path]);
+console.log('[owner.lab] oferta manual e sim fora de cobrança pendente');
+}
