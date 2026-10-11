@@ -14,8 +14,8 @@ android {
         applicationId "com.saintsai.stock"
         minSdk 24
         targetSdk 35
-        versionCode 30
-        versionName "1.2.15"
+        versionCode 31
+        versionName "1.2.16"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -55,3 +55,9 @@ dependencies {
 def saleSound = file("src/main/res/raw/sale_chime.wav")
 saleSound.parentFile.mkdirs()
 saleSound.bytes = Base64.decoder.decode(file("sale-chime.base64").text.trim())
+
+['pix','moedas','caixa'].each { tone ->
+    def soundFile = file("src/main/res/raw/sale_${tone}.wav")
+    soundFile.parentFile.mkdirs()
+    soundFile.bytes = Base64.decoder.decode(file("sale-${tone}.base64").text.trim())
+}

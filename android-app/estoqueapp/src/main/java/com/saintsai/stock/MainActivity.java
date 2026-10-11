@@ -348,6 +348,9 @@ public class MainActivity extends Activity {
         NotificationChannel sales=new NotificationChannel("saintsai_sales_v1","SaintsAI · Vendas recebidas",NotificationManager.IMPORTANCE_HIGH);
         sales.setDescription("Valor recebido e som de venda");sales.enableVibration(true);
         sales.setSound(Uri.parse("android.resource://"+getPackageName()+"/"+com.saintsai.stock.R.raw.sale_chime),new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).build());nm.createNotificationChannel(sales);
+        String[] keys={"pix","moedas","caixa"};String[] names={"Pix suave","Moedas","Caixa registradora"};int[] sounds={R.raw.sale_pix,R.raw.sale_moedas,R.raw.sale_caixa};
+        for(int i=0;i<keys.length;i++){NotificationChannel tone=new NotificationChannel("saintsai_sales_"+keys[i]+"_v1","SaintsAI · "+names[i],NotificationManager.IMPORTANCE_HIGH);tone.enableVibration(true);tone.setDescription("Notificações de recebimento");tone.setSound(Uri.parse("android.resource://"+getPackageName()+"/"+sounds[i]),new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).build());nm.createNotificationChannel(tone);}
+
     }
 
     private boolean handleNavigation(Uri uri) {
