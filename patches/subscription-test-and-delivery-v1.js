@@ -543,3 +543,21 @@ fs.writeFileSync(home,h);
 cp.execFileSync(process.execPath,['--check',nav]);
 console.log('[cliente] Copiloto e Entregas adicionados ao menu interno do app, sem atalhos sobrepostos');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const route='src/routes/saintsaiCopiloto.routes.js';let s=fs.readFileSync(route,'utf8');
+s=s.replaceAll("req.usuario?.id","(req.usuario?.id||req.user?.id)");
+const anchor="router.get('/:lojaId',own,";
+if(!s.includes(anchor))throw Error('Copilot route context anchor missing');
+s=s.replace(anchor,"router.get('/contexto',async(req,res)=>{const uid=req.usuario?.id||req.user?.id;if(!uid)return res.status(401).json({erro:'Faça login novamente.'});const q=await db.from('lojas').select('id,nome').eq('dono_id',uid).limit(50);if(q.error)return res.status(503).json({erro:'Não foi possível carregar suas lojas.'});res.json({lojas:q.data||[]});});\n"+anchor);
+s=s.replace("const telefone=String(req.body?.contato||'').replace(/\\D/g,'');if(!/^55\\d{10,11}$/.test(telefone))","let telefone=String(req.body?.contato||'').replace(/\\D/g,'');if(/^\\d{10,11}$/.test(telefone))telefone='55'+telefone;if(!/^55\\d{10,11}$/.test(telefone))");
+fs.writeFileSync(route,s);cp.execFileSync(process.execPath,['--check',route]);
+const js='public/js/cliente-copiloto.js';let c=fs.readFileSync(js,'utf8');
+const original="if(!loja)loja=await obterLojaAtual();if(!loja)throw Error('Selecione uma loja.');return loja";
+if(!c.includes(original))throw Error('Client getStore hook missing');
+c=c.replace(original,"if(!loja){const data=await apiFetch('/lojas/copiloto/contexto');const available=data.lojas||[];if(!available.length)throw Error('Nenhuma loja vinculada à sua conta.');const saved=localStorage.getItem('saintsai-copiloto-loja');loja=available.find(l=>l.id===saved)||available[0];localStorage.setItem('saintsai-copiloto-loja',loja.id);}return loja");
+fs.writeFileSync(js,c);cp.execFileSync(process.execPath,['--check',js]);
+console.log('[copiloto] obterLojaAtual ausente resolvido com endpoint autenticado e telefone brasileiro normalizado');
+}
