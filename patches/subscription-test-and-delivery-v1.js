@@ -561,3 +561,16 @@ c=c.replace(original,"if(!loja){const data=await apiFetch('/lojas/copiloto/conte
 fs.writeFileSync(js,c);cp.execFileSync(process.execPath,['--check',js]);
 console.log('[copiloto] obterLojaAtual ausente resolvido com endpoint autenticado e telefone brasileiro normalizado');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='public/cliente-copiloto.html';let h=fs.readFileSync(p,'utf8');
+h=h.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c3"');
+h=h.replace('<script src="js/api.js"></script>','<script src="js/auth.js"></script><script src="js/api.js"></script>');
+fs.writeFileSync(p,h);
+const src='public/js/cliente-copiloto.js';let c=fs.readFileSync(src,'utf8');
+c=c.replace("const $=id=>document.getElementById(id);let loja;","const $=id=>document.getElementById(id);let loja;const status=$('message');if(status)status.textContent='Copiloto atualizado · validando acesso à loja...';");
+c=c.replace("e.message}}$('suggest').onclick","(e.message||'Falha ao consultar loja')+' · Atualize a página e entre novamente se necessário.'}}$('suggest').onclick");
+fs.writeFileSync(src,c);cp.execFileSync(process.execPath,['--check',src]);console.log('[copiloto] bust cache, autenticação carregada e diagnóstico visível');
+}
