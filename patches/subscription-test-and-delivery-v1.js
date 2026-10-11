@@ -278,3 +278,37 @@ s=s.replace("endereco:session.endereco,modalidade:'entrega',prazo_minutos:cfg.pr
 s=s.replace("return answer('Pedido registrado sob referência '+data.id.slice(0,8)+'. A loja vai conferir disponibilidade, frete e valor final antes de cobrar. A entrega só será liberada após confirmação real do pagamento.');","return answer(session.modalidade==='retirada'?'Retirada solicitada sob referência '+data.id.slice(0,8)+'. A loja confirmará disponibilidade e horário de retirada. O pagamento será feito na loja.':'Pedido registrado sob referência '+data.id.slice(0,8)+'. A loja vai conferir disponibilidade, frete e valor final antes de cobrar. A entrega só será liberada após confirmação real do pagamento.');");
 fs.writeFileSync(file,s);cp.execFileSync(process.execPath,['--check',file]);console.log('[entrega] modo retirada com pagamento na loja adicionado');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const file='src/services/entregaWhatsapp.service.js';let s=fs.readFileSync(file,'utf8');
+const anchor="const answer=resposta=>({resposta});";
+const fn=[
+"async function precificar(lojaId,descricao){",
+" const {data,error}=await db.from('produtos').select('nome,preco,ativo').eq('loja_id',lojaId).eq('ativo',true).limit(1000);if(error)throw error;",
+" const text=norm(descricao),matches=[];for(const p of data||[]){const name=norm(p.nome),price=Number(p.preco);if(!name||!Number.isFinite(price)||price<0)continue;const escaped=name.replace(/[.*+?^$()|[\\]{}]/g,'\\$&');",
+" const pattern=new RegExp('(?:^|[,;\\n ]+)(?:(\\d{1,3})\\s*(?:x|unidades? de|un\\.? de)?\\s*)?'+escaped+'(?=$|[,;\\n ]+)','i');const m=pattern.exec(text);if(m)matches.push({nome:p.nome,quantidade:Math.max(1,Number(m[1]||1)),centavos:Math.round(price*100)});}",
+" const unique=[...new Map(matches.map(x=>[norm(x.nome),x])).values()];if(unique.length!==1)return null;",
+" const item=unique[0];const rest=text.replace(norm(item.nome),'').replace(/\\b(\\d+|x|unidades?|de|quero|comprar|pedido|por favor|uma?|dois|duas)\\b/g,'').replace(/[^a-z0-9]/g,'');",
+" if(rest)return null;return {valor_centavos:item.centavos*item.quantidade,resumo:item.quantidade+'x '+item.nome};",
+"}"
+].join('\n');
+if(!s.includes(anchor))throw Error('Pricing hook absent');
+s=s.replace(anchor,anchor+'\n'+fn);
+const lookup="const {data,error}=await db.from('saintsai_delivery_orders').insert({loja_id:lojaId,contato,itens_resumo:session.itens_resumo,";
+if(!s.includes(lookup))throw Error('Order pricing insertion missing');
+s=s.replace(lookup,"const preco=await precificar(lojaId,session.itens_resumo);const {data,error}=await db.from('saintsai_delivery_orders').insert({loja_id:lojaId,contato,itens_resumo:preco?.resumo||session.itens_resumo,valor_centavos:preco?.valor_centavos??null,");
+const phrase="A loja vai conferir disponibilidade, frete e valor final antes de cobrar.";
+s=s.replace(phrase,"'+(preco?'Preço do item no catálogo: R$ '+(preco.valor_centavos/100).toFixed(2).replace('.',',')+'. Frete e disponibilidade ainda precisam ser conferidos.':'A loja vai conferir os preços, disponibilidade e frete antes de cobrar.')+'");
+fs.writeFileSync(file,s);
+const page='public/cliente-entregas.html';let h=fs.readFileSync(page,'utf8');const a=h.indexOf('<form id="order-form">'),b=h.indexOf('</form>',a);
+if(a<0||b<0)throw Error('Manual delivery form missing');
+h=h.slice(0,a)+'<p>Os pedidos são registrados automaticamente pelo agente durante o atendimento pelo WhatsApp. Confira os dados, o valor e o pagamento antes de liberar uma entrega.</p>'+h.slice(b+7);
+fs.writeFileSync(page,h);
+const ui='public/js/cliente-pedidos-entrega.js';let u=fs.readFileSync(ui,'utf8');const x=u.indexOf("g('order-form').onsubmit="),y=u.indexOf(';load()})();',x);
+if(x<0||y<0)throw Error('Manual order JS handler missing');
+u=u.slice(0,x)+u.slice(y+1);fs.writeFileSync(ui,u);
+for(const f of [file,ui])cp.execFileSync(process.execPath,['--check',f]);
+console.log('[entrega] pedidos automaticos, valor catalogo quando inequívoco, formulario manual removido');
+}
