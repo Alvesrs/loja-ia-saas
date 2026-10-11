@@ -786,3 +786,14 @@ for(const p of ['customerContact','saleNotification','ownerBookingDemo','ownerBo
 {
 const p='src/services/bookingPublic.service.js';let s=fs.readFileSync(p,'utf8');const anchor="const data=String(body?.data||''),hora=String(body?.hora||''),nome=String(body?.nome||'').trim();";if(!s.includes(anchor))throw Error('Public name validation missing');s=s.replace(anchor,anchor+"if(!require('./customerContact.service').nome(nome))throw erro('nome_invalido','Informe seu nome para o agendamento.',400);");fs.writeFileSync(p,s);require('child_process').execFileSync(process.execPath,['--check',p]);
 }
+{
+const p='src/services/agendaWhatsapp.service.js';let s=fs.readFileSync(p,'utf8');
+const anchor="if(error){if(error.code==='23P01')return {conflito:true};throw error;}";
+if(!s.includes(anchor))throw Error('Booking insert notification hook missing');
+s=s.replace(anchor,anchor+"\n  const notificar=()=>require('./clientPush.service').notificarLoja(lojaId,{title:'Novo agendamento 📅',body:estado.nome+' · '+servico.nome+' · '+brData(estado.data)+' às '+estado.hora,tipo:'novo_agendamento',agendamentoId:data.id,valor:Number(servico.preco||0),cliente:estado.nome,servico:servico.nome,data:brData(estado.data),hora:estado.hora}).catch(e=>console.error('[agenda-whatsapp-push]',e?.code||'falha'));\n");
+s=s.replace("return {agendamento:data,pix,profissional:escolhido};", "await notificar();return {agendamento:data,pix,profissional:escolhido};");
+s=s.replace("return {agendamento:data,profissional:escolhido};", "await notificar();return {agendamento:data,profissional:escolhido};");fs.writeFileSync(p,s);require('child_process').execFileSync(process.execPath,['--check',p]);
+}
+{
+const p='public/cliente-versao.json',v=JSON.parse(fs.readFileSync(p));v.versao='2026.10.11.17';v.novidades=['Nome salvo por contato e reutilizado no próximo agendamento','Venda e agendamento mostram cliente, serviço, data e horário'];fs.writeFileSync(p,JSON.stringify(v,null,2));
+}
