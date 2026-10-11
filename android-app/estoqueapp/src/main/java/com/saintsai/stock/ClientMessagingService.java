@@ -21,7 +21,7 @@ public class ClientMessagingService extends FirebaseMessagingService {
 
         boolean sale="venda_recebida".equals(message.getData().get("tipo"))||"pagamento_confirmado".equals(message.getData().get("tipo"))||"teste_venda".equals(message.getData().get("tipo"));
         String channel=MainActivity.CHANNEL_CLIENT;
-        if(sale){String sound=message.getData().get("som");channel=("pix".equals(sound)||"moedas".equals(sound)||"caixa".equals(sound))?"saintsai_sales_"+sound+"_v1":"saintsai_sales_v1";}
+        if(sale){String sound=message.getData().get("som");channel=("pix".equals(sound)||"moedas".equals(sound)||"caixa".equals(sound))?"saintsai_sales_"+sound+("pix".equals(sound)?"_v2":"_v1"):"saintsai_sales_v1";}
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(
