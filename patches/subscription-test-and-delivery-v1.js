@@ -350,3 +350,14 @@ fs.writeFileSync(rt,s);
 for(const x of [path,rt])cp.execFileSync(process.execPath,['--check',x]);
 console.log('[radar] busca automática por estado aplicada');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='public/admin-radar-interesse.html';let s=fs.readFileSync(p,'utf8');
+const old='<script src="js/api.js"></script>';
+if(!s.includes(old))throw Error('API script not found');
+s=s.replace(old,'<script src="js/auth.js"></script><script>if(typeof renovarSessao==="undefined"){window.renovarSessao=async function(){location.href="login.html";throw new Error("Sua sessão expirou. Faça login novamente.")}}</script>'+old);
+fs.writeFileSync(p,s);
+console.log('[radar] dependência de renovação de sessão carregada e fallback para login habilitado');
+}
