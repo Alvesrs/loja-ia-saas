@@ -678,3 +678,27 @@ const v='public/cliente-versao.json';const version=JSON.parse(fs.readFileSync(v)
 for(const p of [controller,lab,booking,free,'src/services/ownerLabConversation.service.js'])cp.execFileSync(process.execPath,['--check',p]);
 console.log('[owner.lab] ficção isolada por dono e contato de teste verificado');
 }
+// Agendamento de teste mantém o estado e reserva dois menus por execução privada.
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='src/services/ownerBookingDemo.service.js';let s=fs.readFileSync(p,'utf8');
+s=s.replace("const input=norm(args.pergunta);let b=c.briefing||{};","let input=norm(args.pergunta);let b=c.briefing||{};if(b.__lab_booking_phase==='payment'){if(/^(pix|pagar pix|pagar agora)$/.test(input))input='demo:pix';if(/^(pagar no local|dinheiro|local|presencial)$/.test(input))input='demo:local';}");
+s=s.replace("const reply=(response,options)=>({handled:true,response,...(options?{interativo:escolhas(options)}:{})});","const reply=(response,options,demoStage)=>({handled:true,response,...(demoStage?{demoStage}:{}),...(options?{interativo:escolhas(options)}:{})});");
+s=s.replace("services.map(s=>({value:s.id,title:s.nome+' R$'+s.valor})));",()=>"services.map(s=>({value:s.id,title:s.nome+' R$'+s.valor})),'service');");
+s=s.replace("options.slice(0,10));}","options.slice(0,10),'slot');}");
+s=s.replace("if(!b.__demo_date)b=", "if(!b.__demo_run)b={...b,__demo_run:require('node:crypto').randomUUID()};if(!b.__demo_date)b=");
+s=s.replace("const day=today();\n  await save(c,", "const day=today();b={...b,__demo_run:require('node:crypto').randomUUID()};\n  await save(c,");
+const anchor=" if(!b.__lab_booking_phase)return null;";
+if(!s.includes(anchor))throw Error('Demo state hook missing');
+s=s.replace(anchor,anchor+"\n if(/^(sim|ok|claro|pode|pode mostrar|quero ver|me mostra|mostra|mostrar|opcoes|botoes)$/.test(input)){if(b.__lab_booking_phase==='service')return cuts();if(b.__lab_booking_phase==='slot')return times(b);}");
+const end=" return null;\n}\nmodule.exports=";
+if(!s.includes(end))throw Error('Demo fallback hook missing');
+s=s.replace(end," if(b.__lab_booking_phase==='service')return reply('🧪 Para continuar este teste, escolha o serviço: corte social, degradê ou corte e barba. Nenhuma agenda real será consultada.');\n if(b.__lab_booking_phase==='slot')return reply('🧪 Estamos escolhendo o horário fictício para '+b.__demo_service.nome+'. Responda com um horário mostrado, por exemplo '+(slots(b.__demo_date,b.__demo_service)[0]||'09:00')+'.');\n if(b.__lab_booking_phase==='payment')return reply('🧪 O horário fictício já foi escolhido. Para concluir, responda Pix ou pagar no local. Nenhuma cobrança real será criada.');\n return null;\n}\nmodule.exports=");fs.writeFileSync(p,s);
+const lab='src/services/ownerLabConversation.service.js';let l=fs.readFileSync(lab,'utf8');
+const old="const menu=await require('./agentFeatureMenus.service').permitirMenu({session:evento.destinatarioId,contato:evento.contato,topic:'lab-'+(q.data.briefing?.__lab_booking_phase||'inicio'),button:/^(demo:|saintsai:ver:)/.test(texto)},idem);if(!menu)delete resposta.interativo;";
+if(!l.includes(old))throw Error('Lab quota hook missing');
+l=l.replace(old,"const latest=await db.from('saintsai_sales_conversations').select('briefing').eq('id',q.data.id).maybeSingle();if(latest.error)throw latest.error;const run=latest.data?.briefing?.__demo_run;let menu=false;\n if(run&&['service','slot'].includes(result.demoStage)){const hash=require('node:crypto').createHash('sha256').update(w.loja_id+'|'+evento.contato+'|'+run).digest('hex');const key=suffix=>({provedor:'waha',idExterno:'lab-menu:'+hash+':'+suffix});if(await idem.reservarEventoWhatsapp(key('stage:'+result.demoStage))){for(let slot=1;slot<=2;slot++){if(await idem.reservarEventoWhatsapp(key('slot:'+slot))){menu=true;break;}}}}\n else if(!run){menu=await require('./agentFeatureMenus.service').permitirMenu({session:evento.destinatarioId,contato:evento.contato,topic:'lab-inicio',button:/^(demo:|saintsai:ver:)/.test(texto)},idem);}if(!menu)delete resposta.interativo;");fs.writeFileSync(lab,l);
+const v='public/cliente-versao.json';const version=JSON.parse(fs.readFileSync(v));version.versao='2026.10.11.11';version.novidades=['Teste privado mantém contexto de serviço e horário','Dois menus por teste: serviço e horários fictícios'];fs.writeFileSync(v,JSON.stringify(version,null,2));
+for(const p of ['src/services/ownerBookingDemo.service.js',lab])cp.execFileSync(process.execPath,['--check',p]);
+console.log('[owner.lab] fluxo determinístico e dois menus por execução privada');
+}
