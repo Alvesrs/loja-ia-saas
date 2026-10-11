@@ -589,3 +589,17 @@ j=j.replace("if(!loja){const data=await apiFetch('/lojas/copiloto/contexto');","
 j=j.replace("}catch(e){$('message').textContent=e.message}}$('suggest').onclick","}catch(e){$('message').textContent='Falha ao consultar Copiloto: '+(e?.message||String(e))}}$('suggest').onclick");
 fs.writeFileSync(js,j);cp.execFileSync(process.execPath,['--check',js]);console.log('[copiloto] helper de sessão garantido antes do apiFetch e JS recarregado');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='public/js/cliente-copiloto.js';let s=fs.readFileSync(p,'utf8');
+const anchor="async function getStore(){";
+const helper="async function copRequest(path,options){const r=await fetch('/api'+path,{credentials:'include',...options,headers:{'Content-Type':'application/json',...(options?.headers||{})}});const data=await r.json().catch(()=>null);if(!r.ok)throw Error('HTTP '+r.status+': '+(data?.erro||'Falha de autenticação ou rota'));return data;}";
+if(!s.includes(anchor))throw Error('Copilot function missing');
+s=s.replace(anchor,helper+anchor);
+s=s.replaceAll("apiFetch('/lojas/copiloto/","copRequest('/lojas/copiloto/");
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);
+const h='public/cliente-copiloto.html';let html=fs.readFileSync(h,'utf8');html=html.replace(/src="js\/cliente-copiloto\.js(?:\?[^"]*)?"/g,'src="js/cliente-copiloto.js?v=20261011-c5"');fs.writeFileSync(h,html);
+console.log('[copiloto] requisição same-origin com código HTTP e cache atualizado');
+}
