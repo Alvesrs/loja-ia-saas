@@ -513,3 +513,18 @@ fs.writeFileSync(ui,u);
 for(const p of [pix,order,ui])cp.execFileSync(process.execPath,['--check',p]);
 console.log('[entrega] visao geral do acompanhamento operacional e preferencia salva');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const p='src/routes/saintsaiCopiloto.routes.js';let s=fs.readFileSync(p,'utf8');
+const old="const interativo=action.escolhas([{value:'demo agendamento',title:'Agendamento'},{value:'demo pagamento',title:'Pagamento'},{value:'demo atendimento',title:'Atendimento IA'}]);";
+if(!s.includes(old))throw Error('Copilot demo menu selection anchor missing');
+const nw="const found=await db.from('saintsai_servicos').select('nome,preco').eq('loja_id',req.params.lojaId).eq('ativo',true).order('nome').limit(7);if(found.error)throw found.error;const serviceChoices=(found.data||[]).filter(x=>x.nome&&x.nome.length<=100).map(x=>({value:x.nome,title:String(x.nome).slice(0,24),description:Number.isFinite(Number(x.preco))?'R$ '+Number(x.preco).toFixed(2).replace('.',','):'Serviço disponível',forceList:true}));const options=serviceChoices.length?serviceChoices:[{value:'demo agendamento',title:'Agendamento'},{value:'demo pagamento',title:'Pagamento'},{value:'demo atendimento',title:'Atendimento IA'}];const interativo=action.escolhas(options);";
+s=s.replace(old,nw);
+s=s.replace("resposta:'Veja algumas funções do SaintsAI. Qual você gostaria de conhecer?',interativo","resposta:serviceChoices.length?'Estes são os serviços da loja. Escolha uma opção para conhecer o agendamento:':'Veja algumas funções do SaintsAI. Qual você gostaria de conhecer?',interativo");
+const result="await db.from('saintsai_copilot_actions').update({estado:'enviado',enviado_em:new Date().toISOString()}).eq('id',q.data.id);";
+if(!s.includes(result))throw Error('Copilot send acknowledgment anchor missing');
+s=s.replace(result,"if(result?.status==='falhou'||result?.status==='erro'||result?.erro||result?.ok===false)throw Error('O WhatsApp recusou o envio.');"+result);
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[copiloto] menu conforme servicos cadastrados e verificacao de falhas de envio');
+}
