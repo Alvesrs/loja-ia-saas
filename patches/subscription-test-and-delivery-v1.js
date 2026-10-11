@@ -413,3 +413,12 @@ s=s.replace(point,guard+point);
 fs.writeFileSync(path,s);cp.execFileSync(process.execPath,['--check',path]);
 console.log('[waha.sales] vendedor assume, IA silencia e retoma apos 10 min sem atividade');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process'),p='src/controllers/whatsappWahaWebhook.controller.js';
+let s=fs.readFileSync(p,'utf8');const before="loja_id:configs[0].loja_id,ativo:true,ultimo_evento_id:'prospeccao:iniciado:'+Date.now()";
+if(!s.includes(before))throw Error('Activation state hook not found');
+s=s.replace(before,"loja_id:configs[0].loja_id,ativo:true,pausa_humana:false,ultima_atividade_humana_em:null,ultimo_evento_id:'prospeccao:iniciado:'+Date.now()");
+fs.writeFileSync(p,s);cp.execFileSync(process.execPath,['--check',p]);console.log('[waha.sales] novo início manual limpa pausa antiga');
+}
