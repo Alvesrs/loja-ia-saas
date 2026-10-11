@@ -361,3 +361,18 @@ s=s.replace(old,'<script src="js/auth.js"></script><script>if(typeof renovarSess
 fs.writeFileSync(p,s);
 console.log('[radar] dependência de renovação de sessão carregada e fallback para login habilitado');
 }
+
+
+{
+const fs=require('node:fs');
+const path='public/admin-mobile.html';
+let html=fs.readFileSync(path,'utf8');
+html=html.replace(/<a\s+href="admin-status\.html"\s+style="position:fixed;[^"]*"[^>]*>[^<]*<\/a>/g,'');
+html=html.replace(/<a\s+href="admin-radar-interesse\.html"\s+style="position:fixed;[^"]*"[^>]*>[^<]*<\/a>/g,'');
+if(!html.includes('id="sa-ferramentas-links"')){
+const nav='<section id="sa-ferramentas-links" style="margin:18px auto;padding:16px;max-width:1100px;box-sizing:border-box;background:#20142f;border:1px solid #4d3666;border-radius:16px"><h2 style="margin:0 0 12px;font-size:18px;color:#f6efff">Ferramentas do painel</h2><div style="display:flex;flex-wrap:wrap;gap:10px"><a href="admin-radar-interesse.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:12px;background:#7836cc;color:#fff;text-decoration:none;font:700 14px system-ui">◉ Radar inteligente</a><a href="admin-status.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:12px;background:#30243f;border:1px solid #6c4d84;color:#fff;text-decoration:none;font:700 14px system-ui">● Status do sistema</a></div></section>';
+html=html.replace('</body>',nav+'</body>');
+}
+fs.writeFileSync(path,html);
+console.log('[admin] atalhos Status e Radar movidos para secao própria, sem sobreposição');
+}
