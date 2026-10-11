@@ -264,3 +264,17 @@ const action="if(x.modalidade==='entrega'&&x.pagamento_status!=='confirmado'){co
 ui=ui.replace(uiAnchor,action+uiAnchor);fs.writeFileSync(file,ui);
 for(const p of ['src/services/entregaPix.service.js','src/routes/saintsaiEntrega.routes.js','src/controllers/asaasSubcontaWebhook.controller.js',file])cp.execFileSync(process.execPath,['--check',p]);console.log('[entrega] Pix Asaas para entregas com confirmação webhook autenticada');
 }
+
+
+{
+const fs=require('node:fs'),cp=require('node:child_process');
+const file='src/services/entregaWhatsapp.service.js';let s=fs.readFileSync(file,'utf8');
+const match="const start=/\\b(quero entrega|entregar em casa|receber em casa|delivery|fazer entrega|pedido para entrega)\\b/.test(t);";
+if(!s.includes(match))throw Error('Delivery choice hook missing');
+s=s.replace(match,"const retirada=/\\b(quero retirar|retirar na loja|buscar na loja|pegar na loja)\\b/.test(t);const start=retirada||/\\b(quero entrega|entregar em casa|receber em casa|delivery|fazer entrega|pedido para entrega)\\b/.test(t);");
+s=s.replace("await save({fase:'itens',itens_resumo:null,endereco:null,modalidade:'entrega'});return answer('Trabalhamos com entregas. '","await save({fase:'itens',itens_resumo:null,endereco:null,modalidade:retirada?'retirada':'entrega'});return answer((retirada?'Você pode retirar na loja. Qual é o seu pedido? ':'Trabalhamos com entregas. '");
+s=s.replace("await save({fase:'endereco',itens_resumo:texto});return answer('Certo! Envie seu endereço completo com rua, número, bairro, cidade e estado.');","await save({fase:session.modalidade==='retirada'?'confirmar':'endereco',itens_resumo:texto});return answer(session.modalidade==='retirada'?'Confirma retirada na loja dos itens: '+texto+'? Responda SIM para registrar. O pagamento será feito na loja.':'Certo! Envie seu endereço completo com rua, número, bairro, cidade e estado.');");
+s=s.replace("endereco:session.endereco,modalidade:'entrega',prazo_minutos:cfg.prazo_minutos,status:'aguardando_pagamento',pagamento_status:'pendente'","endereco:session.modalidade==='retirada'?null:session.endereco,modalidade:session.modalidade||'entrega',prazo_minutos:session.modalidade==='retirada'?null:cfg.prazo_minutos,status:'aguardando_pagamento',pagamento_status:session.modalidade==='retirada'?'nao_aplicavel':'pendente'");
+s=s.replace("return answer('Pedido registrado sob referência '+data.id.slice(0,8)+'. A loja vai conferir disponibilidade, frete e valor final antes de cobrar. A entrega só será liberada após confirmação real do pagamento.');","return answer(session.modalidade==='retirada'?'Retirada solicitada sob referência '+data.id.slice(0,8)+'. A loja confirmará disponibilidade e horário de retirada. O pagamento será feito na loja.':'Pedido registrado sob referência '+data.id.slice(0,8)+'. A loja vai conferir disponibilidade, frete e valor final antes de cobrar. A entrega só será liberada após confirmação real do pagamento.');");
+fs.writeFileSync(file,s);cp.execFileSync(process.execPath,['--check',file]);console.log('[entrega] modo retirada com pagamento na loja adicionado');
+}
