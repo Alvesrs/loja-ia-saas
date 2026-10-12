@@ -42,3 +42,5 @@ edit('src/services/clientPush.service.js',s=>s.replace("notification:{channelId:
 require('./commissions-v1');
 
 require('./company-selection-v1');
+
+require('./professional-whatsapp-v1');
