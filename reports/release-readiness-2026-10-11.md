@@ -32,7 +32,7 @@ Data: 11/10/2026, America/Sao_Paulo. Esta revisão não declara aprovação pela
 
 ## Ainda necessário antes de produção pública
 
-1. Validar SMTP de produção e autorizar a URL de recuperação no Supabase. Não foi enviado e-mail real nesta revisão. Sem SMTP configurado e redirecionamento permitido, o código de recuperação não basta para garantir o recebimento. URL: https://backend-prod-production-f338.up.railway.app/cliente/cliente-recuperar.html .
+1. Corrigir Site URL/Redirect URLs no painel Supabase e validar o link de recuperação. O proprietário confirmou na outra conversa que recebeu o e-mail, mas o link abriu localhost. O backend solicita a URL pública correta; ainda não foi possível alterar Auth porque o login no painel foi recusado. É necessário também verificar entrega de e-mails para clientes fora da equipe do projeto, não apenas para o proprietário. URL exata de recuperação: https://backend-prod-production-f338.up.railway.app/cliente/cliente-recuperar.html .
 2. Teste real completo com uma nova empresa: compra/cadastro, integração Asaas, WhatsApp, cadastro de serviços/profissionais, agendamento por um consumidor, Pix real, confirmação e notificação com o app fechado. Os testes com mocks não certificam disponibilidade ou aprovação de terceiros.
 3. Preparar conta Play Console, identidade do desenvolvedor, ficha da loja, declaração Data safety fiel aos SDKs, classificação indicativa e acesso de revisão sem dados de clientes reais.
 4. Se for conta pessoal criada após 13/11/2023: teste fechado com pelo menos 12 testadores inscritos continuamente por 14 dias e pedido de acesso à produção. Cumprir isso não garante aprovação automática.
@@ -49,3 +49,12 @@ Data: 11/10/2026, America/Sao_Paulo. Esta revisão não declara aprovação pela
 - Teste fechado: https://support.google.com/googleplay/android-developer/answer/14151465
 - Recuperação Supabase: https://supabase.com/docs/guides/auth/passwords
 - RLS: https://supabase.com/docs/guides/database/database-linter?lint=0013_rls_disabled_in_public
+
+## Continuidade verificada em 12/10/2026
+
+- Preservadas as correções da outra conversa: atributos de tema por API, validação da assinatura anterior, SDK/build-tools, isolamento dos testes de links no Android 16 e ajustes de shell na CI.
+- APK 1.2.19/código 34 publicado no commit 45893358f25a3497cc9d81f202beaa3bdfe84d99. CI 38199243076 concluída com sucesso; assinatura compatível e testes instrumentados no Android 16 executados com sucesso.
+- AAB SaintsAI-Cliente-Play-1.2.19-AAB disponível na CI 38196819419, artifact 11723588365, build e verificação de permissões concluídos com sucesso. Trata-se do pacote para contas existentes, sem compra de assinatura digital dentro do app.
+- Backend em produção: deployment 678b57ec-a566-4b89-8b13-21036b1accc8 SUCCESS, interface 2026.10.11.29. /api/health/ready HTTP 200.
+- Login, Segurança, recuperação, solicitações no ADM e páginas legais HTTP 200 e elementos esperados presentes. Recuperação com e-mail inválido rejeitada; redefinição sem token, consulta de exclusão sem login e webhook Asaas sem token retornam os códigos esperados.
+- A configuração da URL de recuperação NÃO foi concluída. Acesso GitHub ao painel Supabase retornou 'Incorrect username or password'; não houve alteração de senha de usuário ou autenticação por outro método sem autorização.
