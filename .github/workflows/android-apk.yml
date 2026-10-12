@@ -143,7 +143,10 @@ jobs:
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.DistributionPolicyTest
             adb logcat -c
-            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest || (adb logcat -d > android-app/external-links-logcat.txt; adb logcat -d -b crash > android-app/external-links-crash.txt; echo '=== TEST FAILURE ==='; grep -n -A 30 -B 3 -E 'FATAL EXCEPTION|Process: com.saintsai.stock|AndroidRuntime|Instrumentation run failed' android-app/external-links-logcat.txt | tail -200 || true; exit 1)
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest#deliveryMapEmbedStaysInsideAppButMapLinksOpenExternally' || (adb logcat -d > android-app/external-links-logcat.txt; adb logcat -d -b crash > android-app/external-links-crash.txt; echo '=== MAP INTENTS TEST CRASH ==='; tail -180 android-app/external-links-crash.txt; grep -n -A 20 -B 2 -E 'FATAL EXCEPTION|AndroidRuntime|Process: com.saintsai.stock' android-app/external-links-logcat.txt | tail -160 || true; exit 1)
+            adb shell am force-stop com.saintsai.stock || true
+            adb logcat -c
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest#redirectsAndJavascriptBridgeOpenNativeWhatsApp' || (adb logcat -d > android-app/external-links-logcat.txt; adb logcat -d -b crash > android-app/external-links-crash.txt; echo '=== WHATSAPP INTENTS TEST CRASH ==='; tail -180 android-app/external-links-crash.txt; grep -n -A 20 -B 2 -E 'FATAL EXCEPTION|AndroidRuntime|Process: com.saintsai.stock' android-app/external-links-logcat.txt | tail -160 || true; exit 1)
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb shell pm grant com.saintsai.stock android.permission.POST_NOTIFICATIONS || true
             adb logcat -c
