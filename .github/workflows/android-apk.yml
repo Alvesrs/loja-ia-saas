@@ -139,7 +139,7 @@ jobs:
           disable-animations: true
           script: |
             adb install -r android-app/adminapp/build/outputs/apk/debug/adminapp-debug.apk
-            gradle -p android-app --no-daemon :adminapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.admin.ExternalLinksTest
+            gradle -p android-app --no-daemon :adminapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.admin.ExternalLinksTest || { adb logcat -d -b crash > android-app/adminapp-test-crash.txt; adb logcat -d -t 1000 > android-app/adminapp-test-logcat.txt; exit 1; }
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.DistributionPolicyTest
             adb logcat -c
@@ -156,7 +156,7 @@ jobs:
 
             adb shell settings put secure show_ime_with_hard_keyboard 1
             adb shell locksettings set-pin 1234
-            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.SecurityLockTest
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.SecurityLockTest || { adb logcat -d -b crash > android-app/security-test-crash.txt; adb logcat -d -t 1000 > android-app/security-test-logcat.txt; exit 1; }
             adb shell locksettings clear --old 1234
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.WindowInsetsTest || echo "Aviso: teste de teclado/insets instável no emulador Android 16"
@@ -179,6 +179,10 @@ jobs:
             android-app/layout-gestures/
             android-app/estoqueapp/build/reports/androidTests/
             android-app/client-crash.txt
+            android-app/adminapp-test-crash.txt
+            android-app/adminapp-test-logcat.txt
+            android-app/security-test-crash.txt
+            android-app/security-test-logcat.txt
             android-app/external-links-logcat.txt
             android-app/estoqueapp/build/outputs/androidTest-results/
             android-app/adminapp/build/reports/androidTests/
