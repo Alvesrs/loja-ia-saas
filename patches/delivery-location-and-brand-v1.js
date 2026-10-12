@@ -29,3 +29,5 @@ const release=JSON.parse(fs.readFileSync('public/cliente-versao.json','utf8'));f
 console.log('[delivery.location] real map lookup, customer confirmation, saved coordinates and branding installed');
 
 require('node:child_process').execFileSync(process.execPath,['--test','tests/delivery-location.test.cjs'],{stdio:'inherit'});
+
+require("./delivery-dormant-v1");
