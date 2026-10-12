@@ -50,3 +50,5 @@ require('./owner-consultative-v1');
 require('./owner-minute-handoff-v1');
 
 require('./owner-sales-opening-fix-v1');
+
+require('./owner-sales-case-v1');
