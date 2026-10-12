@@ -39,6 +39,8 @@ public class ClientMessagingService extends FirebaseMessagingService {
             .setContentIntent(pi);
 
         NotificationManager nm = getSystemService(NotificationManager.class);
-        nm.notify((int)(System.currentTimeMillis() & 0xfffffff), b.build());
+        String bookingId=message.getData().get("agendamento_id");
+        if(sale && bookingId!=null && !bookingId.isBlank())nm.notify("saintsai-sale-"+bookingId,0,b.setOnlyAlertOnce(true).build());
+        else nm.notify((int)(System.currentTimeMillis() & 0xfffffff), b.build());
     }
 }

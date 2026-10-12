@@ -1,0 +1,52 @@
+name: Prepare SaintsAI Play Store bundle
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android-app/estoqueapp/**', '.github/workflows/android-play-bundle.yml']
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install Android 16 SDK
+        run: sdkmanager "platforms;android-36"
+      - name: Prepare upload signing
+        env:
+          KEYSTORE_B64: ${{ secrets.SAINTSAI_SALES_KEYSTORE_B64 }}
+        run: |
+          test -n "$KEYSTORE_B64"
+          printf '%s' "$KEYSTORE_B64" | sed 's/^SAINTSAI_SALES_KEYSTORE_B64=//' | tr -d '\r\n ' | base64 --decode --ignore-garbage > estoqueapp/saintsai-client-release.jks
+      - name: Build signed consumption-only bundle
+        env:
+          SAINTSAI_CLIENT_KEYSTORE: saintsai-client-release.jks
+          SAINTSAI_CLIENT_STORE_PASSWORD: ${{ secrets.SAINTSAI_SALES_STORE_PASSWORD }}
+          SAINTSAI_CLIENT_KEY_ALIAS: ${{ secrets.SAINTSAI_SALES_KEY_ALIAS }}
+          SAINTSAI_CLIENT_KEY_PASSWORD: ${{ secrets.SAINTSAI_SALES_KEY_PASSWORD }}
+        run: gradle --no-daemon :estoqueapp:bundleRelease -PplayDistribution=true
+      - name: Verify bundle and restricted permissions
+        run: |
+          test -s estoqueapp/build/outputs/bundle/release/estoqueapp-release.aab
+          jarsigner -verify estoqueapp/build/outputs/bundle/release/estoqueapp-release.aab
+          MANIFEST="$(find estoqueapp/build/intermediates/merged_manifests/release -name AndroidManifest.xml | head -n 1)"
+          test -n "$MANIFEST"
+          ! grep -q 'android.permission.REQUEST_INSTALL_PACKAGES' "$MANIFEST"
+          ! grep -q 'android.permission.WRITE_EXTERNAL_STORAGE' "$MANIFEST"
+          grep -q 'android:targetSdkVersion="36"' "$MANIFEST"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaintsAI-Cliente-Play-1.2.19-AAB
+          path: android-app/estoqueapp/build/outputs/bundle/release/estoqueapp-release.aab
+          if-no-files-found: error

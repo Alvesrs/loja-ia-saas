@@ -132,6 +132,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if(BuildConfig.PLAY_DISTRIBUTION && DistributionPolicy.blocked(Uri.parse(url))){view.stopLoading();view.loadUrl(APP_URL);return;}
                 if(recoverExternalWhatsApp(view, Uri.parse(url))) return;
                 loading.setVisibility(View.VISIBLE);
                 errorView.setVisibility(View.GONE);
@@ -317,7 +318,11 @@ public class MainActivity extends Activity {
         public String getVersionName() { return BuildConfig.VERSION_NAME; }
 
         @JavascriptInterface
+        public String getDistribution() { return BuildConfig.PLAY_DISTRIBUTION ? "play" : "direct"; }
+
+        @JavascriptInterface
         public void installLatest() {
+            if(BuildConfig.PLAY_DISTRIBUTION){runOnUiThread(() -> openExternal(Uri.parse("https://play.google.com/store/apps/details?id="+getPackageName())));return;}
             runOnUiThread(() -> {
                 try {
                     DownloadManager dm=(DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
@@ -361,6 +366,9 @@ public class MainActivity extends Activity {
 
     private boolean handleNavigation(Uri uri) {
         if (uri == null) return false;
+        if(BuildConfig.PLAY_DISTRIBUTION && DistributionPolicy.blocked(uri)){
+            new AlertDialog.Builder(this).setTitle("SaintsAI").setMessage("Esta versão usa contas empresariais existentes. Compras de assinatura e downloads de APK não estão disponíveis no aplicativo.").setPositiveButton("OK",null).show();return true;
+        }
 
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
         String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();

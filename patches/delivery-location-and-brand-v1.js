@@ -31,3 +31,5 @@ console.log('[delivery.location] real map lookup, customer confirmation, saved c
 require('node:child_process').execFileSync(process.execPath,['--test','tests/delivery-location.test.cjs'],{stdio:'inherit'});
 
 require("./delivery-dormant-v1");
+
+require("./release-audit-v1");
