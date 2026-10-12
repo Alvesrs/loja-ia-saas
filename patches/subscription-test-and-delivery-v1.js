@@ -872,3 +872,5 @@ fs.writeFileSync("public/js/cliente-galeria.js","(()=>{'use strict';const $=id=>
 
 // Final client interface refresh; generated after gallery and every legacy visual patch.
 require('./client-interface-v7');
+
+require('./delivery-location-and-brand-v1');

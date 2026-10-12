@@ -121,7 +121,13 @@ public class MainActivity extends Activity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return handleNavigation(request.getUrl());
+                Uri target=request.getUrl();
+                String host=target.getHost(),path=target.getPath();
+                boolean googleMapFrame=!request.isForMainFrame() && "https".equalsIgnoreCase(target.getScheme())
+                    && (("maps.google.com".equalsIgnoreCase(host) || "www.google.com".equalsIgnoreCase(host))
+                    && (("/maps".equals(path) && "embed".equals(target.getQueryParameter("output"))) || "/maps/embed".equals(path)));
+                if(googleMapFrame)return false;
+                return handleNavigation(target);
             }
 
             @Override

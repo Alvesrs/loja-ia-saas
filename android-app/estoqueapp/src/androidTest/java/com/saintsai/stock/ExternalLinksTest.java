@@ -42,4 +42,17 @@ public class ExternalLinksTest {
    intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))),times(5));
   }finally{Intents.release();}
  }
+ @Test public void deliveryMapEmbedStaysInsideAppButMapLinksOpenExternally()throws Exception{
+  Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+   intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
+   scenario.onActivity(a->{WebView w=web(a);w.stopLoading();
+    assertFalse(w.getWebViewClient().shouldOverrideUrlLoading(w,request("https://maps.google.com/maps?q=-23.58,-51.57&output=embed",false)));
+    assertFalse(w.getWebViewClient().shouldOverrideUrlLoading(w,request("https://www.google.com/maps?q=-23.58,-51.57&output=embed",false)));
+    assertFalse(w.getWebViewClient().shouldOverrideUrlLoading(w,request("https://www.google.com/maps/embed?pb=example",false)));
+    assertTrue(w.getWebViewClient().shouldOverrideUrlLoading(w,request("https://www.google.com/maps?q=-23.58,-51.57",true)));
+   });
+   intended(allOf(hasAction(Intent.ACTION_VIEW),hasData(Uri.parse("https://www.google.com/maps?q=-23.58,-51.57"))),times(1));
+  }finally{Intents.release();}
+ }
+
 }
