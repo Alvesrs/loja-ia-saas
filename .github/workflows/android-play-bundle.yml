@@ -38,7 +38,7 @@ jobs:
           SAINTSAI_CLIENT_STORE_PASSWORD: ${{ secrets.SAINTSAI_SALES_STORE_PASSWORD }}
           SAINTSAI_CLIENT_KEY_ALIAS: ${{ secrets.SAINTSAI_SALES_KEY_ALIAS }}
           SAINTSAI_CLIENT_KEY_PASSWORD: ${{ secrets.SAINTSAI_SALES_KEY_PASSWORD }}
-        run: gradle --no-daemon :estoqueapp:bundleRelease -PplayDistribution=true
+        run: gradle --no-daemon :estoqueapp:bundleRelease :estoqueapp:lintRelease -PplayDistribution=true
       - name: Verify bundle and restricted permissions
         run: |
           test -s estoqueapp/build/outputs/bundle/release/estoqueapp-release.aab

@@ -15,6 +15,7 @@ Data: 11/10/2026, America/Sao_Paulo. Esta revisão não declara aprovação pela
 - Asaas subconta: HTTP 200 somente após processar; falha de persistência retorna erro para permitir nova tentativa. Valor incompatível ou QR diferente não marca o agendamento como pago.
 - Notificações de vendas de agendamentos: fila durável criada na mesma transação do pagamento, uma entrada por agendamento, bloqueio por tentativa, recuperação de processamento interrompido e tentativas com intervalo crescente por até 48 horas. Sem dispositivo ativo, a mensagem permanece pendente. Não há promessa de entrega se o usuário desativar notificações ou o provedor não entregar.
 - Repetições de notificações com o mesmo agendamento usam a mesma identificação Android, em vez de criar cartões adicionais.
+- Compatibilidade de notificações: removido String.isBlank(), indisponível abaixo do Android 13, sem elevar a versão mínima do app. Android Lint incluído nos builds de distribuição.
 - Android Cliente 1.2.19 / código 34: compile/target SDK 36; assinatura existente preservada.
 - Build separado para Play: AAB assinado, sem REQUEST_INSTALL_PACKAGES e sem WRITE_EXTERNAL_STORAGE. Atualização abre Play Store; navegação de compras da assinatura SaintsAI e de APKs é bloqueada. Não contém Play Billing: é uma versão para contas empresariais existentes. Pix de serviços físicos não é bloqueado.
 - Entregas continua adormecida e sem acesso dos clientes.

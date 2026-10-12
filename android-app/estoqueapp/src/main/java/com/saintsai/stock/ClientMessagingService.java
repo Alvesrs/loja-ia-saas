@@ -16,8 +16,8 @@ public class ClientMessagingService extends FirebaseMessagingService {
     @Override public void onMessageReceived(RemoteMessage message) {
         String title = message.getData().get("title");
         String body = message.getData().get("body");
-        if (title == null || title.isBlank()) title = "SaintsAI";
-        if (body == null || body.isBlank()) body = "Você tem uma nova atualização.";
+        if (title == null || title.trim().isEmpty()) title = "SaintsAI";
+        if (body == null || body.trim().isEmpty()) body = "Você tem uma nova atualização.";
 
         boolean sale="venda_recebida".equals(message.getData().get("tipo"))||"pagamento_confirmado".equals(message.getData().get("tipo"))||"teste_venda".equals(message.getData().get("tipo"));
         String channel=MainActivity.CHANNEL_CLIENT;
@@ -40,7 +40,7 @@ public class ClientMessagingService extends FirebaseMessagingService {
 
         NotificationManager nm = getSystemService(NotificationManager.class);
         String bookingId=message.getData().get("agendamento_id");
-        if(sale && bookingId!=null && !bookingId.isBlank())nm.notify("saintsai-sale-"+bookingId,0,b.setOnlyAlertOnce(true).build());
+        if(sale && bookingId!=null && !bookingId.trim().isEmpty())nm.notify("saintsai-sale-"+bookingId,0,b.setOnlyAlertOnce(true).build());
         else nm.notify((int)(System.currentTimeMillis() & 0xfffffff), b.build());
     }
 }

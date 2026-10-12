@@ -20,7 +20,13 @@ android {
         versionName "1.2.19"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "boolean", "PLAY_DISTRIBUTION", playDistribution.toString()
-        manifestPlaceholders = [installPermissionNode: playDistribution ? "remove" : "merge", storagePermissionNode: playDistribution ? "remove" : "merge"]
+    }
+
+    sourceSets {
+        if (playDistribution) {
+            debug.manifest.srcFile "src/play/AndroidManifest.xml"
+            release.manifest.srcFile "src/play/AndroidManifest.xml"
+        }
     }
 
     signingConfigs {

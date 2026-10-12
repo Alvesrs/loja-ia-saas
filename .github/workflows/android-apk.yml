@@ -76,7 +76,7 @@ jobs:
           SAINTSAI_CLIENT_STORE_PASSWORD: ${{ env.CLIENT_STORE_PASSWORD }}
           SAINTSAI_CLIENT_KEY_ALIAS: ${{ env.CLIENT_KEY_ALIAS }}
           SAINTSAI_CLIENT_KEY_PASSWORD: ${{ env.CLIENT_KEY_PASSWORD }}
-        run: gradle --no-daemon :estoqueapp:assembleRelease :adminapp:assembleRelease
+        run: gradle --no-daemon :estoqueapp:assembleRelease :estoqueapp:lintRelease :adminapp:assembleRelease
 
       - name: Validate signed client APK
         run: |
