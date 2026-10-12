@@ -21,13 +21,20 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public class ExternalLinksTest {
+ private void assertRecordedIntent(org.hamcrest.Matcher<Intent> matcher){
+  for(int attempt=0;attempt<30;attempt++){
+   for(Intent intent:Intents.getIntents())if(matcher.matches(intent))return;
+   try{Thread.sleep(100);}catch(InterruptedException e){Thread.currentThread().interrupt();throw new AssertionError(e);}
+  }
+  throw new AssertionError("Expected external intent not recorded: "+matcher);
+ }
  private WebView web(MainActivity a){try{Field f=MainActivity.class.getDeclaredField("webView");f.setAccessible(true);return(WebView)f.get(a);}catch(Exception e){throw new AssertionError(e);}}
  private WebResourceRequest request(String url,boolean main){return new WebResourceRequest(){public Uri getUrl(){return Uri.parse(url);}public boolean isForMainFrame(){return main;}public boolean isRedirect(){return true;}public boolean hasGesture(){return true;}public String getMethod(){return"GET";}public Map<String,String> getRequestHeaders(){return Collections.emptyMap();}};}
  private void redirect(String url,boolean main,String expectedPhone){
   Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
    scenario.onActivity(a->{WebView w=web(a);w.stopLoading();assertTrue(w.getWebViewClient().shouldOverrideUrlLoading(w,request(url,main)));});
-   intended(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/"+expectedPhone))));
+   assertRecordedIntent(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/"+expectedPhone))));
   }finally{Intents.release();}
  }
  @Test public void exactReportedWhatsAppRedirectIsExternalEvenInSubframe(){redirect("whatsapp://send/?phone=5544991001088&text&type=phone_number&app_absent=0&wame_ctl=1",false,"5544991001088");}
@@ -38,7 +45,7 @@ public class ExternalLinksTest {
   Intents.init();try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    intending(hasAction(Intent.ACTION_VIEW)).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_OK,null));
    scenario.onActivity(a->{WebView w=web(a);w.stopLoading();w.getWebViewClient().onPageStarted(w,"whatsapp://send/?phone=5544991001088",null);});
-   intended(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
+   assertRecordedIntent(allOf(hasAction(Intent.ACTION_VIEW),hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
   }finally{Intents.release();}
  }
  @Test public void javascriptBridgeOpensNativeWhatsApp()throws Exception{
@@ -50,7 +57,7 @@ public class ExternalLinksTest {
    scenario.onActivity(a->{WebView w=web(a);w.evaluateJavascript("AndroidAgent.openWhatsApp('5544991001088'); 'ok';",v->done.countDown());});
    assertTrue(done.await(8,TimeUnit.SECONDS));
    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-   intended(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
+   assertRecordedIntent(allOf(hasPackage("com.whatsapp"),hasData(Uri.parse("https://wa.me/5544991001088"))));
   }finally{Intents.release();}
  }
  @Test public void updateBridgeQueuesTheAgentApkDownload()throws Exception{
@@ -73,7 +80,7 @@ public class ExternalLinksTest {
    intending(allOf(hasAction(Intent.ACTION_VIEW),hasType("application/vnd.android.package-archive"))).respondWith(new Instrumentation.ActivityResult(Activity.RESULT_CANCELED,null));
    Uri apk=Uri.parse("content://downloads/my_downloads/42");
    scenario.onActivity(a->a.launchUpdateInstaller(apk));
-   intended(allOf(hasAction(Intent.ACTION_VIEW),hasData(apk),hasType("application/vnd.android.package-archive"),hasFlag(Intent.FLAG_GRANT_READ_URI_PERMISSION)));
+   assertRecordedIntent(allOf(hasAction(Intent.ACTION_VIEW),hasData(apk),hasType("application/vnd.android.package-archive"),hasFlag(Intent.FLAG_GRANT_READ_URI_PERMISSION)));
   }finally{Intents.release();}
  }
 
