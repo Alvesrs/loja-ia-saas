@@ -51,8 +51,11 @@ jobs:
             test "$code" -lt 400
           done
 
-      - name: Install Android 16 SDK
-        run: sdkmanager "platforms;android-36"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: platform-tools platforms;android-36
+          log-accepted-android-sdk-licenses: false
 
       - name: Build debug APKs
         run: gradle --no-daemon :adminapp:assembleDebug :estoqueapp:assembleDebug
