@@ -38,3 +38,5 @@ edit('public/js/first-access.js',s=>s.replace("e.preventDefault();erro.textConte
 edit('public/cliente-primeiro-acesso.html',s=>s.replace('src="js/first-access.js"','src="js/first-access.js?v=2026.10.11.29"'));
 
 edit('src/services/clientPush.service.js',s=>s.replace("notification:{channelId:channel,...(sale?{icon:'ic_notification_money'}:{})}","notification:{channelId:channel,...(sale?{icon:'ic_notification_money'}:{}),...(sale&&agendamentoId?{tag:'saintsai-sale-'+String(agendamentoId)}:{})}"));
+
+require('./commissions-v1');
