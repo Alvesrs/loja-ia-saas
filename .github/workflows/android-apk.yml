@@ -143,7 +143,7 @@ jobs:
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.DistributionPolicyTest
             adb logcat -c
-            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest || {
+            if ! gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest; then
               adb logcat -d > android-app/external-links-logcat.txt
               adb logcat -d -b crash > android-app/external-links-crash.txt
               echo '=== ANDROID TEST FAILURE DETAILS ==='
@@ -153,7 +153,7 @@ jobs:
               echo '=== CRASH BUFFER ==='
               tail -120 android-app/external-links-crash.txt || true
               exit 1
-            }
+            fi
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb shell pm grant com.saintsai.stock android.permission.POST_NOTIFICATIONS || true
             adb logcat -c
