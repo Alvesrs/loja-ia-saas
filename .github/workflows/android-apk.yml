@@ -143,17 +143,7 @@ jobs:
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.DistributionPolicyTest
             adb logcat -c
-            if ! gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest; then
-              adb logcat -d > android-app/external-links-logcat.txt
-              adb logcat -d -b crash > android-app/external-links-crash.txt
-              echo '=== ANDROID TEST FAILURE DETAILS ==='
-              find android-app/estoqueapp/build/outputs/androidTest-results -type f -name '*.xml' -exec grep -n -A 22 -B 3 -E 'failure|error|crash' {} \; || true
-              echo '=== FATAL EXCEPTIONS ==='
-              grep -n -A 35 -B 4 -E 'FATAL EXCEPTION|Process: com.saintsai.stock|Process: com.saintsai.stock.test|AndroidRuntime|Instrumentation run failed' android-app/external-links-logcat.txt | tail -220 || true
-              echo '=== CRASH BUFFER ==='
-              tail -120 android-app/external-links-crash.txt || true
-              exit 1
-            fi
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest || (adb logcat -d > android-app/external-links-logcat.txt; adb logcat -d -b crash > android-app/external-links-crash.txt; echo '=== TEST FAILURE ==='; grep -n -A 30 -B 3 -E 'FATAL EXCEPTION|Process: com.saintsai.stock|AndroidRuntime|Instrumentation run failed' android-app/external-links-logcat.txt | tail -200 || true; exit 1)
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             adb shell pm grant com.saintsai.stock android.permission.POST_NOTIFICATIONS || true
             adb logcat -c
