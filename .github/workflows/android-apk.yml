@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.19 new pairing and native update validation
+# trigger: 1.2.19 signed APK release validation and emulator smoke tests
 
 permissions:
   contents: write
