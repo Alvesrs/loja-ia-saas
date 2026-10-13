@@ -73,3 +73,9 @@ As 177 falhas da suite ampla NÃO foram corrigidas nem descartadas. Há contrato
 8. Aprovação de uma release concreta após essas verificações. Manter ponto de reversão e observar logs/health após deploy.
 
 Conclusão: entrega de correções específicas testadas e auditoria verificável; SaintsAI ainda não foi certificado estável de ponta a ponta e a produção não recebeu estas mudanças.
+
+## Confirmação adicional na CI
+
+A execução [38474092830](https://github.com/Alvesrs/loja-ia-saas/actions/runs/38474092830), commit `23aaa35e3ed74319ef3a5f2f577e614e7f68fa94`, terminou SUCCESS: build da imagem Docker com os testes focados e validação de sintaxe. Isso complementa a reconstrução local e não constitui staging nem deploy de produção. A entrega está na [PR de rascunho nº 15](https://github.com/Alvesrs/loja-ia-saas/pull/15).
+
+Consulta adicional dos 133 eventos preservados: 119 têm prefixo de entrada WAHA `false_`; 14 usam outros formatos. Ainda falta reconciliação individual com o histórico do provedor antes de qualquer recuperação.
