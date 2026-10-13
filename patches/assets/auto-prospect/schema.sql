@@ -1,13 +1,13 @@
 create table public.saintsai_prospect_batches (
  id uuid primary key default gen_random_uuid(),loja_id uuid not null references public.lojas(id) on delete cascade,
  started_by uuid not null references auth.users(id),status text not null default 'searching' check(status in ('searching','searching_claimed','running','completed','cancelled','failed')),
- target jsonb not null,limit_count int not null default 5 check(limit_count between 1 and 5),error text,
+ target jsonb not null,limit_count int not null default 8 check(limit_count between 1 and 8),error text,
  lease_until timestamptz,next_at timestamptz not null default now(),created_at timestamptz not null default now(),updated_at timestamptz not null default now()
 );
 create unique index saintsai_prospect_one_batch on public.saintsai_prospect_batches(loja_id) where status in ('searching','searching_claimed','running');
 create table public.saintsai_prospect_items (
  id uuid primary key default gen_random_uuid(),batch_id uuid not null references public.saintsai_prospect_batches(id) on delete cascade,
- loja_id uuid not null references public.lojas(id) on delete cascade,phone text not null,contact text not null,position int not null check(position between 0 and 4),
+ loja_id uuid not null references public.lojas(id) on delete cascade,phone text not null,contact text not null,position int not null check(position between 0 and 7),
  business jsonb not null,opening text not null,status text not null default 'queued' check(status in ('queued','sending','waiting','closed','uncertain','failed','cancelled')),
  result jsonb,error text,lease_until timestamptz,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(loja_id,phone),unique(batch_id,position)
 );
@@ -24,8 +24,8 @@ begin
  select id into v_id from public.saintsai_prospect_batches where loja_id=p_loja_id and status in ('searching','searching_claimed','running') limit 1;
  if found then return v_id;end if;
  select count(*) into v_count from public.saintsai_prospect_items where loja_id=p_loja_id and status in ('queued','sending','waiting','uncertain');
- if v_count>=5 then raise exception 'Já existem cinco conversas automáticas em andamento.';end if;
- insert into public.saintsai_prospect_batches(loja_id,started_by,target,limit_count) values(p_loja_id,p_actor,p_target,5-v_count) returning id into v_id;
+ if v_count>=8 then raise exception 'Já existem oito conversas automáticas em andamento.';end if;
+ insert into public.saintsai_prospect_batches(loja_id,started_by,target,limit_count) values(p_loja_id,p_actor,p_target,8-v_count) returning id into v_id;
  return v_id;
 end;$$;
 revoke all on function public.saintsai_prospect_start(uuid,uuid,jsonb) from public,anon,authenticated;
