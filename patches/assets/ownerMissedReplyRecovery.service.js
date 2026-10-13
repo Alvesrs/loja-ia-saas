@@ -2,7 +2,7 @@
 const db=require('../config/supabase');
 const checked=async q=>{const r=await q;if(r.error)throw r.error;return r.data;};
 function pending(messages,now=Date.now()){
- const sorted=messages.filter(x=>!(x.fromMe===true&&String(x.body||'').trim()==='*')).filter(x=>typeof x.body==='string'&&x.body.trim()&&Number.isFinite(Number(x.timestamp))).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));
+ const sorted=messages.filter(x=>typeof x.body==='string'&&x.body.trim()&&Number.isFinite(Number(x.timestamp))).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));
  const last=sorted.at(-1);if(!last||last.fromMe!==false||Number(last.timestamp)*1000<now-86400000)return null;
  const lastOut=sorted.findLastIndex(x=>x.fromMe===true);const incoming=sorted.slice(lastOut+1).filter(x=>x.fromMe===false);if(!incoming.length)return null;
  const id=typeof last.id==='string'?last.id:last.id?._serialized||last.id?.id;if(!id)return null;
