@@ -25,3 +25,7 @@ O script só executa quando marcado explicitamente como teste isolado, com host 
 Resultado PostgreSQL e build Docker desta etapa precisam ser registrados após a CI. A validação não cobre PostgREST, permissões do Supabase ou isolamento de todas as APIs e não equivale a staging do produto completo.
 
 Produção, banco do SaintsAI, pagamentos, APKs e os 133 eventos antigos permanecem sem alteração. A PR nº 15 continua em rascunho; ainda faltam revisão das falhas, caminhos fora da fila, serialização por conversa, controle humano de todas as lojas, interfaces e staging antes de publicação.
+
+## Resultado final da CI
+
+A execução [38476628254](https://github.com/Alvesrs/loja-ia-saas/actions/runs/38476628254), revisão `819bef7c4a91a3ae1500717838c5f82be88b7794`, terminou SUCCESS. O job de build Docker passou com a suite focada ampliada. O job PostgreSQL executou e aprovou os cinco cenários, zero falhas: a disputa de oito conexões concedeu apenas uma intenção, workers obsoletos/vencidos foram rejeitados, o marcador sobreviveu à leitura por conexão nova e uma falha SQL não autorizou envio. Os logs foram consultados para confirmar os cinco casos, não apenas o status do job. Permanecem os limites de cobertura e as 165 falhas descritas acima.
