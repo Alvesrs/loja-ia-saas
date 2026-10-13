@@ -17,6 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build production image with isolated synthetic regression tests
-        run: docker build -f Dockerfile.backend -t saintsai-audit:${{ github.sha }} .
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! docker build -f Dockerfile.backend -t saintsai-audit:${{ github.sha }} . 2>&1 | tee /tmp/saintsai-build.log; then
+            if rg -q '429 Too Many Requests|toomanyrequests: Data limit exceeded' /tmp/saintsai-build.log; then
+              docker build --build-arg NODE_BASE_IMAGE=node:22-bookworm -f Dockerfile.backend -t saintsai-audit:${{ github.sha }} .
+            else
+              exit 1
+            fi
+          fi
       - name: Validate compiled syntax
         run: docker run --rm --entrypoint node saintsai-audit:${{ github.sha }} --check src/services/whatsappWorker.service.js
