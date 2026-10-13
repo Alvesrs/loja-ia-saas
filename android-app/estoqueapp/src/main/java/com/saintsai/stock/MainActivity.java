@@ -109,6 +109,7 @@ public class MainActivity extends Activity {
         settings.setAllowContentAccess(true);
 
         webView.addJavascriptInterface(new ClientBridge(), "AndroidClient");
+        webView.addJavascriptInterface(new AppIconBridge(this,webView),"AndroidIcons");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);

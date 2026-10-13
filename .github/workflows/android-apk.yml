@@ -1,5 +1,5 @@
 name: Build SaintsAI APKs
-# trigger: 1.2.19 signed APK release validation and emulator smoke tests
+# trigger: 1.2.20 signed APK release validation and emulator smoke tests
 
 permissions:
   contents: write
@@ -86,7 +86,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock'"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "application-label:'SaintsAI Cliente'"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock' versionCode='34' versionName='1.2.19'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.stock' versionCode='35' versionName='1.2.20'"
           SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           PREVIOUS="../downloads/SaintsAI-Cliente.apk"
           test -s "$PREVIOUS"
@@ -100,28 +100,28 @@ jobs:
           APK="adminapp/build/outputs/apk/release/adminapp-release.apk"
           SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           "$SIGNER" verify --verbose --print-certs "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.admin' versionCode='25' versionName='1.0.24'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.saintsai.admin' versionCode='26' versionName='1.0.25'"
           "$SIGNER" verify --print-certs "$APK" | grep 'certificate SHA-256 digest' > /tmp/new-agent-cert
           "$SIGNER" verify --print-certs ../downloads/Agente-SaintsAI.apk | grep 'certificate SHA-256 digest' > /tmp/old-agent-cert
           cmp /tmp/old-agent-cert /tmp/new-agent-cert
 
       - name: Package APKs
         run: |
-          cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.24.apk
-          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.19.apk
+          cp adminapp/build/outputs/apk/release/adminapp-release.apk Agente-SaintsAI-v1.0.25.apk
+          cp estoqueapp/build/outputs/apk/release/estoqueapp-release.apk SaintsAI-Cliente-v1.2.20.apk
 
       - name: Upload Agente SaintsAI
         uses: actions/upload-artifact@v4
         with:
-          name: Agente-SaintsAI-APK-v1.0.24
-          path: android-app/Agente-SaintsAI-v1.0.24.apk
+          name: Agente-SaintsAI-APK-v1.0.25
+          path: android-app/Agente-SaintsAI-v1.0.25.apk
           if-no-files-found: error
 
       - name: Upload SaintsAI Cliente
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-APK-v1.2.19
-          path: android-app/SaintsAI-Cliente-v1.2.19.apk
+          name: SaintsAI-Cliente-APK-v1.2.20
+          path: android-app/SaintsAI-Cliente-v1.2.20.apk
           if-no-files-found: error
 
       - name: Enable KVM
@@ -142,6 +142,7 @@ jobs:
             gradle -p android-app --no-daemon :adminapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.admin.ExternalLinksTest || { adb logcat -d -b crash > android-app/adminapp-test-crash.txt; adb logcat -d -t 1000 > android-app/adminapp-test-logcat.txt; exit 1; }
             adb install -r android-app/estoqueapp/build/outputs/apk/debug/estoqueapp-debug.apk
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.DistributionPolicyTest
+            gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.AppIconSwitchTest
             adb logcat -c
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest#deliveryMapEmbedStaysInsideAppButMapLinksOpenExternally' || (adb logcat -d > android-app/external-links-logcat.txt; adb logcat -d -b crash > android-app/external-links-crash.txt; echo '=== MAP INTENTS TEST CRASH ==='; tail -180 android-app/external-links-crash.txt; grep -n -A 20 -B 2 -E 'FATAL EXCEPTION|AndroidRuntime|Process: com.saintsai.stock' android-app/external-links-logcat.txt | tail -160 || true; exit 1)
             adb shell am force-stop com.saintsai.stock || true
@@ -175,7 +176,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SaintsAI-Cliente-Validation-v1.2.19
+          name: SaintsAI-Cliente-Validation-v1.2.20
           path: |
             android-app/estoque-screen.png
             android-app/layout-threebutton/
@@ -200,19 +201,19 @@ jobs:
             exit 0
           fi
           mkdir -p ../downloads
-          cp SaintsAI-Cliente-v1.2.19.apk ../downloads/SaintsAI-Cliente.apk
-          cp Agente-SaintsAI-v1.0.24.apk ../downloads/Agente-SaintsAI.apk
+          cp SaintsAI-Cliente-v1.2.20.apk ../downloads/SaintsAI-Cliente.apk
+          cp Agente-SaintsAI-v1.0.25.apk ../downloads/Agente-SaintsAI.apk
           cat > ../downloads/saintsai-cliente.json <<'EOF'
-          {"versionCode":34,"versionName":"1.2.19","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
+          {"versionCode":35,"versionName":"1.2.20","package":"com.saintsai.stock","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/SaintsAI-Cliente.apk"}
           EOF
           cat > ../downloads/saintsai-agente.json <<'EOF'
-          {"versionCode":25,"versionName":"1.0.24","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
+          {"versionCode":26,"versionName":"1.0.25","package":"com.saintsai.admin","apk":"https://raw.githubusercontent.com/Alvesrs/loja-ia-saas/main/downloads/Agente-SaintsAI.apk"}
           EOF
           cd ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add downloads/SaintsAI-Cliente.apk downloads/Agente-SaintsAI.apk downloads/saintsai-cliente.json downloads/saintsai-agente.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "release: SaintsAI Cliente v1.2.19 [skip ci]"
+          git commit -m "release: SaintsAI Cliente v1.2.20 [skip ci]"
           git push
 

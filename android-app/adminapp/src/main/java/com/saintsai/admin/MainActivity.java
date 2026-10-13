@@ -132,6 +132,7 @@ public class MainActivity extends Activity {
         cookies.setAcceptThirdPartyCookies(webView, true);
 
         webView.addJavascriptInterface(new AgentBridge(),"AndroidAgent");
+        webView.addJavascriptInterface(new AppIconBridge(this,webView),"AndroidIcons");
         webView.setWebChromeClient(new WebChromeClient(){
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean gesture, Message result){
                 if(!gesture) return false;
