@@ -62,3 +62,5 @@ require('./owner-sales-continuity-v1');
 require('./marketing-guru-v1');
 
 require('./auto-prospect-v1');
+
+require('./owner-sales-media-scope-v1');
