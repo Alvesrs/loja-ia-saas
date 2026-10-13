@@ -20,7 +20,8 @@ function fixture(failure) {
     './assinaturas.service': { obterSituacaoPlano: async () => ({ ativo: true }) },
     './salesVoice.service': { enviarSeAplicavel: async () => ({ enviado: false }) },
     './agendaLembretes.service': {}, './asaasAgendamentoPix.service': {},
-    './ownerMinuteHandoff.service': { before: async () => 'ready', canSend: async () => true },
+    './ownerMinuteHandoff.service': { before: async () => 'ready', canSend: async () => failure!=='human-after-intent'||!calls.includes('intent') },
+    './whatsappSendIntent.service': { uncertain: j => j.ultimo_erro_codigo==='envio_em_andamento', prepare: async()=>{calls.push('intent');return failure!=='lease';},quarantine:async()=>calls.push('quarantine') },
     './ownerSellerTest.service': { stale: async () => false },
     './ownerProspecting.service': { permitido: async () => true },
     './ownerSalesMediaClean.service': { clean: v => v }, './pixCopyMessage.service': { clean: v => v }
@@ -52,3 +53,8 @@ test('active marked conversation keeps agent before opening completes; only stan
   for (const text of ['Olá', 'olá *']) assert.equal(module.exports.mode(c, { fromMe: true, source: 'app', texto: text }), 'agent');
   assert.equal(module.exports.mode(c, { fromMe: true, source: 'app', texto: ' * ' }), 'takeover');
 });
+
+test('recovered durable send intent never calls provider or generation',async()=>{const f=fixture();const r=await f.worker.processarJob({...job,ultimo_erro_codigo:'envio_em_andamento'});assert.equal(r.revisaoEnvio,true);assert.deepEqual(f.calls,['quarantine']);});
+test('provider failure after intent is quarantined without an automatic send retry',async()=>{const f=fixture('send');const r=await f.worker.processarJob(job);assert.equal(r.revisaoEnvio,true);assert(f.calls.includes('quarantine'));assert(!f.calls.includes('send-retry'));});
+test('lost lease prevents external send',async()=>{const f=fixture('lease');assert.equal((await f.worker.processarJob(job)).leasePerdida,true);assert(!f.calls.includes('send'));});
+test('human takeover after durable intent prevents external send',async()=>{const f=fixture('human-after-intent');assert.equal((await f.worker.processarJob(job)).silencioso,true);assert(!f.calls.includes('send'));});

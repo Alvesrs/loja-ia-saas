@@ -14,11 +14,15 @@ mock('whatsappEnvio', { enviarRespostaWhatsapp: async (_, r) => { if(!r.salesRef
 mock('whatsappIdempotencia', { concluirEventoWhatsapp: async () => calls.push('idempotencia'), ErroIdempotenciaBanco: class extends Error {} });
 mock('assinaturas', { obterSituacaoPlano: async () => ({ ativo: true }) });
 mock('salesVoice', { enviarSeAplicavel: async () => { calls.push('voz'); return { enviado: false }; } });
+mock('whatsappSendIntent', {uncertain:()=>false,prepare:async()=>true,quarantine:async()=>{}});
+mock('ownerMinuteHandoff', {before:async()=> 'ready',canSend:async()=>true});
 mock('ownerProspecting', {permitido:async()=>permitido});
 mock('ownerSellerTest', {stale:async()=>stale});
 mock('ownerSalesPrompt', {RESPOSTA_RECUSA:'Agradeço por responder. Tenha um ótimo dia!'});
 mock('agendaLembretes', {});
 mock('asaasAgendamentoPix', {});
+const dbFile=path.resolve(__dirname,'../src/config/supabase.js');
+require.cache[dbFile]={id:dbFile,filename:dbFile,loaded:true,exports:{from(){const q={update(){return q},eq(){return q},then(resolve){return Promise.resolve({error:null}).then(resolve)}};return q;}}};
 const worker = require('../src/services/whatsappWorker.service');
 const job = { id: 'job1', loja_id: 'loja1', configuracao_id: 'cfg1', contato: '5511999999999', texto: 'foto', id_externo: 'msg1', provedor: 'waha', destinatario_id: 'empresa', status: 'processando' };
 
