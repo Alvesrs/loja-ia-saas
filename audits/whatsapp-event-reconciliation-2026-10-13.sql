@@ -49,3 +49,25 @@ limit 30;
 -- (c) marcar estados com transações e idempotência após comprovação;
 -- (d) testar repetição de webhook, timeout, reinício do worker e takeover humano;
 -- (e) nunca concluir "entregue" somente porque o worker retornou sucesso.
+
+
+-- 5. Verificar histórico por mesmo provedor e id_externo, sem exibir dados pessoais.
+-- Ausência não prova falha de entrega; formatos de ID precisam ser confirmados no código.
+select e.provedor,count(*) as eventos_em_processamento,
+       count(*) filter(where exists (
+         select 1 from public.whatsapp_mensagens m
+         where m.provedor=e.provedor and m.id_externo=e.id_externo
+       )) as presentes_no_historico
+from public.whatsapp_eventos_processados e
+where e.status='processando'
+group by e.provedor;
+
+-- 6. Localizar os dias que concentram registros antigos.
+select date_trunc('day',recebido_em) as dia,provedor,count(*) as total
+from public.whatsapp_eventos_processados
+where status='processando'
+group by 1,2
+order by dia desc;
+
+-- A estratégia de recuperação deverá ser definida somente após verificar
+-- como o backend constrói id_externo para cada um dos três registros.
