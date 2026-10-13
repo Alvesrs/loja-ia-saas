@@ -5,6 +5,7 @@ on:
       - 'Dockerfile.backend'
       - 'patches/**'
       - 'tests/**'
+      - 'sql/stability/**'
       - '.github/workflows/stability-audit.yml'
   push:
     branches: ['audit/saintsai-stability-20261013']
@@ -42,7 +43,7 @@ jobs:
           PGUSER: saintsai_ci
           PGPASSWORD: isolated_ci_only
           PGDATABASE: saintsai_stability_test
-        run: node --test tests/send-intent-postgres.integration.cjs
+        run: node --test tests/send-intent-postgres.integration.cjs tests/waha-batch-postgres.integration.cjs
   production-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
