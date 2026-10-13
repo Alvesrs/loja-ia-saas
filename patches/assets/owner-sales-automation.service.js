@@ -21,6 +21,9 @@ async function analisar({lojaId,contato,pergunta}){
  const {data,error}=await supabase.from('saintsai_sales_conversations').select('id,ultimo_evento_id,lead_status,briefing_step,briefing').eq('loja_id',lojaId).eq('contato',contato).eq('ativo',true).limit(1).maybeSingle();
  if(error)throw error;if(!data||!/^prospeccao:(?:aberto|iniciado):/.test(data.ultimo_evento_id||''))return null;
  const jaIdentificado=/:autoatendimento$/.test(data.ultimo_evento_id||''),automatica=respostaAutomatica(pergunta,jaIdentificado);
+ if(jaIdentificado&&data.briefing?.__sales_away_notice&&!automatica){
+ const resumed=await supabase.from('saintsai_sales_conversations').update({ultimo_evento_id:data.ultimo_evento_id.replace(/:autoatendimento$/,''),briefing:{...(data.briefing||{}),__sales_away_notice:false},atualizado_em:new Date().toISOString()}).eq('id',data.id).eq('ultimo_evento_id',data.ultimo_evento_id);if(resumed.error)throw resumed.error;return {contextoComercial:true};
+ }
  if(jaIdentificado){
   if(automatica||foraDoEscopo(pergunta))return {silencio:true};
   if(respostaCurtaAtendimento(pergunta)||prompt.relacionadaAoSaintsai(pergunta)||respostaBriefingValida(pergunta,data))return {contextoComercial:true};
@@ -29,7 +32,7 @@ async function analisar({lojaId,contato,pergunta}){
  if(respostaCurtaAtendimento(pergunta))return {contextoComercial:true};
  if(automatica){
   const marcador='prospeccao:iniciado:'+Date.now()+':autoatendimento';
-  const {data:claim,error:claimError}=await supabase.from('saintsai_sales_conversations').update({ultimo_evento_id:marcador,atualizado_em:new Date().toISOString()}).eq('id',data.id).eq('ultimo_evento_id',data.ultimo_evento_id).eq('ativo',true).select('id').maybeSingle();
+  const {data:claim,error:claimError}=await supabase.from('saintsai_sales_conversations').update({ultimo_evento_id:marcador,briefing:{...(data.briefing||{}),__sales_away_notice:/no momento estou em atendimento|nao consigo responder|assim que possivel retornarei/.test(norm(pergunta))},atualizado_em:new Date().toISOString()}).eq('id',data.id).eq('ultimo_evento_id',data.ultimo_evento_id).eq('ativo',true).select('id').maybeSingle();
   if(claimError)throw claimError;if(!claim)return {silencio:true};
   return {resposta:'O SaintsAI pode continuar o atendimento enquanto vocês estão ocupados: responde com os dados do negócio e, com a agenda configurada, pode concluir um agendamento no WhatsApp. Posso mostrar um exemplo para o responsável?',prospectAutomation:true};
  }
