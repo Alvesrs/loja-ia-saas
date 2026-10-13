@@ -56,3 +56,5 @@ require('./owner-sales-case-v1');
 require('./owner-opening-mode-v1');
 
 require('./owner-sales-ack-v1');
+
+require('./owner-sales-continuity-v1');
