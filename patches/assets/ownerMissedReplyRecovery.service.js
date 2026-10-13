@@ -9,16 +9,15 @@ function pending(messages,now=Date.now()){
  return {id,text:incoming.map(x=>x.body).join('\n').slice(-12000),timestamp:new Date(Number(last.timestamp)*1000).toISOString()};
 }
 async function run(){
- // User-requested recovery window; no recurring outreach or reopening refusals.
- if(Date.now()>Date.parse('2026-10-14T00:00:00Z'))return;
+ // Recover only replies in active, authorized owner conversations; never start outreach.
  const owner=process.env.SAINTSAI_OWNER_USER_ID,base=String(process.env.WAHA_BASE_URL||'').replace(/\/+$/,'');if(!owner||!base||!process.env.WAHA_API_KEY)return;
  const stores=await checked(db.from('lojas').select('id').eq('dono_id',owner));if(!stores?.length)return;
- const convs=await checked(db.from('saintsai_sales_conversations').select('*').in('loja_id',stores.map(x=>x.id)).eq('pausa_humana',false).order('atualizado_em',{ascending:false}).limit(20));
+ const convs=await checked(db.from('saintsai_sales_conversations').select('*').in('loja_id',stores.map(x=>x.id)).eq('ativo',true).eq('pausa_humana',false).gte('atualizado_em',new Date(Date.now()-7*86400000).toISOString()).order('atualizado_em',{ascending:false}).limit(10));
  for(const c of convs||[]){
  if(c.briefing?.__sales_stop||c.briefing?.__saintsai_test||!/^prospeccao:(aberto|iniciado):/.test(c.ultimo_evento_id||''))continue;
  try{
  const r=await fetch(base+'/api/'+encodeURIComponent(c.session_id)+'/chats/'+encodeURIComponent(c.contato)+'/messages?limit=30&downloadMedia=false',{headers:{'X-Api-Key':process.env.WAHA_API_KEY},signal:AbortSignal.timeout(8000)});if(!r.ok)continue;
- const data=await r.json(),p=pending(Array.isArray(data)?data:data.messages||[]);if(!p)continue;
+ const data=await r.json();let p=pending(Array.isArray(data)?data:data.messages||[]);if(!p){const items=await checked(db.from('saintsai_prospect_items').select('business').eq('loja_id',c.loja_id).eq('contact',c.contato).limit(1));const phone=items?.[0]?.business?.telefone;if(phone){const alt=await require('./ownerProspecting.service').chatPorTelefone(c.session_id,phone);if(alt!==c.contato){const other=await fetch(base+'/api/'+encodeURIComponent(c.session_id)+'/chats/'+encodeURIComponent(alt)+'/messages?limit=30&downloadMedia=false',{headers:{'X-Api-Key':process.env.WAHA_API_KEY},signal:AbortSignal.timeout(8000)});if(other.ok){const raw=await other.json();p=pending(Array.isArray(raw)?raw:raw.messages||[]);}}}}if(!p)continue;
  const existing=await checked(db.from('whatsapp_fila_processamento').select('id,status,resposta_texto').eq('provedor','waha').eq('id_externo',p.id).limit(1));
  if(!c.ativo){const items=await checked(db.from('saintsai_prospect_items').select('opening').eq('loja_id',c.loja_id).eq('contact',c.contato).eq('status','uncertain').limit(1));const all=Array.isArray(data)?data:data.messages||[];const lastOut=all.filter(x=>x.fromMe===true&&typeof x.body==='string').sort((a,b)=>Number(b.timestamp)-Number(a.timestamp))[0];const failedClosing=existing?.[0]?.status==='concluido'&&!existing[0].resposta_texto&&require('./ownerSalesPrompt').recusou(p.text);if(!failedClosing&&(!items?.length||lastOut?.body!==items[0].opening))continue;await checked(db.from('saintsai_sales_conversations').update({ativo:true,atualizado_em:new Date().toISOString()}).eq('id',c.id).eq('atualizado_em',c.atualizado_em));}
  if(existing?.length){if(existing[0].status!=='concluido'||existing[0].resposta_texto)continue;p.id='owner-requested-recovery-v3:'+p.id;const recovered=await checked(db.from('whatsapp_fila_processamento').select('id').eq('provedor','waha').eq('id_externo',p.id).limit(1));if(recovered?.length)continue;}
@@ -29,4 +28,4 @@ async function run(){
  }catch(e){console.error('[owner.reply.recovery] '+(e?.name||'Error'));}
  }
 }
-module.exports={pending,run};
+let running=false,timer;async function guarded(){if(running)return;running=true;try{await run();}catch(e){console.error('[owner.reply.recovery]',e.name);}finally{running=false;}}function begin(){if(timer)return;timer=setInterval(guarded,30000);timer.unref?.();setTimeout(guarded,12000).unref?.();}module.exports={pending,run,begin};

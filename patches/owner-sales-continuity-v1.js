@@ -2,7 +2,7 @@
 
 const cf='src/services/ownerSalesCase.service.js';let cs=fs.readFileSync(cf,'utf8');cs=cs.replace('return /\\bobrigad', 'return /\\b(?:agradeco pela proposta mas ja tenho|agradecemos pela proposta mas ja temos|se (?:caso )?precisar (?:darei|dou) preferencia|caso precisar darei preferencia)\\b/.test(t)||/\\bobrigad');fs.writeFileSync(cf,cs);
 fs.copyFileSync('patches/assets/ownerMissedReplyRecovery.service.js','src/services/ownerMissedReplyRecovery.service.js');
-fs.appendFileSync('src/server.js',"\nsetTimeout(()=>require('./services/ownerMissedReplyRecovery.service').run().catch(e=>console.error('[owner.reply.recovery]',e.name)),12000).unref();\n");
+fs.appendFileSync('src/server.js',"\nrequire('./services/ownerMissedReplyRecovery.service').begin();\n");
 
 const mf='src/services/ownerMinuteHandoff.service.js';let ms=fs.readFileSync(mf,'utf8');ms=ms.replace('async function canSend(job){','async function canSend(job,response){').replace("if(decision(c,job)!=='ready')return false;", "const closing=response?.salesRefusal===true&&response.resposta===require('./ownerSalesPrompt').RESPOSTA_RECUSA&&require('./ownerSalesPrompt').recusou(job.texto)&&!c?.briefing?.__sales_stop&&!c?.pausa_humana&&new Date(c?.ultima_atividade_humana_em||0).getTime()<new Date(job.criado_em).getTime();if(decision(c,job)!=='ready'&&!closing)return false;");fs.writeFileSync(mf,ms);
 const wf='src/services/whatsappWorker.service.js';let ws=fs.readFileSync(wf,'utf8');ws=ws.replace("require('./ownerMinuteHandoff.service').canSend(job)","require('./ownerMinuteHandoff.service').canSend(job,resposta)");fs.writeFileSync(wf,ws);
@@ -10,3 +10,5 @@ const wf='src/services/whatsappWorker.service.js';let ws=fs.readFileSync(wf,'utf
 require('node:child_process').execFileSync(process.execPath,['--test','tests/owner-refusal-send.test.cjs','tests/owner-reply-recovery.test.cjs'],{stdio:'inherit'});
 const of='src/services/ownerSalesOnboarding.service.js';let os=fs.readFileSync(of,'utf8');os=os.replace("if(row)await change(row,'declined');await checked(await db.from('saintsai_sales_conversations').update({ativo:false,atualizado_em:now()}).eq('id',c.id));","if(row)await change(row,'declined');");fs.writeFileSync(of,os);
 let closeWorker=fs.readFileSync(wf,'utf8');closeWorker=closeWorker.replace("await fila.marcarJobEnviado(job.id, resposta.resposta);","await fila.marcarJobEnviado(job.id, resposta.resposta);if(resposta.salesRefusal===true){const closed=await require('../config/supabase').from('saintsai_sales_conversations').update({ativo:false,atualizado_em:new Date().toISOString()}).eq('loja_id',job.loja_id).eq('contato',job.contato).eq('ativo',true).eq('pausa_humana',false);if(closed.error)throw closed.error;}");fs.writeFileSync(wf,closeWorker);
+
+require('node:child_process').execFileSync(process.execPath,['--test','tests/owner-contact-alias.test.cjs'],{stdio:'inherit'});
