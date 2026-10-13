@@ -64,3 +64,5 @@ require('./marketing-guru-v1');
 require('./auto-prospect-v1');
 
 require('./owner-sales-media-scope-v1');
+
+require('./owner-star-control-v1');
