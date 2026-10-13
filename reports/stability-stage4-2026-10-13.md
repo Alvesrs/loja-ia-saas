@@ -25,8 +25,8 @@ Esse grupo passou nos **81 testes**, zero falhas. A maior parte das falhas antig
 | --- | --- |
 | Recuperação de contexto automático | 6/6 passaram |
 | Isolamento de prospecção e atendimento | 81/81 passaram |
-| Suite focada ampliada | 177 passaram, zero falhas |
-| Regressão ampla reconstruída | 1.258 testes; 1.148 passaram, 110 falharam |
+| Suite focada ampliada | 183 passaram, zero falhas |
+| Regressão ampla reconstruída | 1.264 testes; 1.154 passaram, 110 falharam |
 
 O Dockerfile aplica os quatro patches de estabilidade e executa a suite focada ampliada. O job PostgreSQL isolado continua verificando a intenção durável e a concorrência em banco real. O resultado de CI desta revisão precisa ser registrado após conclusão; os sucessos de etapas anteriores não certificam este novo código.
 
@@ -35,3 +35,7 @@ O Dockerfile aplica os quatro patches de estabilidade e executa a suite focada a
 As 110 falhas continuam abertas. O grupo legado do atendente ainda pressupõe resposta/IA síncrona dentro do webhook, enquanto o produto usa fila, e há fixtures sem cadastro de loja; sua revisão não pode apagar os testes de isolamento. Permanecem os caminhos que enviam fora do worker, a serialização por conversa, controle humano para todas as lojas, revisão segura de envios incertos, interfaces e staging.
 
 Produção, Supabase do SaintsAI, pagamentos, APKs e os 133 eventos antigos continuam preservados. Nenhum teste foi enviado a terceiros. A PR nº 15 permanece em rascunho e não representa uma versão publicada.
+
+## Isolamento atual de dados entre lojas
+
+Seis testes novos percorrem o resolvedor de destinatário e os serviços reais de contexto/prompt/IA, com banco e modelo simulados e sem rede. Passaram: IDs de loja/configuração forjados não mudam a loja resolvida; o mesmo contato em dois destinatários recebe catálogos e preços separados; a consulta exige loja e produtos ativos; o modelo só recebe o contexto da loja resolvida sem quantidades exatas; falha do modelo mantém o fallback na mesma loja; configuração inativa ou ambígua é recusada antes do catálogo. Esses testes não cobrem RLS/PostgREST nem substituem a revisão das 110 falhas legadas.
