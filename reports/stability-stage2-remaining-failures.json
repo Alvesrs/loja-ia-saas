@@ -1,7 +1,7 @@
 {
   "execution": "2026-10-13 stage2 clean reconstructed source",
-  "test_total": 1243,
-  "passed": 1077,
+  "test_total": 1244,
+  "passed": 1078,
   "failed": 166,
   "failure_entries": [
     {
