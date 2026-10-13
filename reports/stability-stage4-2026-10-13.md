@@ -39,3 +39,7 @@ Produção, Supabase do SaintsAI, pagamentos, APKs e os 133 eventos antigos cont
 ## Isolamento atual de dados entre lojas
 
 Seis testes novos percorrem o resolvedor de destinatário e os serviços reais de contexto/prompt/IA, com banco e modelo simulados e sem rede. Passaram: IDs de loja/configuração forjados não mudam a loja resolvida; o mesmo contato em dois destinatários recebe catálogos e preços separados; a consulta exige loja e produtos ativos; o modelo só recebe o contexto da loja resolvida sem quantidades exatas; falha do modelo mantém o fallback na mesma loja; configuração inativa ou ambígua é recusada antes do catálogo. Esses testes não cobrem RLS/PostgREST nem substituem a revisão das 110 falhas legadas.
+
+## CI final desta revisão
+
+A execução [38478577094](https://github.com/Alvesrs/loja-ia-saas/actions/runs/38478577094), revisão `fe2f6335405d0707c43a2523871013f6e9dcf59d`, terminou SUCCESS. Os jobs de build Docker e PostgreSQL isolado passaram. A suite focada do build cobre os 183 casos desta revisão; a integração Postgres mantém seus cinco cenários. Não houve deploy de produção. Entre as 110 falhas restantes, o maior grupo é `whatsappAtendente.test.js` (38), seguido de envio (9) e isolamento de webhook de prospecção (8).
