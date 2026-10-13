@@ -27,3 +27,9 @@ O Dockerfile passou a aplicar os dois patches de estabilidade e executar a suite
 ## Pendências para publicação
 
 Validar a gravação atômica e recuperação em Postgres isolado, integrar uma visualização/ação de revisão segura para `envio_incerto`, reconciliar recibos do provedor sem reenvio cego, revisar os caminhos que pulam a fila, serializar jobs por conversa, generalizar controle humano, continuar as 166 falhas, validar interfaces e executar staging. Nenhum novo APK ou deploy de produção foi feito nesta etapa.
+
+## Triagem adicional e build
+
+A lista das 166 falhas, com arquivo e nome de cada teste, está em `stability-stage2-remaining-failures.json`. Os maiores grupos são isolamento de prospecção (55) e atendente legado (38). Um experimento no teste de prospecção identificou um contato sintético fora do formato aceito; ao corrigir esse formato temporariamente, apareceram erros do carregador de mocks em imports de controllers. O experimento foi revertido: essas falhas continuam abertas, sem alterar regras comerciais só para satisfazer testes.
+
+A primeira CI desta etapa encontrou o teste de transferência sendo executado antes de o build gerar o módulo por asterisco. O teste agora usa o asset do mesmo módulo nessa fase intermediária; os nove casos passaram também nessa condição simulada. A tentativa seguinte da CI foi bloqueada por HTTP 429 no download da imagem ECR, antes da reconstrução. O Dockerfile aceita a origem Node por argumento; a CI só usa o registro oficial alternativo quando detecta esse limite. A imagem padrão de produção continua ECR.
