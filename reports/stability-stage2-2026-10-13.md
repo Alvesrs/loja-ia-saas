@@ -35,3 +35,7 @@ A lista das 166 falhas, com arquivo e nome de cada teste, está em `stability-st
 A primeira CI desta etapa encontrou o teste de transferência sendo executado antes de o build gerar o módulo por asterisco. O teste agora usa o asset do mesmo módulo nessa fase intermediária; os nove casos passaram também nessa condição simulada. A tentativa seguinte da CI foi bloqueada por HTTP 429 no download da imagem ECR, antes da reconstrução. O Dockerfile aceita a origem Node por argumento; a CI só usa o registro oficial alternativo quando detecta esse limite. A imagem padrão de produção continua ECR.
 
 O build Docker da revisão anterior passou na CI 38475489821. Uma verificação adicional acrescentou o cenário de falha do banco durante a separação de envio incerto: o marcador agora permanece protegido, sem voltar ao retry de envio. A última revisão da CI precisa validar esse ajuste; os 69 testes focados locais passaram.
+
+## Verificação final desta etapa
+
+A CI [38475705041](https://github.com/Alvesrs/loja-ia-saas/actions/runs/38475705041), revisão `bed024711c5fd02445ca2af83d46ea5db772fd59`, terminou SUCCESS. Construiu a imagem Docker final, executou os testes focados ampliados e validou a sintaxe do worker. Esta confirmação inclui a proteção adicional para falha do banco durante a recuperação incerta. A produção continua sem alterações e a PR permanece em rascunho.
