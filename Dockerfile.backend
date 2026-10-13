@@ -4,5 +4,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -
 COPY . .
 RUN node -e 'const {execSync}=require("node:child_process");const {build}=require("./railway.json");const cmds=build.buildCommand.split(" && ").filter(s=>!/^node (?:--test )?tests\//.test(s));execSync(cmds.join(" && "),{stdio:"inherit",shell:"/bin/sh"})'
 ENV NODE_ENV=production
+RUN node patches/stability-confirmed-send-v1.js && node --test tests/stability-confirmed-send.test.cjs tests/owner-star-control.test.cjs tests/auto-prospect.test.cjs tests/release-payments.test.cjs tests/release-account-care.test.cjs tests/sale-notification-retry.test.cjs
 CMD ["npm","start"]
 # Build uses ECR mirror instead of Docker Hub

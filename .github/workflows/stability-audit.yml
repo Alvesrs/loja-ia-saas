@@ -1,0 +1,22 @@
+name: SaintsAI stability audit
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile.backend'
+      - 'patches/**'
+      - 'tests/**'
+      - '.github/workflows/stability-audit.yml'
+  push:
+    branches: ['audit/saintsai-stability-20261013']
+permissions:
+  contents: read
+jobs:
+  production-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image with isolated synthetic regression tests
+        run: docker build -f Dockerfile.backend -t saintsai-audit:${{ github.sha }} .
+      - name: Validate compiled syntax
+        run: docker run --rm --entrypoint node saintsai-audit:${{ github.sha }} --check src/services/whatsappWorker.service.js
