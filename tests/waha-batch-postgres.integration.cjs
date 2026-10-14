@@ -11,7 +11,7 @@ test('real Postgres durable grouping, restart, concurrency and tenant boundary',
  await sql(fs.readFileSync('sql/stability/waha-durable-batches.sql','utf8'));
  const first=(await enqueue('a','first')).jobId;assert.equal((await enqueue('b','second')).jobId,first);
  assert.equal(await sql(`SELECT texto FROM public.whatsapp_fila_processamento WHERE id='${first}'`),'first\nsecond');
- const ids=await Promise.all(Array.from({length:8},()=>enqueue('c','third')));assert(ids.every(x=>x.created===false));assert.equal(await sql('SELECT count(*) FROM public.whatsapp_batch_members'),'3');assert.equal(await sql('SELECT count(*) FROM public.whatsapp_eventos_processados'),'3');
+ const ids=await Promise.all(Array.from({length:8},()=>enqueue('c','third')));assert.equal(ids.filter(x=>x.created).length,1);assert(ids.filter(x=>!x.created).length===7);assert.equal(ids.find(x=>x.created).jobId,first);assert.equal(await sql('SELECT count(*) FROM public.whatsapp_batch_members'),'3');assert.equal(await sql('SELECT count(*) FROM public.whatsapp_eventos_processados'),'3');
  assert.notEqual((await enqueue('d','other','other-session')).jobId,first);
  await sql(`UPDATE public.whatsapp_fila_processamento SET status='processando',tentativas=1 WHERE id='${first}'`);
  assert.notEqual((await enqueue('e','new')).jobId,first);
@@ -21,6 +21,12 @@ test('real Postgres durable grouping, restart, concurrency and tenant boundary',
  const before=await sql('SELECT count(*) FROM public.whatsapp_eventos_processados');
  await assert.rejects(enqueue('bad', ''),/isolated_query_failed/);
  assert.equal(await sql('SELECT count(*) FROM public.whatsapp_eventos_processados'),before);
+ await sql(`CREATE FUNCTION public.reject_atomic_member() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id_externo='atomic-fail' THEN RAISE EXCEPTION 'synthetic member write failure'; END IF; RETURN NEW; END $$;
+ CREATE TRIGGER reject_atomic_member BEFORE INSERT ON public.whatsapp_batch_members FOR EACH ROW EXECUTE FUNCTION public.reject_atomic_member()`);
+ await assert.rejects(enqueue('atomic-fail','unique-text','rollback-session'),/isolated_query_failed/);
+ assert.equal(await sql("SELECT count(*) FROM public.whatsapp_eventos_processados WHERE id_externo='atomic-fail'"),'0');
+ assert.equal(await sql("SELECT count(*) FROM public.whatsapp_fila_processamento WHERE id_externo='atomic-fail'"),'0');
+ await sql('DROP TRIGGER reject_atomic_member ON public.whatsapp_batch_members; DROP FUNCTION public.reject_atomic_member()');
  await sql("INSERT INTO public.whatsapp_eventos_processados(provedor,id_externo,status) VALUES('waha','legacy-stuck','processando')");
  assert.equal((await enqueue('legacy-stuck')).created,false);
  assert.equal(await sql("SELECT count(*) FROM public.whatsapp_batch_members WHERE id_externo='legacy-stuck'"),'0');
