@@ -91,7 +91,9 @@ public class SecurityLockTest {
    if(password!=null){password.click();password.setText("1234");device.pressKeyCode(KeyEvent.KEYCODE_ENTER);}
    else {
     // Compatibilidade com o teclado da tela de bloqueio em outras versões do Android.
-    boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);assertTrue("PIN do sistema não apareceu",pin);
+    boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);
+    if(!pin){device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
+    assertTrue("PIN do sistema não apareceu",pin);
     for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
     androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
    }
