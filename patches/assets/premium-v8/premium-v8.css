@@ -150,3 +150,4 @@ body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8{paddi
 body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-copy-area{width:100%;min-height:220px!important;font-size:13px!important;line-height:1.8!important;margin-bottom:14px;resize:vertical}
 
 body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-shortcuts{flex-direction:row!important;align-content:start!important}
+@media(min-width:1000px){body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-shortcut-edit{white-space:nowrap!important;flex-basis:95px!important;min-width:95px!important}}
