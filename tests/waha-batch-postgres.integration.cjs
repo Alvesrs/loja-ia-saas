@@ -61,3 +61,10 @@ test('independent workers serialize one conversation and allow another session',
  assert.equal(await claim(),third);
  assert.equal(await sql("SELECT count(*) FROM public.whatsapp_fila_processamento WHERE destinatario_id='serialized-session' AND status='processando' AND lease_ate>clock_timestamp()"),'1');
 });
+test('tenant human-control rows are isolated by session and hidden from public clients',async()=>{
+ await sql(fs.readFileSync('sql/stability/tenant-human-control.sql','utf8'));
+ await sql(`SET ROLE service_role; INSERT INTO public.whatsapp_human_control(loja_id,configuracao_id,session_id,contato,pausado,ultima_atividade_em) VALUES('${store}','${cfg}','one','synthetic-contact',true,clock_timestamp()),('${store}','${cfg}','two','synthetic-contact',false,clock_timestamp())`);
+ assert.equal(await sql('SET ROLE service_role; SELECT count(*) FROM public.whatsapp_human_control'),'2');
+ await assert.rejects(sql('SET ROLE authenticated; SELECT count(*) FROM public.whatsapp_human_control'),/isolated_query_failed/);
+ await assert.rejects(sql('SET ROLE anon; SELECT count(*) FROM public.whatsapp_human_control'),/isolated_query_failed/);
+});
