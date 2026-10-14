@@ -72,7 +72,16 @@ jobs:
           mkdir -p "$RUNNER_TEMP/saintsai-ui-runtime"
           cid=$(docker create saintsai-audit:${{ github.sha }})
           docker cp "$cid:/app/public" "$RUNNER_TEMP/saintsai-ui-runtime/public"
+          docker cp "$cid:/app/src" "$RUNNER_TEMP/saintsai-ui-runtime/src"
+          docker cp "$cid:/app/tests" "$RUNNER_TEMP/saintsai-ui-runtime/tests"
+          docker cp "$cid:/app/patches" "$RUNNER_TEMP/saintsai-ui-runtime/patches"
+          docker cp "$cid:/app/package.json" "$RUNNER_TEMP/saintsai-ui-runtime/package.json"
+          tar czf "$RUNNER_TEMP/saintsai-compiled-runtime.tar.gz" -C "$RUNNER_TEMP/saintsai-ui-runtime" src tests public patches package.json
           docker rm "$cid"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaintsAI-compiled-runtime
+          path: ${{ runner.temp }}/saintsai-compiled-runtime.tar.gz
       - name: Verify existing workflows on mobile and desktop
         run: |
           cd "$RUNNER_TEMP/saintsai-ui-runtime"
