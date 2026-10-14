@@ -87,6 +87,7 @@ jobs:
           cd "$RUNNER_TEMP/saintsai-ui-runtime"
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/remake-ui-browser.cjs"
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/configuration-forms-browser.cjs"
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/prospect-consent-browser.cjs"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
