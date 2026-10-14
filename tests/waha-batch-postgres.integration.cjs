@@ -46,3 +46,18 @@ test('database privileges and foreign keys block unauthorized or cross-tenant wr
  await assert.rejects(sql(`SET ROLE service_role; SELECT public.enqueue_waha_batch_atomic('33333333-3333-4333-8333-333333333333','${cfg}','session','contact','text','wrong-tenant',NULL,10000)`),/isolated_query_failed/);
  assert.equal(await sql("SELECT count(*) FROM public.whatsapp_eventos_processados WHERE id_externo IN ('anon-message','user-message','wrong-tenant')"),'0');
 });
+
+test('independent workers serialize one conversation and allow another session',async()=>{
+ await sql(fs.readFileSync('sql/stability/waha-serialized-claim.sql','utf8'));
+ await sql("UPDATE public.whatsapp_fila_processamento SET status='concluido',lease_ate=NULL");
+ const first=(await enqueue('serial-1','first','serialized-session')).jobId;
+ await sql(`UPDATE public.whatsapp_fila_processamento SET proxima_tentativa_em=clock_timestamp()-interval '1 minute' WHERE id='${first}'`);
+ const second=(await enqueue('serial-2','second','serialized-session')).jobId;
+ await sql(`UPDATE public.whatsapp_fila_processamento SET proxima_tentativa_em=clock_timestamp()-interval '1 minute' WHERE id='${second}'`);
+ const claim=()=>sql('SET ROLE service_role; SELECT id FROM public.claim_whatsapp_job_serialized(180)');
+ const claimed=await Promise.all(Array.from({length:8},claim));assert.equal(claimed.filter(Boolean).length,1);
+ const third=(await enqueue('serial-other','other','another-session')).jobId;
+ await sql(`UPDATE public.whatsapp_fila_processamento SET proxima_tentativa_em=clock_timestamp()-interval '1 minute' WHERE id='${third}'`);
+ assert.equal(await claim(),third);
+ assert.equal(await sql("SELECT count(*) FROM public.whatsapp_fila_processamento WHERE destinatario_id='serialized-session' AND status='processando' AND lease_ate>clock_timestamp()"),'1');
+});
