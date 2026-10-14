@@ -2,6 +2,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 function fixture({permitted=true}={}){
  const pending=new Map(),reserved=new Set(),queued=[],calls={voice:0},module={exports:{}};let timerId=0;
  const deps={
+  '../services/whatsappDurableBatch.service':{enabled:()=>false},
+  '../services/tenantHumanControl.service':{route:async()=>({tenant:true})},
+  '../services/ownerSalesContext.service':{norm:v=>String(v||'').trim().toLowerCase(),incoming:async()=>permitted,outgoing:async e=>e.texto==='*'?'controle_humano_por_asterisco':null},
+  '../services/ownerMinuteHandoff.service':{incoming:async()=>null},
+  '../services/ownerSalesPrompt':{INTRO:'isolated sales opening'},
+  '../services/ownerPublicDemo.service':{tentar:async()=>false},
+  '../services/ownerLabConversation.service':{tentar:async()=>false},
+  '../services/agentFeatureMenus.service':{tentar:async()=>false},
   '../services/providers/whatsapp/interpretadorWebhookWaha':{interpretarPayloadWebhookWaha:v=>v},
   '../services/ownerProspecting.service':{normalizarEvento:async v=>v,eventoPermitido:async()=>permitted,saidaDono:async()=> 'vendedor_pausado_por_voce'},
   '../services/whatsappWebhook.service':{processarEventoWhatsapp:async v=>v},
@@ -21,4 +29,4 @@ for(const input of ['Me manda um áudio explicando o SaintsAI','Me manda áudio 
 test('duplicate event is reserved once and never sends directly',async()=>{const f=fixture();await f.receive('Me manda um áudio explicando o SaintsAI');const r=await f.receive('Me manda um áudio explicando o SaintsAI');assert.equal(r.payload.status,'duplicado_ignorado');await f.flush();assert.equal(f.queued.length,1);assert.equal(f.calls.voice,0);});
 test('consecutive messages are grouped without repeated text',async()=>{const f=fixture();await f.receive('Como funciona?','1');await f.receive('Qual o preço?','2');await f.receive('Qual o preço?','3');await f.flush();assert.equal(f.queued.length,1);assert.equal(f.queued[0].texto,'Como funciona?\nQual o preço?');});
 test('personal contact cannot bypass authorization by requesting audio',async()=>{const f=fixture({permitted:false});assert.equal((await f.receive('Manda áudio')).payload.status,'conversa_pessoal_ignorada');await f.flush();assert.equal(f.queued.length,0);assert.equal(f.calls.voice,0);});
-test('owner taking over pauses before any outgoing sales response',async()=>{const f=fixture();assert.equal((await f.receive('Eu assumo','1',true)).payload.status,'vendedor_pausado_por_voce');await f.flush();assert.equal(f.queued.length,0);});
+test('owner taking over pauses before any outgoing sales response',async()=>{const f=fixture();assert.equal((await f.receive('*','1',true)).payload.status,'controle_humano_por_asterisco');await f.flush();assert.equal(f.queued.length,0);});

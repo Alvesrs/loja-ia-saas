@@ -83,6 +83,21 @@ public class SecurityLockTest {
   android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
   context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",true).commit();
   UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+  assertTrue("O emulador precisa ter o PIN configurado", ((android.app.KeyguardManager)context.getSystemService(android.content.Context.KEYGUARD_SERVICE)).isDeviceSecure());
+  device.wakeUp();
+  android.app.KeyguardManager systemLock=(android.app.KeyguardManager)context.getSystemService(android.content.Context.KEYGUARD_SERVICE);
+  if(systemLock.isKeyguardLocked()){
+   device.swipe(device.getDisplayWidth()/2,device.getDisplayHeight()*3/4,device.getDisplayWidth()/2,device.getDisplayHeight()/4,30);
+   androidx.test.uiautomator.UiObject2 systemPin=device.wait(Until.findObject(By.res("com.android.systemui","lockPassword")),10000);
+   if(systemPin!=null){systemPin.click();systemPin.setText("1234");device.pressKeyCode(KeyEvent.KEYCODE_ENTER);}
+   else{
+    assertTrue("O PIN do aparelho de teste não apareceu",device.wait(Until.hasObject(By.res("com.android.systemui","key1")),10000));
+    for(int number=1;number<=4;number++)device.findObject(By.res("com.android.systemui","key"+number)).click();
+    androidx.test.uiautomator.UiObject2 confirm=device.findObject(By.res("com.android.systemui","key_enter"));if(confirm!=null)confirm.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
+   }
+   for(int i=0;i<50&&systemLock.isKeyguardLocked();i++)Thread.sleep(100);
+   assertFalse("O aparelho de teste deve estar desbloqueado antes de testar o SaintsAI",systemLock.isKeyguardLocked());
+  }
   device.pressHome();
   try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    // Sem digital cadastrada no emulador, o Android mostra o PIN do aparelho.
@@ -91,7 +106,10 @@ public class SecurityLockTest {
    if(password!=null){password.click();password.setText("1234");device.pressKeyCode(KeyEvent.KEYCODE_ENTER);}
    else {
     // Compatibilidade com o teclado da tela de bloqueio em outras versões do Android.
-    boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);assertTrue("PIN do sistema não apareceu",pin);
+    boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);
+    String pinUi="";
+    if(!pin){java.io.ByteArrayOutputStream evidence=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(evidence);pinUi=evidence.toString("UTF-8");System.out.println("SAINTSAI_PIN_UI="+pinUi);device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
+    assertTrue("PIN do sistema não apareceu. Tela: "+pinUi,pin);
     for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
     androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
    }

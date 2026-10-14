@@ -1,0 +1,3 @@
+'use strict';const fs=require('node:fs');fs.copyFileSync('patches/assets/client-access-delivery.service.js','src/services/clientAccessDelivery.service.js');
+const p='src/services/whatsappWorker.service.js';let s=fs.readFileSync(p,'utf8');const anchor='    ultimaChecagemLembretes=agoraLembretes;';const insert="\n    try{await require('./clientAccessDelivery.service').retryPending();}catch(_){console.error('[subscription.access] consulta_indisponivel');}";
+if(!s.includes("require('./clientAccessDelivery.service').retryPending()")){if(!s.includes(anchor))throw Error('Access retry anchor missing');fs.writeFileSync(p,s.replace(anchor,anchor+insert));}

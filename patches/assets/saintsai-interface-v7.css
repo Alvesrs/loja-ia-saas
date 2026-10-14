@@ -1,0 +1,31 @@
+/* Shared presentation layer for the existing client, agent and administration screens. */
+html body.sa-v7.sa-v7.sa-v7.sa-v7 {
+ --rm-bg:#0b0a10;--rm-surface:#15131d;--rm-line:#302a3d;--rm-ink:#f7f5fc;--rm-muted:#b9b2c9;
+ background:var(--rm-bg)!important;color:var(--rm-ink)!important;
+ font-family:Inter,Manrope,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+ min-height:100dvh;line-height:1.5;
+}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.app,.shell,.agent-shell,.gallery-shell){width:100%;max-width:1280px!important;margin-inline:auto;min-width:0}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.card,.panel,.sa-panel,.agent-card,.login-card){border-radius:20px!important;border-color:var(--rm-line)!important;background:var(--rm-surface)!important;box-shadow:0 8px 26px #0002!important}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.sa-welcome,.neon-admin-hero,.client-hero){border-radius:24px!important;border-color:#5d457b!important;background:linear-gradient(115deg,#241936,#14101e)!important;box-shadow:none!important}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.btn-primary,.agent-save,.sa-new,.neon-cta){background:#8b5cf6!important;border-color:#a78bfa!important;box-shadow:none!important;border-radius:12px!important}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(button,.btn,.btn2){min-height:44px;touch-action:manipulation}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(input,textarea,select){max-width:100%;min-width:0}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(button,a,input,textarea,select):focus-visible{outline:3px solid #c4b5fd!important;outline-offset:3px}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.sa-stat,.st-stat,.neon-overview>*){border-radius:16px!important;box-shadow:none!important;min-width:0}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.st-tabs,.agent-navigation){max-width:100%!important;overflow-x:auto;scrollbar-width:thin}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.st-tabs button,.agent-navigation a){flex-shrink:0;white-space:nowrap}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.login-brand,.brand){letter-spacing:-.04em}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 .login-card{width:min(100%,460px);padding:32px!important}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 .login-screen{min-height:100dvh;padding:24px 16px!important}
+html body.sa-v7.sa-v7.sa-v7.sa-v7 .sa-connection-status{position:sticky;top:0;z-index:101;padding:10px 16px;background:#382c19;color:#ffe7ad;border-bottom:1px solid #9f7b30;font-size:14px;text-align:center}
+.sa-connection-status[hidden]{display:none!important}
+html[data-theme="light"] body.sa-v7.sa-v7.sa-v7.sa-v7{--rm-bg:#f5f3f8;--rm-surface:#fff;--rm-line:#d9d2e3;--rm-ink:#211a2c;--rm-muted:#64596f}
+@media(max-width:600px){
+ html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.app,.shell,.agent-shell,.gallery-shell){padding-inline:16px!important}
+ html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.card,.panel,.sa-panel,.agent-card){padding:18px!important}
+ html body.sa-v7.sa-v7.sa-v7.sa-v7 :is(.sa-welcome,.neon-admin-hero,.client-hero){padding:22px!important;min-height:0!important}
+ html body.sa-v7.sa-v7.sa-v7.sa-v7 .login-card{padding:24px!important}
+ html body.sa-v7.sa-v7.sa-v7.sa-v7 .top{gap:10px;flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){html body.sa-v7 *,html body.sa-v7 *::before,html body.sa-v7 *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

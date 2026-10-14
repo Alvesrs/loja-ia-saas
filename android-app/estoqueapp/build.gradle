@@ -16,8 +16,8 @@ android {
         applicationId "com.saintsai.stock"
         minSdk 24
         targetSdk 36
-        versionCode 35
-        versionName "1.2.20"
+        versionCode 36
+        versionName "1.2.21"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "boolean", "PLAY_DISTRIBUTION", playDistribution.toString()
     }

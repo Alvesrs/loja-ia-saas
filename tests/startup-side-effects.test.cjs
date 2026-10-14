@@ -1,0 +1,7 @@
+'use strict';const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+test('startup and shutdown keep workers but never invoke historical cleanup or outbound test scripts',async()=>{
+ const loaded=[],timers=[],signals={};let starts=0,stops=0,closed=0;
+ const modules={'dotenv':{config(){}},'./config/producao':{validarConfiguracaoDeProducao:()=>({avisos:[]})},'./app':{listen(port,fn){fn();return{close(fn){closed++;fn()}}}},'./services/whatsappWorker.service':{iniciarWorker(){starts++},pararWorker(){stops++}},'./services/autoProspect.service':{begin(){},end(){}},'./services/marketingEvidence.service':{begin(){}},'./services/marketingGuru.service':{start(){},stop(){}},'./services/saleNotificationRetry.service':{start(){},stop(){}},'./services/wahaOnboarding.service':{garantirWebhooksAtivos:async()=>{}},'./services/clientPush.service':{validarConfiguracao:async()=>{}},'../patches/check-owner-waha-status.js':{},'./services/ownerMissedReplyRecovery.service':{begin(){}}};
+ vm.runInNewContext(fs.readFileSync('src/server.js','utf8'),{require:n=>{loaded.push(n);assert(n in modules,'Unexpected startup side effect: '+n);return modules[n]},process:{env:{PORT:'3000'},once(n,f){signals[n]=f}},console:{log(){},warn(){},error(){},info(){}},setTimeout(fn){timers.push(fn);return{unref(){}}}});
+ for(const timer of timers)timer();await Promise.resolve();assert.equal(starts,1);signals.SIGTERM();assert.equal(stops,1);assert.equal(closed,1);assert(!loaded.some(n=>/verify-and-clean|chatterboxTestOnce/.test(n)));
+});
