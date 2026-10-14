@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path');const source=path.join(__d
 fs.mkdirSync('public/fonts',{recursive:true});
 for(const name of ['manrope-latin-wght-normal.woff2','sora-latin-wght-normal.woff2'])fs.copyFileSync(path.join(source,name),'public/fonts/'+name);
 for(const ext of ['css','js'])fs.copyFileSync(path.join(source,'premium-v8.'+ext),'public/'+ext+'/premium-v8.'+ext);
-for(const name of fs.readdirSync('public').filter(n=>/^(cliente-|admin-).*\.html$/.test(n))){const file='public/'+name;let html=fs.readFileSync(file,'utf8');if(!/<head\b/i.test(html))continue;
+for(const name of fs.readdirSync('public').filter(n=>/^(cliente-|admin-).*\.html$/.test(n)||n==='login.html')){const file='public/'+name;let html=fs.readFileSync(file,'utf8');if(!/<head\b/i.test(html))continue;
  html=html.replace(/<link[^>]*href=["']css\/premium-v8\.css[^"']*["'][^>]*>/gi,'').replace(/<script[^>]*src=["']js\/premium-v8\.js[^"']*["'][^>]*>\s*<\/script>/gi,'');
  html=html.replace('</head>',`<link rel="stylesheet" href="css/premium-v8.css?v=${version}"></head>`).replace('</body>',`<script src="js/premium-v8.js?v=${version}"></script></body>`);fs.writeFileSync(file,html);
 }
