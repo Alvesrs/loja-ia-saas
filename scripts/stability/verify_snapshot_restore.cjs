@@ -38,7 +38,7 @@ const xmlText = x => x.match(/<document>([\s\S]*?)<\/document>/)[1].replace(/&(a
     if(process.argv[4]){
       phase='candidate migrations';
       for(const role of ['anon','authenticated','service_role']) await db.exec(`CREATE ROLE ${q(role)}`);
-      for(const file of ['waha-durable-batches.sql','waha-serialized-claim.sql','tenant-human-control.sql','receipt-net-value.sql']){
+      for(const file of ['waha-durable-batches.sql','waha-serialized-claim.sql','tenant-human-control.sql','receipt-net-value.sql','manual-prospect-consent.sql']){
         const sql=fs.readFileSync(process.argv[4]+'/'+file,'utf8');
         await db.exec(sql); await db.exec(sql); migrations++;
       }
