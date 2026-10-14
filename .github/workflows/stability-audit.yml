@@ -64,7 +64,8 @@ jobs:
           printf '%s' 'module.exports={}' > /tmp/prospect-runtime/src/routes/marketingGuru.routes.js
           cd /tmp/prospect-runtime
           node patches/prospect-15-12h-v1.js
-          PGLITE_TEST_MODULE=/tmp/prospect-tests/node_modules/@electric-sql/pglite node --test tests/prospect-15-12h.test.cjs
+          node patches/prospect-search-retry-v1.js
+          PGLITE_TEST_MODULE=/tmp/prospect-tests/node_modules/@electric-sql/pglite node --test tests/prospect-15-12h.test.cjs tests/prospect-search-retry.test.cjs
   production-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
