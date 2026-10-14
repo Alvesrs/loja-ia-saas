@@ -83,6 +83,7 @@ public class SecurityLockTest {
   android.content.Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
   context.getSharedPreferences("saintsai_security",0).edit().putBoolean("enabled",true).commit();
   UiDevice device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+  assertTrue("O emulador precisa ter o PIN configurado", ((android.app.KeyguardManager)context.getSystemService(android.content.Context.KEYGUARD_SERVICE)).isDeviceSecure());
   device.pressHome();
   try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
    // Sem digital cadastrada no emulador, o Android mostra o PIN do aparelho.
@@ -92,7 +93,7 @@ public class SecurityLockTest {
    else {
     // Compatibilidade com o teclado da tela de bloqueio em outras versões do Android.
     boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);
-    if(!pin){device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
+    if(!pin){java.io.ByteArrayOutputStream evidence=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(evidence);System.out.println("SAINTSAI_PIN_UI="+evidence.toString("UTF-8"));device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
     assertTrue("PIN do sistema não apareceu",pin);
     for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
     androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
