@@ -1,0 +1,73 @@
+name: SaintsAI signed stability candidate
+on:
+  workflow_dispatch:
+  push:
+    branches: ['audit/saintsai-stability-20261013']
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-stability-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  signed-candidate:
+    if: github.repository == 'Alvesrs/loja-ia-saas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+        with:
+          packages: 'platform-tools platforms;android-35 platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Build and verify signed candidates without publishing
+        working-directory: android-app
+        env:
+          CLIENT_KEYSTORE_B64: ${{ secrets.SAINTSAI_SALES_KEYSTORE_B64 }}
+          CLIENT_STORE_PASSWORD: ${{ secrets.SAINTSAI_SALES_STORE_PASSWORD }}
+          CLIENT_KEY_ALIAS: ${{ secrets.SAINTSAI_SALES_KEY_ALIAS }}
+          CLIENT_KEY_PASSWORD: ${{ secrets.SAINTSAI_SALES_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          signing_file="$RUNNER_TEMP/saintsai-candidate-release.jks"
+          trap 'rm -f "$signing_file"' EXIT
+          test -n "$CLIENT_KEYSTORE_B64"
+          printf '%s' "$CLIENT_KEYSTORE_B64" | sed 's/^SAINTSAI_SALES_KEYSTORE_B64=//' | tr -d '\r\n ' | base64 --decode --ignore-garbage > "$signing_file"
+          test -s "$signing_file"
+          keytool -list -keystore "$signing_file" -storepass:env CLIENT_STORE_PASSWORD -alias "$CLIENT_KEY_ALIAS" >/dev/null
+          export SAINTSAI_CLIENT_KEYSTORE="$signing_file" SAINTSAI_AGENT_KEYSTORE="$signing_file" SAINTSAI_SALES_KEYSTORE="$signing_file"
+          export SAINTSAI_CLIENT_STORE_PASSWORD="$CLIENT_STORE_PASSWORD" SAINTSAI_CLIENT_KEY_ALIAS="$CLIENT_KEY_ALIAS" SAINTSAI_CLIENT_KEY_PASSWORD="$CLIENT_KEY_PASSWORD"
+          export SAINTSAI_SALES_STORE_PASSWORD="$CLIENT_STORE_PASSWORD" SAINTSAI_SALES_KEY_ALIAS="$CLIENT_KEY_ALIAS" SAINTSAI_SALES_KEY_PASSWORD="$CLIENT_KEY_PASSWORD"
+          gradle --no-daemon :adminapp:assembleRelease :estoqueapp:assembleRelease :estoqueapp:lintRelease :salesnotify:assembleRelease
+          signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          mkdir -p candidate-apks
+          for pair in 'adminapp:Agente-SaintsAI' 'estoqueapp:SaintsAI-Cliente' 'salesnotify:Gerenciador-de-Vendas'; do
+            module="${pair%%:*}"
+            name="${pair#*:}"
+            apk="$module/build/outputs/apk/release/$module-release.apk"
+            test -s "$apk"
+            "$signer" verify --print-certs "$apk" | grep 'certificate SHA-256 digest' > "$RUNNER_TEMP/new-$module-cert"
+            "$signer" verify --print-certs "../downloads/$name.apk" | grep 'certificate SHA-256 digest' > "$RUNNER_TEMP/old-$module-cert"
+            cmp "$RUNNER_TEMP/old-$module-cert" "$RUNNER_TEMP/new-$module-cert"
+            "$aapt" dump badging "$apk" | sed -n '1p' >> candidate-apks/packages.txt
+            cp "$apk" "candidate-apks/$name.apk"
+          done
+          "$aapt" dump badging candidate-apks/SaintsAI-Cliente.apk | grep -F "package: name='com.saintsai.stock' versionCode='36' versionName='1.2.21'"
+          "$aapt" dump badging candidate-apks/Agente-SaintsAI.apk | grep -F "package: name='com.saintsai.admin' versionCode='27' versionName='1.0.26'"
+          cd candidate-apks
+          sha256sum *.apk > SHA256SUMS.txt
+          printf '%s\n' 'Candidatos assinados; não publicados. A interface web nova depende da implantação do backend. Não substitui a validação de produção.' > CANDIDATE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaintsAI-signed-candidate
+          path: android-app/candidate-apks/
+          if-no-files-found: error
