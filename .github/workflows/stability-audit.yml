@@ -8,7 +8,7 @@ on:
       - 'sql/stability/**'
       - '.github/workflows/stability-audit.yml'
   push:
-    branches: ['audit/saintsai-stability-20261013']
+    branches: ['audit/saintsai-stability-20261013', 'design/saintsai-premium-v8-20261014']
 permissions:
   contents: read
 jobs:
@@ -67,7 +67,7 @@ jobs:
           node-version: '22'
       - name: Prepare browser validation of compiled interface
         run: |
-          npm install --prefix "$RUNNER_TEMP/saintsai-ui" playwright@1.62.1
+          npm install --prefix "$RUNNER_TEMP/saintsai-ui" playwright@1.62.1 jsdom@26.1.0
           node "$RUNNER_TEMP/saintsai-ui/node_modules/playwright/cli.js" install --with-deps chromium
           mkdir -p "$RUNNER_TEMP/saintsai-ui-runtime"
           cid=$(docker create saintsai-audit:${{ github.sha }})
@@ -89,6 +89,8 @@ jobs:
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/configuration-forms-browser.cjs"
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/prospect-consent-browser.cjs"
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/manual-prospect-consent-browser.cjs"
+          JSDOM_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/jsdom" node --test "$GITHUB_WORKSPACE/tests/premium-v8.dom.cjs"
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/premium-v8-browser.cjs"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
