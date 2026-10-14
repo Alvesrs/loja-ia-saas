@@ -142,3 +142,5 @@ jobs:
             android-app/adminapp/build/reports/androidTests/
             android-app/estoqueapp/build/reports/androidTests/
             android-app/device-evidence/
+            android-app/estoqueapp/build/outputs/androidTest-results/
+            android-app/adminapp/build/outputs/androidTest-results/

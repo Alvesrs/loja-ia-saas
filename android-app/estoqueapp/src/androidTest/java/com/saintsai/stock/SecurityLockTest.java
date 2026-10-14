@@ -93,8 +93,9 @@ public class SecurityLockTest {
    else {
     // Compatibilidade com o teclado da tela de bloqueio em outras versões do Android.
     boolean pin=device.wait(Until.hasObject(By.res("com.android.systemui","key1")),5000);
-    if(!pin){java.io.ByteArrayOutputStream evidence=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(evidence);System.out.println("SAINTSAI_PIN_UI="+evidence.toString("UTF-8"));device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
-    assertTrue("PIN do sistema não apareceu",pin);
+    String pinUi="";
+    if(!pin){java.io.ByteArrayOutputStream evidence=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(evidence);pinUi=evidence.toString("UTF-8");System.out.println("SAINTSAI_PIN_UI="+pinUi);device.dumpWindowHierarchy(new java.io.File(context.getExternalFilesDir(null),"pin-failure.xml"));device.takeScreenshot(new java.io.File(context.getExternalFilesDir(null),"pin-failure.png"));}
+    assertTrue("PIN do sistema não apareceu. Tela: "+pinUi,pin);
     for(int number=1;number<=4;number++){androidx.test.uiautomator.UiObject2 key=device.findObject(By.res("com.android.systemui","key"+number));assertNotNull(key);key.click();}
     androidx.test.uiautomator.UiObject2 enter=device.findObject(By.res("com.android.systemui","key_enter"));if(enter!=null)enter.click();else device.pressKeyCode(KeyEvent.KEYCODE_ENTER);
    }
