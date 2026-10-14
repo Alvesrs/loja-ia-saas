@@ -131,6 +131,8 @@ jobs:
           disable-animations: true
           script: |
             adb shell settings put secure show_ime_with_hard_keyboard 1
+            adb shell settings put system screen_off_timeout 2147483647
+            adb shell svc power stayon true
             adb shell locksettings set-pin 1234
             gradle -p android-app --no-daemon :adminapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.admin.ExternalLinksTest
             gradle -p android-app --no-daemon :estoqueapp:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.saintsai.stock.ExternalLinksTest,com.saintsai.stock.DistributionPolicyTest,com.saintsai.stock.AppIconSwitchTest,com.saintsai.stock.SecurityLockTest || { mkdir -p android-app/device-evidence; adb pull /sdcard/Android/data/com.saintsai.stock/files/pin-failure.xml android-app/device-evidence/ || true; adb pull /sdcard/Android/data/com.saintsai.stock/files/pin-failure.png android-app/device-evidence/ || true; exit 1; }
