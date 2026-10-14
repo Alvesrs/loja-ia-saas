@@ -146,3 +146,7 @@ body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-
 /* Final scoped visual layer overrides the legacy bundles with repeated selectors. */
 body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8{padding-left:0!important;margin-left:0!important}
 @media(min-width:1000px){body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .drawer{width:224px!important}}
+
+body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-copy-area{width:100%;min-height:220px!important;font-size:13px!important;line-height:1.8!important;margin-bottom:14px;resize:vertical}
+
+body.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8.sa-premium-v8 .pv8-shortcuts{flex-direction:row!important;align-content:start!important}

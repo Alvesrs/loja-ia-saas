@@ -14,3 +14,5 @@ test('CSV uses real displayed values, no client records, and neutralizes spreads
 test('re-running initialization never duplicates dialogs or overview IDs',()=>{const f=fixture();try{f.w.eval(fs.readFileSync('patches/assets/premium-v8/premium-v8.js','utf8'));f.w.document.dispatchEvent(new f.w.Event('DOMContentLoaded'));const ids=[...f.w.document.querySelectorAll('[id]')].map(x=>x.id);assert.equal(ids.length,new Set(ids).size);}finally{f.close();}});
 
 test('changing accounts cannot export the previous account financial snapshot',()=>{const f=fixture();try{f.w.user={id:'user-b'};f.w.document.querySelector('#pv8-export').click();assert.equal(f.downloads.length,0);}finally{f.close();}});
+
+test('Android bridge uses a selectable local summary instead of an unsupported blob download',()=>{const f=fixture();try{f.w.AndroidClient={};f.w.document.querySelector('#pv8-export').click();const dialog=f.w.document.querySelector('#pv8-local-summary');assert(dialog.open);assert.match(dialog.querySelector('textarea').value,/R\$ 280,00/);assert.equal(f.downloads.length,0);assert.equal(f.blobs.length,0);}finally{f.close();}});
