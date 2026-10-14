@@ -62,3 +62,23 @@ jobs:
           fi
       - name: Validate compiled syntax
         run: docker run --rm --entrypoint node saintsai-audit:${{ github.sha }} --check src/services/whatsappWorker.service.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare browser validation of compiled interface
+        run: |
+          npm install --prefix "$RUNNER_TEMP/saintsai-ui" playwright@1.62.1
+          node "$RUNNER_TEMP/saintsai-ui/node_modules/playwright/cli.js" install --with-deps chromium
+          mkdir -p "$RUNNER_TEMP/saintsai-ui-runtime"
+          cid=$(docker create saintsai-audit:${{ github.sha }})
+          docker cp "$cid:/app/public" "$RUNNER_TEMP/saintsai-ui-runtime/public"
+          docker rm "$cid"
+      - name: Verify existing workflows on mobile and desktop
+        run: |
+          cd "$RUNNER_TEMP/saintsai-ui-runtime"
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/saintsai-ui/node_modules/playwright" node "$GITHUB_WORKSPACE/tests/remake-ui-browser.cjs"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SaintsAI-interface-review
+          path: ${{ runner.temp }}/saintsai-ui-runtime/ui-artifacts/

@@ -3,11 +3,19 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 if(process.env.SAINTSAI_ISOLATED_POSTGRES!=='1'||process.env.PGHOST!=='127.0.0.1'||process.env.PGDATABASE!=='saintsai_stability_test')throw Error('Isolated CI database required');
 const sql=s=>new Promise((resolve,reject)=>execFile('psql',['-X','-qAt','-v','ON_ERROR_STOP=1','-c',s],{timeout:10000},(e,out)=>e?reject(Error('isolated_query_failed: '+out)):resolve(out.trim())));
 const store='11111111-1111-4111-8111-111111111111',cfg='22222222-2222-4222-8222-222222222222';
-const enqueue=async(id,text='hello',session='session')=>JSON.parse(await sql(`SELECT public.enqueue_waha_batch_atomic('${store}','${cfg}','${session}','synthetic-contact','${text}','${id}',NULL,10000)`));
+const enqueue=async(id,text='hello',session='session')=>JSON.parse(await sql(`SET ROLE service_role; SELECT public.enqueue_waha_batch_atomic('${store}','${cfg}','${session}','synthetic-contact','${text}','${id}',NULL,10000)`));
 test('real Postgres durable grouping, restart, concurrency and tenant boundary',async()=>{
- await sql(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF; END $$;
+ await sql(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role BYPASSRLS; END IF; END $$;
+ CREATE TABLE public.lojas(id uuid PRIMARY KEY); INSERT INTO public.lojas VALUES('${store}');
+ CREATE TABLE public.whatsapp_configuracoes(id uuid,loja_id uuid REFERENCES public.lojas(id),UNIQUE(id,loja_id)); INSERT INTO public.whatsapp_configuracoes VALUES('${cfg}','${store}');
  CREATE TABLE public.whatsapp_fila_processamento(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),loja_id uuid,configuracao_id uuid,provedor text,destinatario_id text,contato text,texto text,id_externo text,timestamp_mensagem timestamptz,status text,tentativas int,lease_ate timestamptz,proxima_tentativa_em timestamptz,criado_em timestamptz DEFAULT clock_timestamp(),atualizado_em timestamptz,UNIQUE(provedor,id_externo));
  CREATE TABLE public.whatsapp_eventos_processados(provedor text,id_externo text,status text,processado_em timestamptz,PRIMARY KEY(provedor,id_externo));`);
+ await sql(`ALTER TABLE public.whatsapp_fila_processamento ADD FOREIGN KEY(loja_id) REFERENCES public.lojas(id), ADD FOREIGN KEY(configuracao_id,loja_id) REFERENCES public.whatsapp_configuracoes(id,loja_id), ADD FOREIGN KEY(provedor,id_externo) REFERENCES public.whatsapp_eventos_processados(provedor,id_externo), ADD CHECK(length(texto) BETWEEN 1 AND 12000 AND texto !~ '^\\s*$'), ADD CHECK(status IN ('pendente','processando','enviado','concluido','falhou')), ADD CHECK(tentativas>=0);
+ ALTER TABLE public.whatsapp_eventos_processados ADD CHECK(status IN ('processando','concluido'));
+ ALTER TABLE public.whatsapp_fila_processamento ENABLE ROW LEVEL SECURITY;
+ ALTER TABLE public.whatsapp_eventos_processados ENABLE ROW LEVEL SECURITY;
+ GRANT USAGE ON SCHEMA public TO service_role;
+ GRANT SELECT,INSERT,UPDATE ON public.whatsapp_fila_processamento,public.whatsapp_eventos_processados TO service_role;`);
  await sql(fs.readFileSync('sql/stability/waha-durable-batches.sql','utf8'));
  const first=(await enqueue('a','first')).jobId;assert.equal((await enqueue('b','second')).jobId,first);
  assert.equal(await sql(`SELECT texto FROM public.whatsapp_fila_processamento WHERE id='${first}'`),'first\nsecond');
@@ -30,4 +38,11 @@ test('real Postgres durable grouping, restart, concurrency and tenant boundary',
  await sql("INSERT INTO public.whatsapp_eventos_processados(provedor,id_externo,status) VALUES('waha','legacy-stuck','processando')");
  assert.equal((await enqueue('legacy-stuck')).created,false);
  assert.equal(await sql("SELECT count(*) FROM public.whatsapp_batch_members WHERE id_externo='legacy-stuck'"),'0');
+});
+
+test('database privileges and foreign keys block unauthorized or cross-tenant writes',async()=>{
+ await assert.rejects(sql(`SET ROLE anon; SELECT public.enqueue_waha_batch_atomic('${store}','${cfg}','session','contact','text','anon-message',NULL,10000)`),/isolated_query_failed/);
+ await assert.rejects(sql(`SET ROLE authenticated; SELECT public.enqueue_waha_batch_atomic('${store}','${cfg}','session','contact','text','user-message',NULL,10000)`),/isolated_query_failed/);
+ await assert.rejects(sql(`SET ROLE service_role; SELECT public.enqueue_waha_batch_atomic('33333333-3333-4333-8333-333333333333','${cfg}','session','contact','text','wrong-tenant',NULL,10000)`),/isolated_query_failed/);
+ assert.equal(await sql("SELECT count(*) FROM public.whatsapp_eventos_processados WHERE id_externo IN ('anon-message','user-message','wrong-tenant')"),'0');
 });
