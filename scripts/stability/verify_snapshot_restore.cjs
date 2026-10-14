@@ -34,8 +34,23 @@ const xmlText = x => x.match(/<document>([\s\S]*?)<\/document>/)[1].replace(/&(a
       await db.exec(`ALTER TABLE ${q(c.schema)}.${q(c.table)} ADD CONSTRAINT ${q(c.name)} ${c.definition}`);
       constraints++;
     }
+    let migrations=0;
+    if(process.argv[4]){
+      phase='candidate migrations';
+      for(const role of ['anon','authenticated','service_role']) await db.exec(`CREATE ROLE ${q(role)}`);
+      for(const file of ['waha-durable-batches.sql','waha-serialized-claim.sql','tenant-human-control.sql','receipt-net-value.sql']){
+        const sql=fs.readFileSync(process.argv[4]+'/'+file,'utf8');
+        await db.exec(sql); await db.exec(sql); migrations++;
+      }
+      phase='post-migration data comparison';
+      for(const t of snapshot.tables){
+        const name=`${q(t.schema)}.${q(t.name)}`, cols=t.columns.map(c=>q(c.name)).join(',');
+        const diff=await db.query(`WITH expected AS (SELECT ${cols} FROM jsonb_populate_recordset(NULL::${name},$1::jsonb)), actual AS (SELECT ${cols} FROM ${name}), difference AS ((SELECT to_jsonb(actual) FROM actual EXCEPT ALL SELECT to_jsonb(expected) FROM expected) UNION ALL (SELECT to_jsonb(expected) FROM expected EXCEPT ALL SELECT to_jsonb(actual) FROM actual)) SELECT count(*)::int AS n FROM difference`,[xmlText(t.data_xml)]);
+        if(diff.rows[0].n)throw Error('Migration changed existing data');
+      }
+    }
     const version = (await db.query('SHOW server_version')).rows[0].server_version;
-    const report = {typed_data_restore_verified:true,tables,rows,constraints_verified:constraints,constraints_skipped:snapshot.constraints.length-constraints,source_version:snapshot.server_version,validation_version:version,scope:'Typed rows, generated values and constraints. Provider roles, functions, defaults, policies and Storage bytes are not restored by this check.'};
+    const report = {typed_data_restore_verified:true,tables,rows,candidate_migrations_applied_twice:migrations,existing_data_preserved_after_migrations:migrations>0,constraints_verified:constraints,constraints_skipped:snapshot.constraints.length-constraints,source_version:snapshot.server_version,validation_version:version,scope:'Typed rows, generated values and constraints. Provider roles, functions, defaults, policies and Storage bytes are not restored by this check.'};
     fs.writeFileSync(process.argv[3],JSON.stringify(report,null,2)+'\n',{mode:0o600});
     console.log(JSON.stringify(report));
   } catch (_) { console.error(JSON.stringify({restore_verified:false,phase,tables,rows,constraints,error_code:_.code})); process.exitCode=1; }
