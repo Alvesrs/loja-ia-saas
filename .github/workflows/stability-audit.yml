@@ -44,6 +44,27 @@ jobs:
           PGPASSWORD: isolated_ci_only
           PGDATABASE: saintsai_stability_test
         run: node --test tests/send-intent-postgres.integration.cjs tests/waha-batch-postgres.integration.cjs tests/receipt-net-postgres.integration.cjs
+  prospect-cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix /tmp/prospect-tests --no-save @electric-sql/pglite@0.5.10
+      - name: Validate isolated quota migration and fifteen openings
+        run: |
+          mkdir -p /tmp/prospect-runtime/src/services /tmp/prospect-runtime/public/js /tmp/prospect-runtime/src/routes
+          cp -r patches sql tests /tmp/prospect-runtime/
+          cp patches/assets/auto-prospect/autoProspect.*.js /tmp/prospect-runtime/src/services/
+          cp patches/assets/auto-prospect/auto-prospect.js /tmp/prospect-runtime/public/js/
+          printf '%s' '<script src="js/auto-prospect.js?v=1"></script>' > /tmp/prospect-runtime/public/admin-marketing.html
+          printf '%s' '{"versao":"old","novidades":[]}' > /tmp/prospect-runtime/public/cliente-versao.json
+          cp /tmp/prospect-runtime/public/cliente-versao.json /tmp/prospect-runtime/public/admin-versao.json
+          printf '%s' 'module.exports={}' > /tmp/prospect-runtime/src/routes/marketingGuru.routes.js
+          cd /tmp/prospect-runtime
+          node patches/prospect-15-12h-v1.js
+          PGLITE_TEST_MODULE=/tmp/prospect-tests/node_modules/@electric-sql/pglite node --test tests/prospect-15-12h.test.cjs
   production-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
