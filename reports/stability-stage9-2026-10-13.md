@@ -1,0 +1,11 @@
+# SaintsAI — etapa 9: reserva e fila WAHA atômicas
+
+Antes, o modo opcional de agrupamento WAHA gravava a reserva idempotente antes da função de enfileiramento. Uma queda entre as duas gravações deixava o evento em processando sem job. A função `enqueue_waha_batch_atomic` insere a reserva, insere ou acrescenta a mensagem ao job e grava seu membro numa única transação PostgreSQL. Erro em qualquer etapa desfaz todas as gravações, incluindo a reserva. Reentrega com ID já existente retorna duplicado, sem reprocessar eventos antigos; a conclusão do job mantém a atualização de todos os membros.
+
+O controller somente confirma 200 depois da função retornar. Falha no RPC responde erro recuperável sem deletar uma reserva possivelmente confirmada após timeout de rede. A operação é idempotente pela constraint (provedor,id_externo). O modo mantém `WHATSAPP_DURABLE_BATCH` desativado por padrão. A função recebeu nome novo para não alterar o retorno da função candidata anterior caso tenha sido instalada em testes.
+
+Renovação de plano ativa continua no protocolo existente, com reserva e efeitos próprios; não foi movida para fila por poder gerar Pix e enviar mensagens. Em conversas normais do WAHA, a reserva legada não é mais criada separadamente quando o modo persistente está ligado. O comportamento de produção com a flag desligada permanece no caminho anterior.
+
+Verificação local focada: 203 testes, 203 aprovados. Os testes sintéticos cobrem confirmação depois de persistir, duplicata, falha, ausência de deleção incerta e renovação. O teste PostgreSQL isolado foi ampliado para confirmar a criação de reservas, rejeição de duplicatas, rollback quando a entrada é inválida e bloqueio do reprocessamento de um ID antigo sem job. CI e esquema real ainda precisam ser verificados para este commit.
+
+Pendências: modo ainda requer migração validada em staging, revisão da política de reprocessamento de falhas e observabilidade para eventos legados. Não reenvia os 133 eventos, não envia mensagens a terceiros e não altera dados ou produção.
