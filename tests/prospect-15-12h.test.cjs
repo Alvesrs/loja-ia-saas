@@ -9,6 +9,8 @@ test('15 slots, twelve-hour renewal, replay safety, store ownership and history 
  const start="SELECT public.saintsai_prospect_start('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','{}') AS id";
  const first=(await db.query(start)).rows[0].id;
  assert.equal((await db.query(start)).rows[0].id,first);
+ const concurrent=await Promise.all(Array.from({length:8},()=>db.query(start)));for(const r of concurrent)assert.equal(r.rows[0].id,first);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM saintsai_prospect_batches')).rows[0].n,1);
  assert.equal((await db.query('SELECT limit_count FROM saintsai_prospect_batches')).rows[0].limit_count,15);
  await db.query("INSERT INTO saintsai_prospect_items(batch_id,loja_id,phone,contact,position,business,opening,status) SELECT $1,'00000000-0000-0000-0000-000000000002',n::text,n::text,n,'{}','synthetic','waiting' FROM generate_series(0,14) n",[first]);
  await db.exec("UPDATE saintsai_prospect_batches SET status='completed'");
@@ -16,12 +18,13 @@ test('15 slots, twelve-hour renewal, replay safety, store ownership and history 
  await db.exec("UPDATE saintsai_prospect_batches SET created_at=now()-interval '12 hours'");
  const second=(await db.query(start)).rows[0].id;assert.notEqual(second,first);
  assert.equal((await db.query('SELECT count(*)::int AS n FROM saintsai_prospect_items')).rows[0].n,15);
- await db.exec("UPDATE saintsai_prospect_batches SET created_at=now()-interval '13 hours';UPDATE saintsai_prospect_items SET status='uncertain' WHERE position=0");
- await assert.rejects(db.query(start),/não confirmado/);
- await db.exec("UPDATE saintsai_prospect_items SET status='waiting' WHERE position=0");
+ await db.exec("UPDATE saintsai_prospect_batches SET created_at=now()-interval '13 hours';UPDATE saintsai_prospect_items SET status='sending' WHERE position=0");
+ await assert.rejects(db.query(start),/envio em andamento/);
+ await db.exec("UPDATE saintsai_prospect_items SET status='uncertain' WHERE position=0");
  await assert.rejects(db.query(start.replace('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000009')),/não pertence/);
  await db.query("INSERT INTO saintsai_prospect_items(batch_id,loja_id,phone,contact,position,business,opening) VALUES($1,'00000000-0000-0000-0000-000000000002','new','new',0,'{}','synthetic')",[second]);
  await db.query(start);assert.equal((await db.query("SELECT status FROM saintsai_prospect_items WHERE phone='new'")).rows[0].status,'cancelled');
+ assert.equal((await db.query("SELECT status FROM saintsai_prospect_items WHERE position=0 AND phone='0'")).rows[0].status,'uncertain');
  const perms=(await db.query("SELECT has_function_privilege('anon','public.saintsai_prospect_start(uuid,uuid,jsonb)','execute') AS anon,has_function_privilege('authenticated','public.saintsai_prospect_start(uuid,uuid,jsonb)','execute') AS authenticated")).rows[0];assert.equal(perms.anon,false);assert.equal(perms.authenticated,false);
  }finally{await db.close();}
 });

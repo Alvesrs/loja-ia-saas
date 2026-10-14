@@ -16,8 +16,8 @@ BEGIN
   IF v_status IN ('searching','searching_claimed','running') THEN RETURN v_id; END IF;
   RAISE EXCEPTION 'A habilidade será renovada 12 horas após o início da última rodada.';
  END IF;
- IF EXISTS(SELECT 1 FROM public.saintsai_prospect_items WHERE loja_id=p_loja_id AND status IN ('sending','uncertain')) THEN
-  RAISE EXCEPTION 'Confira o envio em andamento ou não confirmado antes de iniciar outra rodada.';
+ IF EXISTS(SELECT 1 FROM public.saintsai_prospect_items WHERE loja_id=p_loja_id AND status='sending') THEN
+  RAISE EXCEPTION 'Aguarde o envio em andamento antes de iniciar outra rodada.';
  END IF;
  -- Retain all history; queued permission requests from an expired cycle do not send later.
  UPDATE public.saintsai_prospect_items SET status='cancelled',updated_at=now() WHERE loja_id=p_loja_id AND status='queued';
