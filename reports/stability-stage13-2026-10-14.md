@@ -9,3 +9,11 @@
 - O Docker passa a executar também owner-consultative no conjunto final.
 - Aprovação do novo CI ainda pendente. A suíte ampla anterior continua com falhas a investigar; não há aprovação global.
 - Sem envio externo, cobrança, replay de eventos antigos, migração ou reinício de produção. Backup completo ainda não confirmado.
+
+## Verificação posterior
+
+- CI 38552110173 e 38552098651: banco aprovado; backend bloqueado pela execução antecipada do teste consultivo; Android bloqueado no teste de PIN (interface do sistema não encontrada). Nenhuma aprovação global.
+- Restaurado teste consultivo da etapa intermediária; criado stability-owner-consultative para verificar exclusivamente o runtime final. Não se removeu a validação dos dois estágios.
+- Runtime final: conjunto consultivo/comercial/recusa/continuidade novamente 51/51.
+- Varredura local com globs tests/*.test.cjs e tests/*.test.js: 1138 testes, 1105 aprovados, 33 falhas. Esse comando não equivale à suíte recursiva anterior. Parte das falhas é incompatibilidade de fixtures antigas; a classificação completa permanece pendente.
+- Publicação bloqueada: backup não confirmado, nova montagem e PIN ainda não aprovados, regressões amplas pendentes.
