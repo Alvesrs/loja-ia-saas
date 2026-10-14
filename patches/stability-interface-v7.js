@@ -1,4 +1,4 @@
-'use strict';const fs=require('node:fs');const version='2026.10.14.1';
+'use strict';const fs=require('node:fs');const version='2026.10.14.2';
 for(const ext of ['css','js'])fs.copyFileSync('patches/assets/saintsai-interface-v7.'+ext,'public/'+ext+'/saintsai-interface-v7.'+ext);
 for(const file of fs.readdirSync('public').filter(n=>/^(cliente|admin).*\.html$/.test(n)||n==='login.html')){
  let s=fs.readFileSync('public/'+file,'utf8');

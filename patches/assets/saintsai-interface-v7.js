@@ -16,3 +16,18 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+(()=>{'use strict';
+ // Preserve the existing service form handler while blocking overlapping submissions.
+ function protectServiceSave(){
+  if(!location.pathname.endsWith('cliente-configuracao.html'))return;
+  const button=document.getElementById('sv-add');if(!button||typeof button.onclick!=='function'||button.dataset.saSaveProtected==='true')return;
+  const handler=button.onclick;let pending=false;button.dataset.saSaveProtected='true';
+  button.onclick=async function(event){
+   if(pending)return;pending=true;const disabled=button.disabled;button.disabled=true;
+   try{return await handler.call(this,event);}finally{pending=false;if(button.isConnected)button.disabled=disabled;}
+  };
+ }
+ function start(){if(!location.pathname.endsWith('cliente-configuracao.html'))return;protectServiceSave();new MutationObserver(protectServiceSave).observe(document.body,{childList:true,subtree:true});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
