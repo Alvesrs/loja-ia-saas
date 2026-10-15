@@ -196,11 +196,19 @@ router.post('/produtos',requireUser,async(req,res)=>{
   if(error) return res.status(500).json({erro:'Não foi possível cadastrar produto.'}); res.status(201).json({produto:data});
 });
 
+router.put('/meta',requireUser,async(req,res)=>{
+  const periodo=monthRange(req.body?.mes),valor=Number(req.body?.valor);
+  if(!periodo||req.body?.valor==null||!Number.isFinite(valor)||valor<0||valor>999999999999.99)return res.status(400).json({erro:'Informe mês válido e meta maior ou igual a zero.'});
+  const {error}=await db.from('gv_metas').upsert({empresa_id:req.gv.empresa.id,mes:periodo.key,valor:Math.round(valor*100)/100},{onConflict:'empresa_id,mes'});
+  if(error)return res.status(500).json({erro:'Não foi possível salvar a meta.'});
+  res.json({ok:true});
+});
+
 router.get('/dashboard',requireUser,async(req,res)=>{
   try{
     const periodo=monthRange(req.query.mes);if(!periodo)return res.status(400).json({erro:'Escolha um mês entre janeiro de 2026 e o mês atual.'});const ini=periodo.ini,fim=periodo.fim,prevIni=addMonths(ini,-1);
     const [{data:atual,error:aErr},{data:anterior,error:pErr}]=await Promise.all([
-      db.from('gv_vendas').select('id,cliente_id,cliente_nome,categoria,origem,valor,custo,vendido_em').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString()),
+      db.from('gv_vendas').select('id,cliente_id,cliente_nome,categoria,origem,valor,custo,vendido_em,observacao').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString()),
       db.from('gv_vendas').select('id,valor,custo').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',prevIni.toISOString()).lt('vendido_em',ini.toISOString())
     ]);
     if(aErr||pErr) throw aErr||pErr;
@@ -209,7 +217,10 @@ router.get('/dashboard',requireUser,async(req,res)=>{
     const clientes=new Set(vendas.map(v=>v.cliente_id||v.cliente_nome).filter(Boolean)).size,ticket=vendas.length?faturamento/vendas.length:0;
     const porDia={},origens={},categorias={},tipos={novo:0,recorrente:0};
     for(const v of vendas){const dia=String(v.vendido_em).slice(0,10);porDia[dia]=(porDia[dia]||0)+Number(v.valor||0);origens[v.origem||'Outro']=(origens[v.origem||'Outro']||0)+1;categorias[v.categoria||'Sem categoria']=(categorias[v.categoria||'Sem categoria']||0)+Number(v.valor||0);const tipo=String(v.observacao||'').includes('[CLIENTE_TIPO]recorrente')?'recorrente':'novo';tipos[tipo]=(tipos[tipo]||0)+1;v.tipo_cliente=tipo;}
+    const {data:meta,error:metaErr}=await db.from('gv_metas').select('valor').eq('empresa_id',req.gv.empresa.id).eq('mes',periodo.key).maybeSingle();
+    if(metaErr)throw metaErr;
     res.json({
+      meta_mensal:meta?.valor==null?null:Number(meta.valor),
       mes:periodo.key,
       metricas:{faturamento,lucro,vendas:vendas.length,ticket_medio:ticket,clientes,faturamento_anterior:prevFat,variacao_faturamento_pct:prevFat>0?((faturamento-prevFat)/prevFat)*100:null},
       por_dia:Object.entries(porDia).map(([data,valor])=>({data,valor})).sort((a,b)=>a.data.localeCompare(b.data)),
