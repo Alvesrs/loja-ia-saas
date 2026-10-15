@@ -5,6 +5,7 @@ on:
       - 'Dockerfile.backend'
       - 'patches/**'
       - 'tests/**'
+      - 'scripts/tenant-lab/**'
       - 'sql/stability/**'
       - '.github/workflows/stability-audit.yml'
   push:
@@ -82,11 +83,21 @@ jobs:
               exit 1
             fi
           fi
-      - name: Validate all compiled backend modules
-        run: docker run --rm --entrypoint sh saintsai-audit:${{ github.sha }} -c 'find src -name "*.js" -print0 | xargs -0 -n 1 node --check'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Run isolated tenant communication lab with network disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/tenant-lab/run.cjs saintsai-audit:${{ github.sha }} | tee /tmp/saintsai-tenant-lab.tap
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SaintsAI-Tenant-Communication-Lab
+          path: /tmp/saintsai-tenant-lab.tap
+      - name: Validate all compiled backend modules
+        run: docker run --rm --entrypoint sh saintsai-audit:${{ github.sha }} -c 'find src -name "*.js" -print0 | xargs -0 -n 1 node --check'
       - name: Prepare browser validation of compiled interface
         run: |
           npm install --prefix "$RUNNER_TEMP/saintsai-ui" playwright@1.62.1 jsdom@26.1.0
