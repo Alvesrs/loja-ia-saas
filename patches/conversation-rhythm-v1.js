@@ -12,3 +12,4 @@ edit(worker,'        await envio.enviarRespostaWhatsapp(mensagem, resposta, cont
         }else{await envio.enviarRespostaWhatsapp(mensagem,resposta,contexto);}`);
 for(const file of ['public/cliente-versao.json','public/admin-versao.json']){const v=JSON.parse(fs.readFileSync(file,'utf8'));v.versao='2026.10.15.18';v.novidades.unshift('Conversa mais natural, venda consultiva e respostas em até duas mensagens curtas');fs.writeFileSync(file,JSON.stringify(v,null,2)+'\n');}
 for(const file of ['src/services/salesSeller.service.js','src/services/iaPrompt.service.js','src/services/whatsappWorker.service.js'])new (require('node:vm').Script)(fs.readFileSync(file,'utf8'),{filename:file});
+console.log('[conversation-rhythm] tom consultivo e sequências curtas habilitados com interrupção por nova mensagem ou atendimento humano');
