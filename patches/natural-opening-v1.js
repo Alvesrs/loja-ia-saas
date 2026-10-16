@@ -13,4 +13,4 @@ const auto='src/services/autoProspect.service.js';s=fs.readFileSync(auto,'utf8')
 s=s.replace('Identifique-se como Pedro, do SaintsAI.','Fale em nome do SaintsAI sem atribuir a mensagem a uma pessoa específica. Não abra anunciando ser assistente virtual ou IA.');fs.writeFileSync(auto,s);
 for(const file of ['public/cliente-versao.json','public/admin-versao.json']){const v=JSON.parse(fs.readFileSync(file,'utf8'));v.versao='2026.10.15.19';v.novidades.unshift('Abertura curta de prospecção em nome do SaintsAI, sem apresentação automática como assistente virtual');fs.writeFileSync(file,JSON.stringify(v,null,2)+'\n');}
 for(const file of [p,rules,auto])new(require('node:vm').Script)(fs.readFileSync(file,'utf8'));
-console.log('[natural-opening] abertura em nome do SaintsAI e identidade honesta quando perguntada');
+console.log('[natural-opening] aberturas manual e automática em nome do SaintsAI; identidade honesta quando perguntada');
