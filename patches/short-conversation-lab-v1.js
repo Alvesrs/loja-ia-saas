@@ -6,9 +6,9 @@ const prompt='src/services/ownerSalesPrompt.js';let s=fs.readFileSync(prompt,'ut
 if(!s.includes('shortConversationRefusalBase'))s+=`\nmodule.exports.shortConversation=${inline};\nconst shortConversationRefusalBase=module.exports.recusou;module.exports.recusou=v=>module.exports.shortConversation.scopedRefusal(v)?false:module.exports.shortConversation.strongStop(v)||shortConversationRefusalBase(v);\nconst shortConversationScopeBase=module.exports.relacionadaAoSaintsai;module.exports.relacionadaAoSaintsai=v=>Boolean(module.exports.shortConversation.kind(v))||shortConversationScopeBase(v);\nmodule.exports.MASTER+='\\n'+module.exports.shortConversation.GUIDANCE;\nmodule.exports.STYLE+='\\n'+module.exports.shortConversation.GUIDANCE;\n`;
 fs.writeFileSync(prompt,s);
 const seller='src/services/salesSeller.service.js';
-edit(seller,'  if(recusou(pergunta)){',"  if(require('./ownerSalesPrompt').recusou(pergunta)){");
+fs.writeFileSync(seller,fs.readFileSync(seller,'utf8').replaceAll('  if(recusou(pergunta)){',"  if(require('./ownerSalesPrompt').recusou(pergunta)){"));
 edit(seller,'const styleExamples=[];const historico=await buscarHistorico(lojaId,contato,styleExamples);',`const styleExamples=[];const historico=await buscarHistorico(lojaId,contato,styleExamples);
-  const shortTurn=require('./ownerSalesPrompt').shortConversation?.owner(pergunta,historico);if(shortTurn)return filtrarAntiFlood(lojaId,contato,shortTurn);`);
+  const shortPolicy=require('./ownerSalesPrompt').shortConversation;const shortTurn=shortPolicy?.kind(pergunta)==='clarify'?null:shortPolicy?.owner(pergunta,historico);if(shortTurn)return filtrarAntiFlood(lojaId,contato,shortTurn);`);
 const tenant='src/services/tenantDialogue.service.js';s=fs.readFileSync(tenant,'utf8');if(!s.includes('shortConversationTenantBase'))s+=`\nconst tenantShortConversation=${inline};const shortConversationTenantBase=module.exports.fallback;module.exports.fallback=(question,history)=>shortConversationTenantBase(question,history)||tenantShortConversation.tenant(question,history);\n`;fs.writeFileSync(tenant,s);
 for(const f of [prompt,seller,tenant])new(require('node:vm').Script)(fs.readFileSync(f,'utf8'));
 console.log('Short conversation lab: scoped refusal, terse turns and respectful stops for owner and tenant');
