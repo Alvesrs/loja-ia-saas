@@ -14,7 +14,7 @@ test('guidance does not imply agent is human',()=>{
 test('guidance preserves operational truth',()=>{
  assert.match(GUIDANCE,/não confirme reserva/i);
  assert.match(GUIDANCE,/exatamente como confirmados/);
- assert.match(GUIDANCE,/Não invente promoções/);
+ assert.match(GUIDANCE,/Nunca invente promoções/);
 });
 test('no image generation for customer product photos',()=>{
  assert.match(GUIDANCE,/material real autorizado/);
