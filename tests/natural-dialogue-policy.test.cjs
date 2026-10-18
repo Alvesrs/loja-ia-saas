@@ -12,7 +12,7 @@ test('guidance does not imply agent is human',()=>{
  assert.match(GUIDANCE,/não deve se passar por uma pessoa real/);
 });
 test('guidance preserves operational truth',()=>{
- assert.match(GUIDANCE,/não confirme reserva/);
+ assert.match(GUIDANCE,/não confirme reserva/i);
  assert.match(GUIDANCE,/exatamente como confirmados/);
  assert.match(GUIDANCE,/Não invente promoções/);
 });
