@@ -1,0 +1,20 @@
+name: SaintsAI natural dialogue policy
+on:
+  pull_request:
+    paths:
+      - 'patches/assets/conversationRhythm.service.js'
+      - 'tests/natural-dialogue-policy.test.cjs'
+      - '.github/workflows/natural-dialogue-policy.yml'
+  workflow_dispatch:
+jobs:
+  natural-dialogue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dialogue tests
+        run: node --test tests/natural-dialogue-policy.test.cjs tests/conversation-rhythm.test.cjs tests/conversation-rhythm-worker.test.cjs
