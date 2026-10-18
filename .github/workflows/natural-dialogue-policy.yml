@@ -16,5 +16,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # Full backend build unpacks the runtime worker prior to separate integration tests.
       - name: Dialogue tests
-        run: node --test tests/natural-dialogue-policy.test.cjs tests/conversation-rhythm.test.cjs tests/conversation-rhythm-worker.test.cjs
+        run: node --test tests/natural-dialogue-policy.test.cjs tests/conversation-rhythm.test.cjs
