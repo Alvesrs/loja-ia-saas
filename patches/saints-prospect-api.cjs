@@ -5,7 +5,19 @@ const json=(data    ,status=200)=>Response.json(data,{status,headers:{"Cache-Con
 const eq=(a    ,b    )=>typeof a==="string"&&typeof b==="string"&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const now=()=>new Date().toISOString();
 function required(v    ,name       ){if(!v||String(v).startsWith("${{"))throw Error(name+" não configurado");return String(v)}
-async function request(url       ,options    ={}){const r=await fetch(url,{...options,signal:AbortSignal.timeout(options.timeout||25000)});let j    ;try{j=await r.json()}catch{throw Error("Servidor externo retornou uma resposta inválida ("+r.status+")")};if(!r.ok)throw Error(j.error?.message||j.errors?.[0]?.description||j.message||"Serviço externo: "+r.status);return j}
+// The search model has its own quota. One supported fallback, never an unbounded retry.
+let searchPrimaryBlockedUntil=0;
+async function request(url       ,options    ={}){
+ let body    ;try{body=typeof options.body==='string'?JSON.parse(options.body):null}catch{}
+ const browser=String(url).startsWith('https://api.groq.com/')&&body?.model==='openai/gpt-oss-20b'&&body.tools?.some((t    )=>t.type==='browser_search');
+ if(browser&&searchPrimaryBlockedUntil>Date.now()){body.model='openai/gpt-oss-120b';options={...options,body:JSON.stringify(body)}}
+ const r=await fetch(url,{...options,signal:AbortSignal.timeout(options.timeout||25000)});let j    ;try{j=await r.json()}catch{throw Error('Servidor externo retornou uma resposta inválida ('+r.status+')')}
+ if(!r.ok){const message=j.error?.message||j.errors?.[0]?.description||j.message||'Serviço externo: '+r.status;
+  if(browser&&body.model==='openai/gpt-oss-20b'&&(r.status===429||/rate limit|tokens per day/i.test(message))){searchPrimaryBlockedUntil=Date.now()+600000;return request(url,{...options,body:JSON.stringify({...body,model:'openai/gpt-oss-120b'})})}
+  throw Error(message)
+ }return j;
+}
+
 async function db(path       ,method="GET",body     ,extra    ={}){const key=required(env.SUPABASE_SERVICE_ROLE_KEY,"Banco");return request(required(env.SUPABASE_URL,"Banco")+"/rest/v1/"+path,{method,headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=representation",...extra},...(body===undefined?{}:{body:JSON.stringify(body)})})}
 async function waha(path       ,method="GET",body     ){return request(required(env.WAHA_BASE_URL,"WAHA").replace(/\/$/,"")+path,{method,headers:{"X-Api-Key":required(env.WAHA_API_KEY,"WAHA"),"Content-Type":"application/json"},...(body===undefined?{}:{body:JSON.stringify(body)})})}
 const asaasBase=()=>/sandbox|test/i.test(env.ASAAS_ENVIRONMENT||"production")?"https://api-sandbox.asaas.com/v3":"https://api.asaas.com/v3";
@@ -289,7 +301,7 @@ async function discoverReferences(req        ){
 }
 
 async function routes(req        ){const u=new URL(req.url),path=u.pathname;
- if(path==="/health")return json({ok:true,version:"0.6-brand",websiteEngine:"brand-cinema-v2"});
+ if(path==="/health")return json({ok:true,version:"0.7-research",websiteEngine:"brand-cinema-v2"});
  if(path==="/webhooks/waha"){if(!eq(u.searchParams.get("token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e=await req.json();await handleMessage(e);return json({ok:true})}
  if(path==="/webhooks/asaas"){if(!eq(req.headers.get("asaas-access-token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e    =await req.json();if(!e.id||!e.payment?.id)return json({error:"Evento inválido"},400);if((await db("saints_prospect_events?id=eq."+encodeURIComponent(e.id))).length)return json({ok:true});const row=(await db("saints_prospect_charges?asaas_id=eq."+encodeURIComponent(e.payment.id)))[0];if(row){const p=await asaas("/payments/"+encodeURIComponent(e.payment.id));await db("saints_prospect_charges?id=eq."+encodeURIComponent(row.id),"PATCH",{data:p})}await db("saints_prospect_events","POST",{id:e.id});return json({ok:true})}
  if(!eq(req.headers.get("authorization"),"Bearer "+env.API_TOKEN))return json({error:"unauthorized"},401);
