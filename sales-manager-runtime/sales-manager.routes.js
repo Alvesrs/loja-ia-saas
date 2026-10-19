@@ -15,6 +15,7 @@ const tokenOf = req => {
 };
 const ownerEmails = () => String(process.env.SAAS_ADMIN_EMAILS || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
 const money = v => Math.max(0, Number(v || 0));
+const deleted = v => String(v.observacao||'').split('\n').includes('[GV_EXCLUIDA]');
 const monthStart = d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
 const addMonths = (d,n) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+n, 1));
 const FIRST_GV_MONTH='2026-01';
@@ -98,13 +99,13 @@ router.get('/vendas',requireUser,async(req,res)=>{
     .gte('vendido_em',periodo.ini.toISOString()).lt('vendido_em',periodo.fim.toISOString())
     .order('vendido_em',{ascending:false});
   if(error) return res.status(500).json({erro:'Não foi possível carregar as vendas.'});
-  res.json({mes:periodo.key,vendas:data||[]});
+  res.json({mes:periodo.key,vendas:(data||[]).filter(v=>deleted(v)===(req.query.excluidas==='1'))});
 });
 
 router.post('/vendas',requireUser,async(req,res)=>{
   try{
     const cliente_nome=String(req.body?.cliente_nome||'').trim(), valor=money(req.body?.valor);
-    if(!cliente_nome||!(valor>0)) return res.status(400).json({erro:'Informe cliente e valor maior que zero.'});
+    if(!cliente_nome||!Number.isFinite(valor)||!(valor>0)) return res.status(400).json({erro:'Informe cliente e valor maior que zero.'});
     let cliente_id=req.body?.cliente_id||null;
     if(!cliente_id){
       const {data:ex}=await db.from('gv_clientes').select('id').eq('empresa_id',req.gv.empresa.id).ilike('nome',cliente_nome).limit(1).maybeSingle();
@@ -133,15 +134,16 @@ router.put('/vendas/:id',requireUser,async(req,res)=>{
     const cliente_nome=String(req.body?.cliente_nome||'').trim();
     const valor=money(req.body?.valor);
     if(!id) return res.status(400).json({erro:'Venda inválida.'});
-    if(!cliente_nome||!(valor>0)) return res.status(400).json({erro:'Informe cliente e valor maior que zero.'});
+    if(!cliente_nome||!Number.isFinite(valor)||!(valor>0)) return res.status(400).json({erro:'Informe cliente e valor maior que zero.'});
 
     const {data:existente,error:findErr}=await db.from('gv_vendas')
-      .select('id,empresa_id,cliente_id,observacao')
+      .select('*')
       .eq('id',id).eq('empresa_id',req.gv.empresa.id).maybeSingle();
     if(findErr) throw findErr;
     if(!existente) return res.status(404).json({erro:'Venda não encontrada.'});
+    if(deleted(existente)) return res.status(409).json({erro:'Restaure a venda na lixeira antes de editar.'});
 
-    let cliente_id=req.body?.cliente_id||existente.cliente_id||null;
+    let cliente_id=null; // Resolve novamente para não vincular o nome corrigido ao cliente antigo.
     if(!cliente_id){
       const {data:ex}=await db.from('gv_clientes').select('id')
         .eq('empresa_id',req.gv.empresa.id).ilike('nome',cliente_nome).limit(1).maybeSingle();
@@ -154,18 +156,18 @@ router.put('/vendas/:id',requireUser,async(req,res)=>{
     }
 
     const tipo=(String(req.body?.tipo_cliente||'novo').toLowerCase()==='recorrente')?'recorrente':'novo';
-    const obsLivre=String(req.body?.observacao||'').trim();
+    const obsLivre=String(req.body?.observacao ?? String(existente.observacao||'').replace(/^\[CLIENTE_TIPO\](novo|recorrente)\n?/, '')).replace(/^\[GV_EXCLUIDA\]$/gm,'').trim();
     const payload={
       cliente_id,
-      produto_id:req.body?.produto_id||null,
+      produto_id:req.body?.produto_id ?? existente.produto_id,
       cliente_nome,
-      produto_nome:String(req.body?.produto_nome||'').trim()||null,
+      produto_nome:String(req.body?.produto_nome ?? existente.produto_nome ?? '').trim()||null,
       categoria:String(req.body?.categoria||'').trim()||null,
       origem:String(req.body?.origem||'WhatsApp').trim(),
       valor,
-      custo:money(req.body?.custo),
+      custo:money(req.body?.custo ?? existente.custo),
       observacao:'[CLIENTE_TIPO]'+tipo+(obsLivre?'\n'+obsLivre:''),
-      vendido_em:req.body?.vendido_em?new Date(req.body.vendido_em).toISOString():new Date().toISOString()
+      vendido_em:req.body?.vendido_em?new Date(req.body.vendido_em).toISOString():existente.vendido_em
     };
     const {data,error}=await db.from('gv_vendas').update(payload)
       .eq('id',id).eq('empresa_id',req.gv.empresa.id).select('*').single();
@@ -175,6 +177,23 @@ router.put('/vendas/:id',requireUser,async(req,res)=>{
     console.error('[gv venda update]',e);
     res.status(500).json({erro:'Não foi possível editar a venda.'});
   }
+});
+
+
+// Exclusão recuperável: mantém o registro e seus dados, sem migração destrutiva.
+router.post('/vendas/:id/lixeira',requireUser,async(req,res)=>{
+  try{
+    const id=String(req.params.id||'');
+    if(typeof req.body?.excluir!=='boolean')return res.status(400).json({erro:'Informe a ação de excluir ou restaurar.'});
+    const {data:v,error:readError}=await db.from('gv_vendas').select('*').eq('id',id).eq('empresa_id',req.gv.empresa.id).maybeSingle();
+    if(readError)throw readError;
+    if(!v)return res.status(404).json({erro:'Venda não encontrada.'});
+    const obs=String(v.observacao||'').split('\n').filter(l=>l!=='[GV_EXCLUIDA]').join('\n');
+    const observacao=obs+(req.body.excluir?'\n[GV_EXCLUIDA]':'');
+    const {data,error}=await db.from('gv_vendas').update({observacao}).eq('id',id).eq('empresa_id',req.gv.empresa.id).select('*').single();
+    if(error)throw error;
+    res.json({venda:data});
+  }catch(e){console.error('[gv lixeira]',e);res.status(500).json({erro:'Não foi possível alterar a lixeira. Tente novamente.'});}
 });
 
 router.get('/clientes',requireUser,async(req,res)=>{
@@ -209,10 +228,10 @@ router.get('/dashboard',requireUser,async(req,res)=>{
     const periodo=monthRange(req.query.mes);if(!periodo)return res.status(400).json({erro:'Escolha um mês entre janeiro de 2026 e o mês atual.'});const ini=periodo.ini,fim=periodo.fim,prevIni=addMonths(ini,-1);
     const [{data:atual,error:aErr},{data:anterior,error:pErr}]=await Promise.all([
       db.from('gv_vendas').select('id,cliente_id,cliente_nome,categoria,origem,valor,custo,vendido_em,observacao').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',ini.toISOString()).lt('vendido_em',fim.toISOString()),
-      db.from('gv_vendas').select('id,valor,custo').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',prevIni.toISOString()).lt('vendido_em',ini.toISOString())
+      db.from('gv_vendas').select('id,valor,custo,observacao').eq('empresa_id',req.gv.empresa.id).gte('vendido_em',prevIni.toISOString()).lt('vendido_em',ini.toISOString())
     ]);
     if(aErr||pErr) throw aErr||pErr;
-    const vendas=atual||[],prev=anterior||[];
+    const vendas=(atual||[]).filter(v=>!deleted(v)),prev=(anterior||[]).filter(v=>!deleted(v));
     const faturamento=vendas.reduce((s,v)=>s+Number(v.valor||0),0),lucro=vendas.reduce((s,v)=>s+Number(v.valor||0)-Number(v.custo||0),0),prevFat=prev.reduce((s,v)=>s+Number(v.valor||0),0);
     const clientes=new Set(vendas.map(v=>v.cliente_id||v.cliente_nome).filter(Boolean)).size,ticket=vendas.length?faturamento/vendas.length:0;
     const porDia={},origens={},categorias={},tipos={novo:0,recorrente:0};
@@ -246,7 +265,7 @@ router.get('/exportar-excel',requireUser,async(req,res)=>{
       .order('vendido_em',{ascending:true});
     if(error) throw error;
 
-    const rows=vendas||[];
+    const rows=(vendas||[]).filter(v=>!deleted(v));
     const faturamento=rows.reduce((s,v)=>s+Number(v.valor||0),0);
     const custo=rows.reduce((s,v)=>s+Number(v.custo||0),0);
     const lucro=faturamento-custo;
