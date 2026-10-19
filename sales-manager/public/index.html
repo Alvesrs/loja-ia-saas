@@ -312,18 +312,32 @@ function abrirEdicao(id){
 }
 document.getElementById('channelFilter')?.addEventListener('change',renderSales);
 document.getElementById('clientTypeFilter')?.addEventListener('change',renderSales);
+// Um envio por vez: evita POST duplicado por toque duplo ou demora na rede.
+let salvamentoVendaEmAndamento=false;
 sale.onsubmit=async e=>{
   e.preventDefault();
+  if(salvamentoVendaEmAndamento)return;
   const fd=new FormData(e.target);
+  const vendaIdAtual=fd.get('venda_id');
+  const payload={
+    cliente_nome:String(fd.get('cliente')||'').trim(),valor:Number(fd.get('valor')),origem:fd.get('origem'),categoria:fd.get('categoria'),
+    vendedor:fd.get('vendedor'),tipo_cliente:fd.get('tipo_cliente'),vendido_em:fd.get('data')?fd.get('data')+'T12:00:00':''
+  };
+  salvamentoVendaEmAndamento=true;
+  saveSaleBtn.disabled=true;
+  const textoOriginal=saveSaleBtn.textContent;
+  saveSaleBtn.textContent='Salvando...';
   try{
-    const vendaIdAtual=fd.get('venda_id');
-    const payload={
-      cliente_nome:fd.get('cliente'),valor:Number(fd.get('valor')),origem:fd.get('origem'),categoria:fd.get('categoria'),
-      vendedor:fd.get('vendedor'),tipo_cliente:fd.get('tipo_cliente'),vendido_em:fd.get('data')?fd.get('data')+'T12:00:00':''
-    };
     await api(vendaIdAtual?'/vendas/'+encodeURIComponent(vendaIdAtual):'/vendas',{method:vendaIdAtual?'PUT':'POST',body:JSON.stringify(payload)});
-    e.target.reset();modal.classList.remove('on');await loadDashboard();go('vendas');
+    e.target.reset();modal.classList.remove('on');
+    await Promise.all([loadDashboard(),loadSales()]);
+    go('vendas');
   }catch(err){alert(err.message)}
+  finally{
+    salvamentoVendaEmAndamento=false;
+    saveSaleBtn.disabled=false;
+    saveSaleBtn.textContent=textoOriginal;
+  }
 };
 boot();
 </script></body></html>
