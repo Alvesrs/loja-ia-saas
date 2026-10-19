@@ -155,7 +155,12 @@ REVISÃO ANTES DE RESPONDER: verifique se todas as tags estão fechadas, links t
  // These markers are server-owned: the browser must preserve the actual composition.
  const design=JSON.stringify({...plan,...(heroAsset?{heroAsset:"antunes-hero-v2"}:{}),engine:"custom-html-v1",designVersion:3,premiumVersion:1}).replace(/</g,"").replace(/--/g,"");
  html=html.replace(/<head>/i,'<head><!-- saints-engine:custom-v1 --><!-- saints-design '+design+' -->');
- try{validateCustomWebsite(html,research,l);return html}catch(error    ){if(revision===1)throw error;result=await codeRequest([{role:"system",content:'Corrija o HTML completo e devolva somente o arquivo, com CSS autoral, aparência profissional, responsivo e sem scripts. Preserve todos os fatos e imagens autorizadas. H1 deve conter __BUSINESS__ em grande escala; frase de apoio separada. No hero, contato em <a class="primary-cta" href="__WHATSAPP__">; nunca button. Contatos somente __WHATSAPP__, __MAPS__, __SOCIAL__ e âncoras internas válidas. Original src __PHOTO_1__ quando permitido; hero editado src __HERO_ASSET__ apenas se disponível, com aviso de recriação por IA. Ao menos 3 section e footer. Complete em até 3200 tokens, CSS compacto. Nunca invente preços, ingredientes, avaliações ou história.'},{role:"user",content:JSON.stringify({issue:error.message,brief,draft:raw.slice(0,15000)})}],4000)}
+ try{validateCustomWebsite(html,research,l);return html}catch(error    ){if(revision===1){
+ const composition=cleanWebsite(renderCreativeWebsite(plan,facts,l),research,l);
+ const fallbackDesign=JSON.stringify({...plan,engine:"custom-html-v1",designVersion:3,premiumVersion:1,compositionFallback:true}).replace(/</g,"").replace(/--/g,"");
+ const fallback=composition.replace(/<head>/i,'<head><!-- saints-engine:custom-v1 --><!-- saints-design '+fallbackDesign+' -->');
+ validateCustomWebsite(fallback,research,l);return fallback;
+ }result=await codeRequest([{role:"system",content:'Corrija o HTML completo e devolva somente o arquivo, com CSS autoral, aparência profissional, responsivo e sem scripts. Preserve todos os fatos e imagens autorizadas. H1 deve conter __BUSINESS__ em grande escala; frase de apoio separada. No hero, contato em <a class="primary-cta" href="__WHATSAPP__">; nunca button. Contatos somente __WHATSAPP__, __MAPS__, __SOCIAL__ e âncoras internas válidas. Original src __PHOTO_1__ quando permitido; hero editado src __HERO_ASSET__ apenas se disponível, com aviso de recriação por IA. Ao menos 3 section e footer. Complete em até 3200 tokens, CSS compacto. Nunca invente preços, ingredientes, avaliações ou história.'},{role:"user",content:JSON.stringify({issue:error.message,brief,draft:raw.slice(0,15000)})}],4000)}
  }
  throw Error("Não foi possível concluir a revisão do projeto. Sua proposta anterior foi preservada.");
 }
@@ -232,7 +237,7 @@ async function discoverReferences(req        ){
 }
 
 async function routes(req        ){const u=new URL(req.url),path=u.pathname;
- if(path==="/health")return json({ok:true,version:"0.4.1-premium",websiteEngine:"cinematic-v1"});
+ if(path==="/health")return json({ok:true,version:"0.4.2-premium",websiteEngine:"cinematic-v1"});
  if(path==="/webhooks/waha"){if(!eq(u.searchParams.get("token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e=await req.json();await handleMessage(e);return json({ok:true})}
  if(path==="/webhooks/asaas"){if(!eq(req.headers.get("asaas-access-token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e    =await req.json();if(!e.id||!e.payment?.id)return json({error:"Evento inválido"},400);if((await db("saints_prospect_events?id=eq."+encodeURIComponent(e.id))).length)return json({ok:true});const row=(await db("saints_prospect_charges?asaas_id=eq."+encodeURIComponent(e.payment.id)))[0];if(row){const p=await asaas("/payments/"+encodeURIComponent(e.payment.id));await db("saints_prospect_charges?id=eq."+encodeURIComponent(row.id),"PATCH",{data:p})}await db("saints_prospect_events","POST",{id:e.id});return json({ok:true})}
  if(!eq(req.headers.get("authorization"),"Bearer "+env.API_TOKEN))return json({error:"unauthorized"},401);
