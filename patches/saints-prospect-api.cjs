@@ -353,7 +353,7 @@ async function commerceRoute(req        ,path       ){
   if(l.data.siteStatus!=='approved'||!l.data.proposal)throw Error('Aprove o site antes de criar a proposta');
   if(!b.rightsConfirmed||![360,390,768,1440].every(w=>b.visualReview?.[w]===true))throw Error('Confirme direitos das imagens e revisão visual nos quatro tamanhos');
   const hooks=await asaas('/webhooks?limit=100');if(!hooks.data?.some((h    )=>h.url===commerceURL('/webhooks/asaas')&&h.enabled&&!h.interrupted))throw Error('Ative o recebimento automático do Asaas em Configurações antes de vender.');
-  const fee=await asaas('/myAccount/fees/');const pix=Number(fee.pix?.fixedFeeValue??fee.pix?.fixedFee);if(!Number.isFinite(pix)||pix<0||pix>30)throw Error('Taxa Pix não confirmada ou acima da reserva de R$30. Confira as condições antes de vender.');
+  const fee=await asaas('/myAccount/fees/');const pix=Number(fee.payment?.pix?.fixedFeeValue??fee.pix?.fixedFeeValue??fee.pix?.fixedFee);if(!Number.isFinite(pix)||pix<0||pix>30)throw Error('Taxa Pix não confirmada ou acima da reserva de R$30. Confira as condições antes de vender.');
   if(!String(b.support||'').trim())throw Error('Informe o canal de suporte na proposta');
   const offer={token:l.data.offer?.token||crypto.randomUUID().replaceAll('-',''),terms:offerTerms(),support:String(b.support).slice(0,250),publishedAt:now(),siteRevision:l.data.siteRevision,rightsConfirmed:true,visualReview:b.visualReview,feesCheckedAt:now(),estimatedCosts:{domain:40,hosting:0,payment:pix,remaining:SITE_PRICE-40-pix}};
   const publicUrl=commerceURL('/p/'+offer.token);const savedOffer={...offer,publicUrl};await patch(l.id,{data:{...l.data,offer:savedOffer}});return json({url:publicUrl,offer:savedOffer});
