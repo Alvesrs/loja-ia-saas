@@ -42,11 +42,13 @@ async function handleMessage(event    ){
 }
 function htmlEscape(value    ){return String(value??"").replace(/[&<>"']/g,(c       )=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]||c))}
 function cleanWebsite(raw       ,research    ,l    ){
+ const approvedPhone=phone(research.phone||l.phone);
+ const approvedContacts=new Set([approvedPhone?"https://wa.me/"+approvedPhone:"",String(research.mapsUrl||""),String(research.instagram?.readable?.[0]||research.website||"")].filter(v=>v.startsWith("https://")));
  let html=String(raw).replace(/^\s*```(?:html)?/i,"").replace(/```\s*$/,"").trim();
  const first=html.search(/<!doctype|<html/i);if(first>0)html=html.slice(first);if(!/<\/html>/i.test(html)||html.length<2500||html.length>65000)throw Error("A IA não concluiu uma página válida. Tente gerar novamente.");
  html=html.replace(/<(script|iframe|object|embed|form|svg|math|noscript)[^>]*>[\s\S]*?<\/\1\s*>/gi,"").replace(/<\/?(?:script|iframe|object|embed|input|textarea|select|button|form|svg|math|link|meta|base)\b[^>]*>/gi,"");
  const tags=new Set(["html","head","body","title","style","header","nav","main","section","article","aside","footer","div","span","h1","h2","h3","h4","p","a","img","picture","figure","figcaption","ul","ol","li","strong","em","small","b","i","br","hr","address","blockquote","details","summary"]);
- html=html.replace(/<(\/?)([a-z][a-z0-9-]*)([^>]*)>/gi,(match,closing,tag,attrs)=>{tag=tag.toLowerCase();if(!tags.has(tag))return "";if(closing)return "</"+tag+">";let out="";const re=/([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>\x60]+))/g;for(const a of attrs.matchAll(re)){const name=a[1].toLowerCase(),value=a[2]??a[3]??a[4]??"";if(!["class","id","href","src","alt","width","height","loading","style","title","target","rel","role","aria-label","aria-hidden","data-reveal","data-parallax","data-motion"].includes(name))continue;if(name==="href"&&!/^#|^__(WHATSAPP|MAPS|SOCIAL)__$/i.test(value))continue;if(name==="src"&&!/^__PHOTO_[123]__$/.test(value)&&!(value==="__HERO_ASSET__"&&l.id==="google-ChIJ-TDikuej7JQR8P39DB1HVgo"&&research.photos.some((p    )=>/r1a4-meals-Antunes-Burger\.jpg/.test(p.url||""))))continue;if(name==="style"&&/expression|javascript|@import|behavior|-moz-binding/i.test(value))continue;if(name==="style"&&/url\s*\(/i.test(value)&&!value.includes("__PHOTO_"))continue;out+=" "+name+'="'+htmlEscape(value)+'"'}if(tag==="a")out+=' rel="noopener noreferrer"';return "<"+tag+out+">"});
+ html=html.replace(/<(\/?)([a-z][a-z0-9-]*)([^>]*)>/gi,(match,closing,tag,attrs)=>{tag=tag.toLowerCase();if(!tags.has(tag))return "";if(closing)return "</"+tag+">";let out="";const re=/([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>\x60]+))/g;for(const a of attrs.matchAll(re)){const name=a[1].toLowerCase(),value=a[2]??a[3]??a[4]??"";if(!["class","id","href","src","alt","width","height","loading","style","title","target","rel","role","aria-label","aria-hidden","data-reveal","data-parallax","data-motion"].includes(name))continue;if(name==="href"&&!/^#|^__(WHATSAPP|MAPS|SOCIAL)__$/i.test(value)&&!approvedContacts.has(value))continue;if(name==="src"&&!/^__PHOTO_[123]__$/.test(value)&&!(value==="__HERO_ASSET__"&&l.id==="google-ChIJ-TDikuej7JQR8P39DB1HVgo"&&research.photos.some((p    )=>/r1a4-meals-Antunes-Burger\.jpg/.test(p.url||""))))continue;if(name==="style"&&/expression|javascript|@import|behavior|-moz-binding/i.test(value))continue;if(name==="style"&&/url\s*\(/i.test(value)&&!value.includes("__PHOTO_"))continue;out+=" "+name+'="'+htmlEscape(value)+'"'}if(tag==="a")out+=' rel="noopener noreferrer"';return "<"+tag+out+">"});
  html=html.replace(/@import[^;]+;/gi,"").replace(/expression\s*\([^)]*\)/gi,"").replace(/url\s*\(\s*(['"]?)(.*?)\1\s*\)/gi,(full,q,value)=>(/^__PHOTO_[123]__$/.test(value)||/^https:\/\/fonts\.gstatic\.com\/s\/barlowcondensed\/[a-zA-Z0-9_./-]+\.(ttf|woff2)$/.test(value))?full:"none").replace(/-moz-binding\s*:[^;]+;?/gi,"");
  if(!/<h1\b/i.test(html)||!/__PHOTO_[123]__/.test(html)||(!html.includes("__BUSINESS__")&&!html.includes(htmlEscape(l.data.name))&&!html.includes(l.data.name)))throw Error("A proposta não passou pela revisão automática de identidade e imagens. Tente novamente.");
  const number=phone(research.phone||l.phone);const wa=number?"https://wa.me/"+number:"";const map=String(research.mapsUrl||"");const social=String(research.instagram?.readable?.[0]||research.website||"");
@@ -104,6 +106,20 @@ function validateCustomWebsite(html       ,research    ,l    ){
  const sections=(html.match(/<section\b/gi)||[]).length;
  return {engine:"custom-html-v1",sections,scriptFree:true,responsiveRules:true,contactsVerified:true,visualReview:"pending"};
 }
+function repairVerifiedHeroCTA(html       ,research    ,l    ){
+ const number=phone(research.phone||l.phone);if(!number)return html;
+ const target="https://wa.me/"+number;
+ return html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/i,section=>{
+  if(!/<h1\b/i.test(section)||section.includes(target))return section;
+  let fixed=false;
+  section=section.replace(/<a\b([^>]*)>/gi,(tag,attrs)=>{
+   if(!/class="[^"]*\bprimary-cta\b[^"]*"/i.test(attrs))return tag;
+   fixed=true;return '<a'+attrs.replace(/\s+href="[^"]*"/gi,"")+' href="'+target+'" target="_blank" rel="noopener noreferrer">';
+  });
+  if(fixed)return section;
+  return section.replace(/<\/section>/i,'<a class="primary-cta saints-verified-cta" href="'+target+'" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:16px 24px;background:#fff;color:#111;border:1px solid #111;font:700 16px Arial,sans-serif;margin:20px 6%">Conversar pelo WhatsApp ↗</a></section>');
+ });
+}
 function segmentDirection(value       ){
  if(/lanch|burger|hamb|restaur|pizza|caf[eé]|padar|sorvet/i.test(value))return "Gastronomia cinematográfica: comida real dominante; nome monumental; acento da foto; seção editorial; CTA consultar/pedir via WhatsApp; não inventar cardápio.";
  if(/barbear|barber/i.test(value))return "Barbearia editorial: contraste escuro, grelha de revista assimétrica, tipografia condensada, retratos/ambiente reais, CTA agendar pelo WhatsApp.";
@@ -135,7 +151,7 @@ REVISÃO ANTES DE RESPONDER: verifique se todas as tags estão fechadas, links t
  let raw=String(result.choices?.[0]?.message?.content||"");
  const used=[...raw.matchAll(/__PHOTO_([123])__/g)].map(m=>Number(m[1]));if(used.some(n=>!allowed.some((p    )=>p.number===n)))throw Error("O projeto selecionou uma imagem que não foi validada. Gere novamente.");
  if(raw.includes("__HERO_ASSET__")&&!heroAsset)throw Error("O projeto usou um recurso visual que não pertence a este negócio.");
- let html=cleanWebsite(raw,research,l);
+ let html=repairVerifiedHeroCTA(cleanWebsite(raw,research,l),research,l);
  // These markers are server-owned: the browser must preserve the actual composition.
  const design=JSON.stringify({...plan,...(heroAsset?{heroAsset:"antunes-hero-v2"}:{}),engine:"custom-html-v1",designVersion:3,premiumVersion:1}).replace(/</g,"").replace(/--/g,"");
  html=html.replace(/<head>/i,'<head><!-- saints-engine:custom-v1 --><!-- saints-design '+design+' -->');
@@ -212,11 +228,11 @@ async function discoverReferences(req        ){
  const instagram={status:readable.length?"read":profiles.length?"blocked":"not_found",profiles,readable:readable.map((p    )=>p.url),message:readable.length?"Referências públicas do Instagram consultadas antes da criação.":profiles.length?"Perfil encontrado, mas o Instagram não liberou conteúdo público verificável nesta consulta. Isso não significa falta de referências.":"Não foi possível confirmar o Instagram oficial nesta pesquisa. Você pode vincular o perfil pelo link ou @."};
  const candidates=[...readable,...pages.filter((p    )=>!readable.includes(p))].flatMap((p    )=>p.images.map((url    )=>({url,page:p}))).filter((x    )=>!/staticmap|maps.googleapis.com|maps.gstatic.com|magicpin\.com\/api\/|favicon|\/icons\//i.test(x.url));
  const checked=await Promise.all(candidates.slice(0,12).map(async({url,page}    )=>{try{const r=await fetch(url,{redirect:"error",signal:AbortSignal.timeout(9000)});const type=r.headers.get("content-type")||"";await r.body?.cancel();return r.ok&&/^image\/(jpe?g|png|webp)/i.test(type)?{url,source:"web",pageUrl:page.url,authors:[]}:null}catch{return null}}));
- const unique      =[...new Map(checked.filter(Boolean).map((p    )=>[p.url,p])).values()];const real=unique.filter((p    )=>!/profile_pic|t51\.2885-19|s100x100/i.test(p.url));const pool=real.length?real:unique;const postImages=pool.filter((p    )=>/instagram\.com\/(p|reel)\//.test(p.pageUrl));const other=pool.filter((p    )=>!postImages.includes(p));const selection=postImages.length&&other.length?[postImages[0],...other.slice(0,2)]:pool.slice(0,3);const photos=selection.map((p    ,index)=>({...p,index}));return json({urls,pages,photos,instagram});
+ const unique      =[...new Map(checked.filter(Boolean).map((p    )=>[p.url,p])).values()];const real=unique.filter((p    )=>!/profile_pic|t51\.2885-19|s100x100|exa\.ai\/api\/library\/og/i.test(p.url));const pool=real.length?real:unique.filter((p    )=>!/exa\.ai\/api\/library\/og/i.test(p.url));const postImages=pool.filter((p    )=>/instagram\.com\/(p|reel)\//.test(p.pageUrl));const other=pool.filter((p    )=>!postImages.includes(p));const selection=postImages.length&&other.length?[postImages[0],...other.slice(0,2)]:pool.slice(0,3);const photos=selection.map((p    ,index)=>({...p,index}));return json({urls,pages,photos,instagram});
 }
 
 async function routes(req        ){const u=new URL(req.url),path=u.pathname;
- if(path==="/health")return json({ok:true,version:"0.4-premium",websiteEngine:"cinematic-v1"});
+ if(path==="/health")return json({ok:true,version:"0.4.1-premium",websiteEngine:"cinematic-v1"});
  if(path==="/webhooks/waha"){if(!eq(u.searchParams.get("token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e=await req.json();await handleMessage(e);return json({ok:true})}
  if(path==="/webhooks/asaas"){if(!eq(req.headers.get("asaas-access-token"),env.API_TOKEN))return json({error:"unauthorized"},401);const e    =await req.json();if(!e.id||!e.payment?.id)return json({error:"Evento inválido"},400);if((await db("saints_prospect_events?id=eq."+encodeURIComponent(e.id))).length)return json({ok:true});const row=(await db("saints_prospect_charges?asaas_id=eq."+encodeURIComponent(e.payment.id)))[0];if(row){const p=await asaas("/payments/"+encodeURIComponent(e.payment.id));await db("saints_prospect_charges?id=eq."+encodeURIComponent(row.id),"PATCH",{data:p})}await db("saints_prospect_events","POST",{id:e.id});return json({ok:true})}
  if(!eq(req.headers.get("authorization"),"Bearer "+env.API_TOKEN))return json({error:"unauthorized"},401);
