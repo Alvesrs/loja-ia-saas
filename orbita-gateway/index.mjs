@@ -30,6 +30,9 @@ export async function signedHeaders(env,identity,method,path,body=new Uint8Array
 }
 export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audience)=>(await googleVerifier.verifyIdToken({idToken,audience})).getPayload()}={}){
  const source=validBase(env.ORBITA_SOURCE_URL);
+ // The application uses these same vanilla bundles in its React wrapper. Serve
+ // their shell directly here so entry never depends on framework hydration.
+ function appShell(){return new Response(addInstallMetadata(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Órbita · Atendimento e agenda</title>${['style','craft','workspace-upgrade','growth'].map(x=>'<link rel="stylesheet" href="/'+x+'.css">').join('')}<style>body{margin:0;background:#0d0c14;color:#f1edf9;font-family:system-ui,sans-serif}.boot-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}.boot-screen p{max-width:42ch;line-height:1.7}</style></head><body><div id="app"><main class="boot-screen" role="status"><h1>Preparando sua órbita…</h1><p>Carregando o aplicativo.</p></main></div><noscript>Ative o JavaScript para usar a Órbita.</noscript><dialog id="modal"></dialog><div id="toast" role="status" aria-live="polite"></div><script src="/entry-watchdog.js" defer></script>${['core','app','workspace-upgrade','menu-brand-editor','growth'].map(x=>'<script src="/'+x+'.js" defer></script>').join('')}</body></html>`),{headers:{...securityHeaders,'Content-Type':'text/html; charset=utf-8'}});}
  async function forward(request,user,pathOverride){
   if(!source||!env.ORBITA_SOURCE_SERVICE_TOKEN)error(503,'Entrada indisponível. Use o acesso atual.');const url=new URL(request.url),path=pathOverride||url.pathname+url.search,method=request.method,body=await readBody(request),headers=new Headers({'OAI-Sites-Authorization':'Bearer '+env.ORBITA_SOURCE_SERVICE_TOKEN});
   for(const name of ['content-type','accept']){const value=request.headers.get(name);if(value)headers.set(name,value)}
@@ -45,6 +48,7 @@ export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audi
   return new Response(response.body,{status:response.status,headers:output});
  }
  return async function handle(request){const url=new URL(request.url),ready=readiness(env);try{
+  if(url.pathname==='/entry-watchdog.js'&&request.method==='GET')return new Response(`setTimeout(function(){var app=document.getElementById('app');if(!app||!app.querySelector('[role="status"],.boot-screen')||typeof cloud!=='undefined'&&cloud.mode!=='loading')return;app.innerHTML='<main class="boot-screen"><h1>A abertura demorou mais que o esperado.</h1><p>Recarregue para tentar novamente. Se o problema continuar, abra seu acesso original.</p><button id="retry-entry">Tentar novamente</button><p><a href="${esc(source||'/login')}" target="_top">Abrir acesso original</a></p></main>';document.getElementById('retry-entry').onclick=function(){location.reload()};},45000);`,{headers:{...securityHeaders,'Content-Type':'application/javascript; charset=utf-8'}});
   const pwaAsset=installAsset(url.pathname);if(pwaAsset&&request.method==='GET')return pwaAsset;
   if(url.pathname==='/health')return json({service:'orbita-google-entry',configured:ready.configured});
   if(url.pathname==='/auth/status')return json(ready);
@@ -81,6 +85,7 @@ export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audi
   if(!['GET','HEAD','POST','PUT'].includes(request.method))error(405,'Método não permitido.');
   if(url.pathname!=='/'&&!staticPath(url.pathname)&&!allowedApi(url.pathname))error(404,'Página não encontrada.');
   if(!['GET','HEAD'].includes(request.method))sameOrigin(request,env);
+  if(request.method==='GET'&&url.pathname==='/')return appShell();
   return forward(request,user);
  }catch(e){const status=Number.isInteger(e.status)?e.status:502;const message=Number.isInteger(e.status)?e.message:'Não foi possível confirmar a operação. Tente novamente.';return url.pathname.startsWith('/api/')?json({error:message},status):page(env,message,status);}};
 }
