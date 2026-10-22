@@ -1,3 +1,4 @@
+import { installAsset, addInstallMetadata } from './pwa.mjs';
 import {OAuth2Client} from 'google-auth-library';
 const encoder=new TextEncoder(),googleVerifier=new OAuth2Client();
 const b64=bytes=>{let out='';for(let i=0;i<bytes.length;i+=8192)out+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(out).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');};
@@ -35,10 +36,16 @@ export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audi
   if(user){for(const [k,v]of Object.entries(await signedHeaders(env,{sub:user.sub,email:user.email,name:user.name},method,path,body)))headers.set(k,v);}
   const response=await fetcher(source+path,{method,headers,body:['GET','HEAD'].includes(method)?undefined:body,redirect:'manual',signal:AbortSignal.timeout(65000)});
   if(response.status>=300&&response.status<400)error(502,'O acesso ao aplicativo não foi confirmado. Tente novamente pelo acesso atual.');
-  const output=new Headers(securityHeaders);output.set('Content-Type',response.headers.get('Content-Type')||'application/octet-stream');for(const name of ['Content-Disposition'])if(response.headers.get(name))output.set(name,response.headers.get(name));if(staticPath(url.pathname))output.set('Cache-Control','public, max-age=300');
+  const output=new Headers(securityHeaders);output.set('Content-Type',response.headers.get('Content-Type')||'application/octet-stream');
+  if(method==='GET' && url.pathname==='/' && response.ok && (response.headers.get('Content-Type')||'').includes('text/html')){
+    const html=addInstallMetadata(await response.text());
+    output.set('Content-Type','text/html; charset=utf-8');
+    return new Response(html,{status:response.status,headers:output});
+  }for(const name of ['Content-Disposition'])if(response.headers.get(name))output.set(name,response.headers.get(name));if(staticPath(url.pathname))output.set('Cache-Control','public, max-age=300');
   return new Response(response.body,{status:response.status,headers:output});
  }
  return async function handle(request){const url=new URL(request.url),ready=readiness(env);try{
+  const pwaAsset=installAsset(url.pathname);if(pwaAsset&&request.method==='GET')return pwaAsset;
   if(url.pathname==='/health')return json({service:'orbita-google-entry',configured:ready.configured});
   if(url.pathname==='/auth/status')return json(ready);
   if(url.pathname==='/auth/google/start'){
@@ -65,7 +72,7 @@ export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audi
   }
   if(url.pathname==='/auth/logout'){if(request.method!=='POST')return page(env,'Para sair, use a opção Sair dentro do aplicativo.',405);sameOrigin(request,env);return redirect('/login',[cookie('__Host-orbita_session','',0),cookie('__Host-orbita_oauth','',0)]);}
   if(url.pathname==='/signin-with-chatgpt')return redirect('/login');
-  if(url.pathname==='/login')return page(env,url.searchParams.has('cancelled')?'Você cancelou a entrada pelo Google. Quando quiser, pode tentar novamente.':'');
+  if(url.pathname==='/login')return new Response(addInstallMetadata(await page(env,url.searchParams.has('cancelled')?'Você cancelou a entrada pelo Google. Quando quiser, pode tentar novamente.':'').text()),{headers:{...securityHeaders,'Content-Type':'text/html; charset=utf-8'}});
   if(request.method==='GET'&&staticPath(url.pathname))return forward(request,null);
   const user=await readCookieToken(env,'session',cookies(request)['__Host-orbita_session']);
   if(!user){if(url.pathname.startsWith('/api/'))return json({error:'Entre com Google para continuar.'},401);return page(env);}
