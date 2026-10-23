@@ -22,22 +22,7 @@ export function addInstallMetadata(html) {
   return html.replace(/<html(?:\s[^>]*)?>/i, m => m + '<head>' + installTags + '</head>');
 }
 
-const installJs = `(() => {
-  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js', {scope:'/'}).catch(() => {}));
-  let deferred = null;
-  const button = () => document.getElementById('install-orbita');
-  window.addEventListener('beforeinstallprompt', event => {
-    event.preventDefault(); deferred = event;
-    const btn = button(); if (btn) btn.hidden = false;
-  });
-  document.addEventListener('click', async event => {
-    const btn = event.target.closest('#install-orbita');
-    if (!btn || !deferred) return;
-    const prompt = deferred; deferred = null; btn.hidden = true;
-    await prompt.prompt().catch(() => {});
-  });
-  window.addEventListener('appinstalled', () => {deferred = null; const btn = button(); if(btn) btn.hidden = true;});
-})();`;
+const installJs = "(() => {\n  const button = () => document.getElementById('install-orbita');\n  const status = text => {const el=document.getElementById('install-status');if(el)el.textContent=text;};\n  let deferred=null;\n  const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;\n  const installed=()=>{deferred=null;const btn=button();if(btn){btn.hidden=true;}status('Órbita instalada. Abra pelo ícone na tela inicial e faça login para acessar sua conta.');};\n  if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js',{scope:'/'}).catch(()=>status('Não foi possível preparar a instalação. Confira sua conexão e recarregue esta página.'));\n  if(standalone())installed();\n  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferred=event;const btn=button();if(btn)btn.hidden=false;status('Tudo pronto. Toque em Instalar app para confirmar a instalação no navegador.');});\n  document.addEventListener('click',async event=>{\n    const btn=event.target.closest&&event.target.closest('#install-orbita');if(!btn)return;\n    if(!deferred){document.getElementById('install-help')?.removeAttribute('hidden');status('Se a janela de instalação não aparecer, use o menu do navegador conforme as instruções abaixo. Não é necessário fazer login.');return;}\n    const prompt=deferred;deferred=null;btn.disabled=true;\n    try{await prompt.prompt();const choice=await prompt.userChoice;status(choice.outcome==='accepted'?'Confirme a conclusão da instalação no navegador. Depois, abra a Órbita pelo ícone.':'A instalação foi cancelada. Você pode instalar pelo menu do navegador quando quiser.');}\n    catch{status('Use o menu do navegador para instalar, seguindo as instruções abaixo.');}\n    finally{btn.disabled=false;}\n  });\n  window.addEventListener('appinstalled',installed);\n})();";
 const workerJs = `const CACHE = 'orbita-shell-v1';
 self.addEventListener('install', event => {event.waitUntil(caches.open(CACHE).then(c => c.add('/offline.html')).then(() => self.skipWaiting()));});
 self.addEventListener('activate', event => {event.waitUntil(Promise.all([caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))), self.clients.claim()]));});
@@ -78,8 +63,9 @@ function iconPng(size){
 const pngs = new Map();
 const headers = {'X-Content-Type-Options':'nosniff', 'Cache-Control':'public, max-age=3600'};
 export function installAsset(path) {
+  if(path === '/instalar' || path === '/install') return new Response(addInstallMetadata("<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Instalar Órbita</title><style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:#0e0c15;color:#f1edf9;font:16px/1.65 system-ui,sans-serif;display:grid;place-items:center;padding:28px}main{width:100%;max-width:440px}img{border-radius:20px}h1{font-size:36px;line-height:1.15;letter-spacing:-1px}p,li{color:#b9afc8}button,a{font:600 16px system-ui;border-radius:12px;padding:16px 20px}button{width:100%;border:0;background:#a886ff;color:#1b102f;cursor:pointer}button:disabled{opacity:.65}a{display:block;text-align:center;color:#d1bcff;border:1px solid #4a3c60;text-decoration:none;margin-top:12px}small{display:block;color:#a99dbd;margin-top:24px}ol{padding-left:20px}li+li{margin-top:12px}section{margin-top:28px;border-top:1px solid #3b3049;padding-top:16px}h2{font-size:19px}button:focus-visible,a:focus-visible{outline:2px solid white;outline-offset:4px}[hidden]{display:none!important}</style></head><body><main><img src=\"/app-icon-192.png\" width=\"80\" height=\"80\" alt=\"Órbita\"><h1>A Órbita no seu celular.</h1><p>Instale primeiro. Entre na sua conta depois, ao abrir o aplicativo.</p><button id=\"install-orbita\" type=\"button\">Instalar app</button><p id=\"install-status\" role=\"status\" aria-live=\"polite\">Não precisa de login para instalar. A opção de instalação depende do navegador.</p><section id=\"install-help\"><h2>Se não aparecer a janela de instalação</h2><ol><li><strong>Android:</strong> abra esta página no Chrome. Toque em ⋮ → Instalar aplicativo ou Adicionar à tela inicial.</li><li><strong>iPhone:</strong> abra no Safari. Toque em Compartilhar → Adicionar à Tela de Início.</li><li>Depois de instalar, abra pelo ícone da Órbita e faça login.</li></ol><p>Está dentro do Instagram, WhatsApp ou ChatGPT? Abra este link no navegador externo para instalar.</p></section><a href=\"/\">Já instalei · abrir app</a><small>Instalação pelo navegador, sem arquivo APK. A internet é necessária para operar sua conta.</small></main></body></html>"),{headers:{...headers,'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
   if (path === '/manifest.webmanifest') return new Response(manifest,{headers:{...headers,'Content-Type':'application/manifest+json; charset=utf-8'}});
-  if(path === '/app-install.js') return new Response(installJs,{headers:{...headers,'Content-Type':'application/javascript; charset=utf-8'}});
+  if(path === '/app-install.js') return new Response(installJs,{headers:{...headers,'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-cache'}});
   if(path === '/service-worker.js') return new Response(workerJs,{headers:{...headers,'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-cache','Service-Worker-Allowed':'/'}});
   if(path === '/offline.html') return new Response(offlineHtml,{headers:{...headers,'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}});
   const m=/^\/app-icon-(192|512)\.png$/.exec(path);
