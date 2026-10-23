@@ -90,9 +90,9 @@ export function createGateway(env,{fetcher=fetch,verifyGoogle=async(idToken,audi
   if(!/^[A-Za-z0-9_-]{1,255}$/.test(user.sub||'')||!user.email||!user.name)error(401,'Sessão inválida.');
   const allowed=String(env.ORBITA_GOOGLE_ALLOWED_EMAILS||'').toLowerCase().split(',').map(x=>x.trim()).filter(Boolean);if(allowed.length&&!allowed.includes(user.email.toLowerCase()))error(403,'Esta conta não tem acesso ao piloto privado.');
   if(!['GET','HEAD','POST','PUT'].includes(request.method))error(405,'Método não permitido.');
-  if(url.pathname!=='/'&&url.pathname!=='/app'&&!staticPath(url.pathname)&&!allowedApi(url.pathname))error(404,'Página não encontrada.');
+  if(url.pathname!=='/'&&url.pathname!=='/app'&&url.pathname!=='/painel'&&!staticPath(url.pathname)&&!allowedApi(url.pathname))error(404,'Página não encontrada.');
   if(!['GET','HEAD'].includes(request.method))sameOrigin(request,env);
-  if(request.method==='GET'&&(url.pathname==='/'||url.pathname==='/app'))return appShell();
+  if(request.method==='GET'&&(url.pathname==='/'||url.pathname==='/app'||url.pathname==='/painel'))return appShell();
   return forward(request,user);
  }catch(e){const status=Number.isInteger(e.status)?e.status:502;const message=Number.isInteger(e.status)?e.message:'Não foi possível confirmar a operação. Tente novamente.';return url.pathname.startsWith('/api/')?json({error:message},status):page(env,message,status);}};
 }
