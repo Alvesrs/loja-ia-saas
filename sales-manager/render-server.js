@@ -2,9 +2,19 @@
 const express = require('express');
 const path = require('path');
 const app = express();
+const { respond: orbitaSalesRespond } = require('./orbita-sales-pilot');
 const apiBase='https://ldpiryzsunxwuhyvvogg.supabase.co/functions/v1/gerenciador-vendas-api';
 app.disable('x-powered-by');
 app.use(express.json({limit:'1mb'}));
+// Isolated preview: no WhatsApp, CRM writes or outbound messages.
+// Deliberately disabled unless explicitly enabled in a staging environment.
+app.post('/api/orbita/pilot/chat',(req,res)=>{
+  if(process.env.ORBITA_SALES_PILOT_ENABLED !== 'true')return res.status(404).json({error:'Pilot disabled'});
+  const message=req.body?.message;
+  if(typeof message!=='string'||message.length>4000)return res.status(400).json({error:'Invalid message'});
+  const state=typeof req.body?.state==='string'?req.body.state:undefined;
+  return res.json(orbitaSalesRespond({message,state}));
+});
 app.get('/health',async(_req,res)=>{
   try {
     const upstream=await fetch(apiBase+'/health',{signal:AbortSignal.timeout(15000)});
