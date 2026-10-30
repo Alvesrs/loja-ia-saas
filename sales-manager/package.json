@@ -1,1 +1,13 @@
-{"name":"sales-manager","version":"1.0.0","private":true,"scripts":{"start":"node server.js"},"dependencies":{"express":"^5.1.0"}}
+{
+  "name": "sales-manager",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "start:render": "node render-server.js",
+    "test:orbita": "node orbita-sales-pilot.test.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
