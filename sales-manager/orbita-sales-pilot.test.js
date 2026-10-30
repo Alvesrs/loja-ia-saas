@@ -19,4 +19,8 @@ const stopped = respond({ message: 'Quero ver preços', state: STATES.OPTED_OUT 
 assert.equal(stopped.action, 'none');
 assert.equal(stopped.reply, '');
 assert.equal(respond({ message: '' }).action, 'clarify');
+for (const message of ['Não quero', 'Pode parar por favor']) {
+  assert.equal(respond({ message }).action, 'opt_out', message);
+}
+assert.equal(respond({ message: 'Quero cancelar' }).action, 'handoff_requested');
 console.log('Órbita Vendas: 8 cenários de teste passaram.');

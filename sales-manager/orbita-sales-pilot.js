@@ -19,10 +19,10 @@ function respond({ message, state = STATES.NEW } = {}) {
   }
   const text = normalize(message);
   if (state === STATES.OPTED_OUT) return { state, reply: '', action: 'none' };
-  if (has(text, ['pare de mandar', 'nao me mande', 'nao quero contato', 'remova meu contato', 'nao me contate', 'sair da lista'])) {
+  if (has(text, ['pare de mandar', 'nao me mande', 'nao quero contato', 'remova meu contato', 'nao me contate', 'sair da lista', 'pode parar']) || /^nao quero[.!?\s]*$/.test(text)) {
     return { state: STATES.OPTED_OUT, reply: 'Entendido. Não enviaremos novos contatos comerciais.', action: 'opt_out' };
   }
-  if (has(text, ['humano', 'pessoa de verdade', 'atendente', 'falar com alguem', 'reclamacao', 'excluir meus dados'])) {
+  if (has(text, ['humano', 'pessoa de verdade', 'atendente', 'falar com alguem', 'reclamacao', 'excluir meus dados', 'quero cancelar'])) {
     return { state: STATES.HUMAN_HANDOFF, reply: 'Vou solicitar atendimento humano. Ainda não confirmei a transferência.', action: 'handoff_requested' };
   }
   if (has(text, ['preco', 'quanto custa', 'mensalidade', 'desconto', 'valor do plano'])) {
